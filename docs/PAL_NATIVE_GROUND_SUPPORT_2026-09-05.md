@@ -2,7 +2,7 @@
 
 ## Implemented
 
-`web/src/game/nativeRaceGroundSupport.ts` translates the complete scalar
+`rtao/src/game/nativeRaceGroundSupport.ts` translates the complete scalar
 0x0021BDD8..0x0021C27C routine. It consumes the caller's seven collision probe
 Y components, seven original fixed-point height words and seven auxiliary
 query heights, plus three stored support values, deltas and impulses.
@@ -31,8 +31,9 @@ was introduced.
 - The bounded PAL oracle adds only the routine address range and SRAV support.
   Float operations remain host float32; this is not a cycle-accurate PS2.
 
-Evidence: `handoff/race-checkpoint-2026-09-05/traces/ground_support.txt`,
-`normal_matrix_constructor.txt` and `native-ground-support-check.log`.
+Evidence: `docs/evidence/races/2026-09-05/traces/ground_support.txt`,
+`docs/evidence/races/2026-09-05/traces/normal_matrix_constructor.txt` and
+`docs/evidence/races/2026-09-05/native-ground-support-check.log`.
 
 ## Remaining boundary
 
@@ -49,4 +50,3 @@ lane/order/rounding before implementing the transform.
 
 Next bounded work block: recover the original course query outputs and matrix
 helpers so the verified scalar inputs are produced by evidenced native paths.
-Post visible updates at least once a minute and save before expanding scope.

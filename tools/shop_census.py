@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Render a labelled contact sheet of every authored SHOP slot for one HG2 area.
 
-This is a sandbox/development helper only. It reads the user's local PAL BIN/CUE
-through the browser capture bundle and never writes game assets into source.
+This is a development helper only. It reads the user's local PAL BIN/CUE through
+the browser capture bundle and never writes game assets into source.
 
 Usage:
-  xvfb-run -a python3 shop_census.py 1 /tmp/peach-shop-slots.png
+  xvfb-run -a python3 tools/shop_census.py 1 /tmp/peach-shop-slots.png
 """
 from __future__ import annotations
 
@@ -17,8 +17,9 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright
 
-ROOT = Path(__file__).resolve().parent
-BUNDLE = ROOT / "web" / "sandbox-dist" / "rta-sandbox-capture.js"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+RTAO = REPO_ROOT / "rtao"
+BUNDLE = RTAO / "sandbox-dist" / "rta-sandbox-capture.js"
 DEFAULT_GAME = Path(os.environ.get("RTA_GAME_DIR", "/mnt/data/rta_game_extract"))
 DEFAULT_CUE = DEFAULT_GAME / "Road Trip Adventure (Europe) (En,Fr,De).cue"
 DEFAULT_BIN = DEFAULT_GAME / "Road Trip Adventure (Europe) (En,Fr,De).bin"
@@ -26,7 +27,7 @@ DEFAULT_BIN = DEFAULT_GAME / "Road Trip Adventure (Europe) (En,Fr,De).bin"
 
 async def render(area_index: int, output: Path, cue: Path, bin_file: Path) -> None:
     if not BUNDLE.is_file():
-        raise SystemExit("Capture bundle is missing. Run `npm run build:capture` in web/ first.")
+        raise SystemExit("Capture bundle is missing. Run `npm run build:capture` in rtao/ first.")
     for path in (cue, bin_file):
         if not path.is_file():
             raise SystemExit(f"PAL source is missing: {path}")

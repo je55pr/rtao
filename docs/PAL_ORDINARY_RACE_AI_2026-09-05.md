@@ -2,7 +2,7 @@
 
 ## Closed boundary
 
-`web/src/game/raceAi.ts` translates the ordinary callback `0x00252BA0`,
+`rtao/src/game/raceAi.ts` translates the ordinary callback `0x00252BA0`,
 its target-angle helper `0x00252198`, and the finite-coordinate paths of PAL
 atan2 `0x00278120` / atan `0x0027A780`. Authority is the supplied European
 `SLES_513.56`, SHA-256
@@ -71,16 +71,16 @@ and is not replaced with an invented copy of an opponent profile.
 
 - Seven focused tests cover speed demand/limiting, exact steering thresholds,
   angle wrapping and midpoint selection, feedback bounds and team adaptation.
-- `web/test-support/palScalarMachine.ts` is a bounded instruction oracle. It
+- `rtao/test-support/palScalarMachine.ts` is a bounded instruction oracle. It
   reads the external PAL ELF and executes only this scalar call graph; unknown
   instructions fail. It is a test instrument, not a general PS2 emulator.
-- `web/tests/raceAi.pal.test.ts` compares 4,096 seeded cases from all 24
+- `rtao/tests/raceAi.pal.test.ts` compares 4,096 seeded cases from all 24
   activity profiles / 15 course gate tables, including 2,048 with adaptation,
   aliased records, signed speed-product overflow and both yaw corrections.
 - Every case compares both target halfwords, command mask, yaw and all 256
   bytes of each mutated buffer. All comparisons passed.
 
-Run the optional actual-PAL gate with:
+Run the optional actual-PAL gate from `rtao/` with:
 
 ```bash
 RTA_PAL_EXECUTABLE=/absolute/path/SLES_513.56 npm run check
@@ -91,11 +91,10 @@ Without a supplied ELF the ordinary unit tests still run and this one
 external-data test is explicitly skipped. No original executable bytes or
 game assets are bundled with the source.
 
-## Next boundary
+## Current continuation
 
-Continue with ordinary race manager `0x0022F3F8`, the handler it schedules at
-`0x0022F068`, and the control/vehicle update path. Preserve the now-tested AI
-boundary. Native race launch/countdown/result timing, native command-bit 8,
-and native speed-to-physics integration must close before presenting a playable
-Peach Raceway launch. Course/grid captures can validate geometry and AI
-diagnostics independently of those remaining runtime owners.
+The later race checkpoints have already closed scheduling/order, control,
+drive-force, traction, vehicle scalar composition, ground-support solving and
+course-collision queries beyond the boundary originally recorded in this note.
+See `RTA_CURRENT_STATE.md` and `docs/STATUS.md` for the current contact/orientation
+boundary before starting further race work.

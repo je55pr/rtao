@@ -12,10 +12,10 @@ this is ascending physical car-slot order. Equal distances retain that order.
 The scheduler abstraction correctly exposes calls as events and leaves their
 external audio/UI/fade/scheduler hosts unimplemented.
 
-`race_grid_capture.mjs` now hashes returned PNG bytes using Node SHA-256.
+`tools/race_grid_capture.mjs` hashes returned PNG bytes using Node SHA-256.
 Fresh twice-per-activity runs of Peach and Ninja both matched exact PNG bytes.
 Their verified inspection report is
-`handoff/race-checkpoint-2026-09-05/captures/race-grid-evidence-verified.json`.
+`docs/evidence/races/2026-09-05/captures/race-grid-evidence-verified.json`.
 The older report with unavailable browser hash strings is historical only.
 
 ## Recovered consumers
@@ -52,31 +52,23 @@ fuel and counter thresholds; and 4096 seeded drive-force inputs.
 
 The bounded test interpreter now supports the additional scalar instructions
 needed by these exact routines. R5900 SQRT.S reads ft, not generic MIPS fs;
-this operand distinction was checked against PCSX2's primary FPU interpreter:
-https://github.com/PCSX2/pcsx2/blob/master/pcsx2/FPU.cpp (SQRT_S).
+this operand distinction was checked against PCSX2's primary FPU interpreter.
 The opcode at `0x00219FF0` is `0x460C0044`, consuming f12 into f1. This was
-corrected during the new drive-force test implementation before recording pass.
+corrected during the drive-force test implementation before recording pass.
 The oracle still uses normal host float32 arithmetic and is not cycle-accurate
 or a general R5900 emulator. Audio calls are hooks.
 
 ## Newer saved continuation
 
 Traction, yaw, drift, native equipment loading and composed scalar vehicle
-updates are now implemented. The latest tests passed 46 files / 226 tests.
-See `handoff/race-checkpoint-2026-09-05/LATEST.md` for scope, original-instruction
-comparisons, build completion limits and the remaining contact/transform work.
+updates are now implemented. Later checkpoints reached 48 files / 232 tests.
+See `docs/evidence/races/2026-09-05/LATEST.md` for the retained checkpoint scope
+and `RTA_CURRENT_STATE.md` for the current remaining contact/transform boundary.
 
 ## Earlier next boundary
 
 These are independently tested scalar functions, not yet a playable vehicle.
-Continue through `0x0021B460` (traction speed/brake coupling), yaw/drift updates,
-`0x0021AF38`, vector transforms `0x0021E188`, contact/collision `0x0021C280`,
-and fixed-position integration in `0x0021D1B8`. Confirm runtime equipment
-configuration and contact fields before creating opponent vehicle instances.
-World-position conversion uses gp-32476 = 20971.51953125; integer coordinate
-increments use `(velocity << 4)/25`. Preserve this evidence without yet
-asserting physical SI units or a frame-rate conversion.
-
-Keep Q's Factory race selection/results wiring gated on those movement inputs.
-No new economy rules were added; existing prize/licence persistence is ready
-for an evidenced completed-race result.
+Continue through the contact/collision and orientation paths before claiming a
+native playable vehicle. Keep Q's Factory race selection/results wiring gated on
+those movement inputs. Existing prize/licence persistence is ready for an
+evidenced completed-race result.

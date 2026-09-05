@@ -2,7 +2,7 @@
 """Read one PAL executable virtual-address range through the browser source path.
 
 Usage:
-  python3 executable_probe.py ADDRESS LENGTH OUTPUT.bin
+  python3 tools/executable_probe.py ADDRESS LENGTH OUTPUT.bin
 """
 
 from __future__ import annotations
@@ -14,8 +14,9 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright
 
-ROOT = Path(__file__).resolve().parent
-BUNDLE = ROOT / "web" / "sandbox-dist" / "rta-sandbox-capture.js"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+RTAO = REPO_ROOT / "rtao"
+BUNDLE = RTAO / "sandbox-dist" / "rta-sandbox-capture.js"
 GAME = Path(os.environ.get("RTA_GAME_DIR", "/mnt/data/rta_game_extract"))
 CUE = GAME / "Road Trip Adventure (Europe) (En,Fr,De).cue"
 BIN = GAME / "Road Trip Adventure (Europe) (En,Fr,De).bin"
@@ -31,7 +32,7 @@ def integer(value: str) -> int:
 
 async def run(address: int, length: int, output: Path) -> None:
     if not BUNDLE.is_file():
-        raise SystemExit("Capture bundle is missing. Run `npm run build:capture` in web/ first.")
+        raise SystemExit("Capture bundle is missing. Run `npm run build:capture` in rtao/ first.")
     for path in (CUE, BIN):
         if not path.is_file():
             raise SystemExit(f"PAL source is missing: {path}")
