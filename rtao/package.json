@@ -3,12 +3,19 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0 <23"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "test": "vitest run",
-    "check": "npm run test && npm run build && npm run build:capture",
-    "build:capture": "node scripts/build-sandbox-capture.mjs"
+    "test": "npm run test:unit",
+    "test:unit": "vitest run src",
+    "test:pal": "vitest run tests",
+    "typecheck": "tsc -b --pretty false",
+    "build:web": "vite build",
+    "build": "npm run typecheck && npm run build:web",
+    "build:capture": "node scripts/build-sandbox-capture.mjs",
+    "check": "npm run test:unit && npm run typecheck && npm run build:web && npm run build:capture"
   },
   "dependencies": {
     "@zip.js/zip.js": "2.8.57",
