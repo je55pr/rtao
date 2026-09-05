@@ -1,11 +1,12 @@
 import "./styles.css";
 import { installAppShell } from "./app/appShell";
+import { DeterministicCaptureController } from "./app/deterministicCaptureController";
 import { requiredElement } from "./app/dom";
+import { bindAppDom } from "./app/domBindings";
+import { ImportController } from "./app/importController";
 import {
-  captureFilename,
   captureSceneById,
   captureScenes,
-  type CaptureScene,
   type CarVisualCaptureScene,
   type FieldOverviewCaptureScene,
   type QFactoryCaptureScene,
@@ -85,7 +86,6 @@ import type { FixedInteractionDefinition, OverworldCatalogue } from "./formats/o
 import { carAssetPath } from "./formats/carPath";
 import type { DialogueActionToken, DialogueEntity, DialogueFlow, DialogueRuntimeState, DialogueVariant } from "./formats/dialogue";
 import { isQuickPicPhotoNumber } from "./formats/quickPic";
-import type { ImportWorkerResponse } from "./importer/messages";
 import {
   clearCurrentPointer,
   currentImportDirectory,
@@ -107,25 +107,25 @@ const quickPicPhotoActionOpcode = 0x11;
 const advertisingRewardActionOpcode = 0x16;
 installAppShell(app);
 
-const dropZone = requiredElement<HTMLLabelElement>("drop-zone");
-const fileInput = requiredElement<HTMLInputElement>("file-input");
-const emptyState = requiredElement<HTMLElement>("empty-state");
-const viewerHost = requiredElement<HTMLElement>("viewer");
-const installedPanel = requiredElement<HTMLElement>("installed-panel");
-const importCard = requiredElement<HTMLElement>("import-card");
-const importPhase = requiredElement<HTMLElement>("import-phase");
-const importDetail = requiredElement<HTMLElement>("import-detail");
-const progressBar = requiredElement<HTMLElement>("progress-bar");
-const progressLabel = requiredElement<HTMLElement>("progress-label");
-const errorCard = requiredElement<HTMLElement>("error-card");
-const errorDetail = requiredElement<HTMLElement>("error-detail");
-const cancelImportButton = requiredElement<HTMLButtonElement>("cancel-import");
-const worldLocation = requiredElement<HTMLSelectElement>("world-location");
-const worldTime = requiredElement<HTMLSelectElement>("world-time");
-const worldVisibility = requiredElement<HTMLSelectElement>("world-visibility");
-const driveToggle = requiredElement<HTMLButtonElement>("drive-toggle");
-let activeWorker: Worker | undefined;
-let activeImportId: string | undefined;
+const {
+  dropZone,
+  fileInput,
+  emptyState,
+  viewerHost,
+  installedPanel,
+  importCard,
+  importPhase,
+  importDetail,
+  progressBar,
+  progressLabel,
+  errorCard,
+  errorDetail,
+  cancelImportButton,
+  worldLocation,
+  worldTime,
+  worldVisibility,
+  driveToggle,
+} = bindAppDom();
 let worldView: WorldView | undefined;
 let drivingWorld: DrivingWorld | undefined;
 let drivingGame: BrowserDrivingGame | undefined;
@@ -192,8 +192,25 @@ const fujiProbes = [
   { from: 220, to: 113, position: { x: 1389.9, y: 25, z: 40 }, yaw: Math.PI, label: "Bridge north road to Fuji" },
 ] as const;
 
+const importController = new ImportController({
+  showEmpty,
+  showImport,
+  updateProgress,
+  showInstalled,
+  showError,
+});
+const deterministicCaptureController = new DeterministicCaptureController(app, {
+  ensureWorldRendererAvailable: () => {
+    if (!worldView) throw new Error("The world renderer is unavailable for deterministic capture.");
+  },
+  pauseWorldSimulation: () => worldSimulation?.setPaused(true),
+  captureQFactory,
+  captureCarVisual,
+  captureOutdoor,
+});
+
 fileInput.addEventListener("change", () => {
-  if (fileInput.files?.length) void startImport([...fileInput.files]);
+  if (fileInput.files?.length) void importController.start([...fileInput.files]);
 });
 
 for (const eventName of ["dragenter", "dragover"]) {
@@ -210,16 +227,11 @@ for (const eventName of ["dragleave", "drop"]) {
 }
 dropZone.addEventListener("drop", (event) => {
   const files = [...(event.dataTransfer?.files ?? [])];
-  if (files.length) void startImport(files);
+  if (files.length) void importController.start(files);
 });
 
-cancelImportButton.addEventListener("click", async () => {
-  activeWorker?.terminate();
-  activeWorker = undefined;
-  const importId = activeImportId;
-  activeImportId = undefined;
-  if (importId) await removeImportDirectory(importId).catch(() => undefined);
-  showEmpty();
+cancelImportButton.addEventListener("click", () => {
+  void importController.cancel();
 });
 
 requiredElement<HTMLButtonElement>("try-again").addEventListener("click", () => {
@@ -314,57 +326,7 @@ requiredElement<HTMLButtonElement>("remove-install").addEventListener("click", a
   showEmpty();
 });
 
-void restoreCurrentInstall();
-
-async function restoreCurrentInstall(): Promise<void> {
-  try {
-    const manifest = await readCurrentManifest();
-    if (!manifest) {
-      showEmpty();
-      return;
-    }
-    await showInstalled(manifest);
-  } catch (error) {
-    showError("The saved browser install could not be restored.", error);
-  }
-}
-
-async function startImport(files: File[]): Promise<void> {
-  activeWorker?.terminate();
-  if (activeImportId) await removeImportDirectory(activeImportId).catch(() => undefined);
-  activeImportId = undefined;
-  showImport();
-  await navigator.storage.persist?.().catch(() => false);
-  const worker = new Worker(new URL("./importer/import.worker.ts", import.meta.url), { type: "module" });
-  const importId = crypto.randomUUID();
-  activeWorker = worker;
-  activeImportId = importId;
-  worker.addEventListener("message", (event: MessageEvent<ImportWorkerResponse>) => {
-    const message = event.data;
-    if (message.type === "progress") {
-      updateProgress(message.phase, message.detail, message.completed, message.total);
-    } else if (message.type === "complete") {
-      activeWorker = undefined;
-      activeImportId = undefined;
-      worker.terminate();
-      void showInstalled(message.manifest).catch((error) => showError("The local install finished, but the outdoor world could not be displayed.", error));
-    } else {
-      activeWorker = undefined;
-      activeImportId = undefined;
-      worker.terminate();
-      showError("That game image could not be imported.", new Error(message.message));
-    }
-  });
-  worker.addEventListener("error", (event) => {
-    const failedImportId = activeImportId;
-    activeWorker = undefined;
-    activeImportId = undefined;
-    worker.terminate();
-    if (failedImportId) void removeImportDirectory(failedImportId).catch(() => undefined);
-    showError("The local import worker stopped unexpectedly.", new Error(event.message));
-  });
-  worker.postMessage({ type: "import", importId, files });
-}
+void importController.restore();
 
 async function showInstalled(manifest: ImportManifest): Promise<void> {
   stopDrivingSession();
@@ -490,7 +452,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   worldLocation.disabled = false;
   driveToggle.disabled = false;
   if (captureScene) {
-    await runDeterministicCapture(captureScene);
+    await deterministicCaptureController.run(captureScene);
   } else if (parameters.get("driveProbe") === "fuji") {
     await toggleDriving();
     startFujiProbe();
@@ -2166,23 +2128,6 @@ function sizeFactoryStage(): void {
   stage.style.height = `${stageWidth * 3 / 4}px`;
 }
 
-async function runDeterministicCapture(scene: CaptureScene): Promise<void> {
-  if (!worldView) throw new Error("The world renderer is unavailable for deterministic capture.");
-  worldSimulation?.setPaused(true);
-  let blob: Blob;
-  if (scene.kind === "qfactory") {
-    blob = await captureQFactory(scene);
-  } else if (scene.kind === "car-visual") {
-    blob = await captureCarVisual(scene);
-  } else {
-    blob = await captureOutdoor(scene);
-  }
-  const digest = await sha256Hex(blob);
-  showCaptureResult(scene, blob, digest);
-  console.info(`Deterministic capture '${scene.id}': ${scene.size.width}x${scene.size.height}, SHA-256 ${digest}.`);
-}
-
-
 async function ensurePlayerCarModel(): Promise<Q62CarModel> {
   if (playerCar) return playerCar;
   if (!activeDirectory) throw new Error("The installed game data is unavailable for Q62 capture.");
@@ -2219,60 +2164,6 @@ async function captureQFactory(scene: QFactoryCaptureScene): Promise<Blob> {
   await startQFactoryInterior(factory);
   if (!qFactoryInteriorView) throw new Error("Q's Factory renderer did not initialise for deterministic capture.");
   return qFactoryInteriorView.capturePng(scene.size, scene.animationTimeMs);
-}
-
-async function sha256Hex(blob: Blob): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
-  return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join("");
-}
-
-function showCaptureResult(scene: CaptureScene, blob: Blob, digest: string): void {
-  document.querySelector(".capture-result")?.remove();
-  app.dataset.captureMode = "true";
-  const objectUrl = URL.createObjectURL(blob);
-  const root = document.createElement("section");
-  root.className = "capture-result";
-
-  const header = document.createElement("header");
-  const heading = document.createElement("div");
-  const eyebrow = document.createElement("p");
-  eyebrow.className = "eyebrow";
-  eyebrow.textContent = "DETERMINISTIC CAPTURE";
-  const title = document.createElement("h1");
-  title.textContent = scene.label;
-  const metadata = document.createElement("p");
-  metadata.className = "capture-metadata";
-  metadata.textContent = `${scene.size.width}×${scene.size.height} · SHA-256 ${digest}`;
-  heading.append(eyebrow, title, metadata);
-  const download = document.createElement("a");
-  download.className = "primary-button capture-download";
-  download.href = objectUrl;
-  download.download = captureFilename(scene);
-  download.textContent = "Save PNG";
-  header.append(heading, download);
-
-  const image = document.createElement("img");
-  image.className = "capture-image";
-  image.src = objectUrl;
-  image.width = scene.size.width;
-  image.height = scene.size.height;
-  image.alt = `${scene.label} deterministic browser-port capture`;
-
-  const navigation = document.createElement("nav");
-  navigation.className = "capture-navigation";
-  navigation.setAttribute("aria-label", "Deterministic capture scenes");
-  for (const candidate of captureScenes) {
-    const link = document.createElement("a");
-    const url = new URL(location.href);
-    url.search = "";
-    url.searchParams.set("capture", candidate.id);
-    link.href = url.toString();
-    link.textContent = candidate.label;
-    link.classList.toggle("selected", candidate.id === scene.id);
-    navigation.append(link);
-  }
-  root.append(header, image, navigation);
-  app.append(root);
 }
 
 async function loadResidentModels(
