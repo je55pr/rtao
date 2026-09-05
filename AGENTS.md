@@ -1,0 +1,70 @@
+# RTAO shared agent conventions
+
+This repository is a shared development surface for human contributors and coding agents, currently including ChatGPT and Claude.
+
+## Canonical source and ownership
+
+- GitLab `main` is the canonical project state.
+- The active game is **`rtao/`** (Three.js / TypeScript).
+- **`reference/csharp/`** is the earlier C#/MonoGame implementation retained for archaeology and comparison. Do not treat it as the active product unless a task explicitly targets it.
+- `RTA_CURRENT_STATE.md` is the comprehensive current evidence boundary. `docs/STATUS.md` is the short entry point.
+- `RTA_STATE.json` remains available as machine-readable transitional state; do not casually delete or rewrite it until its useful information has been replaced by durable GitLab issues/tests/docs.
+
+## Evidence rule
+
+The PAL executable and supplied PAL game data are authoritative for native behavior.
+
+- Implement only evidence-backed behavior.
+- Do not fill unknown native behavior with plausible guesses.
+- Keep unresolved behavior explicitly gated and documented.
+- Preserve cited traces/oracles/evidence unless deterministic regeneration exists and the replacement has been verified.
+- Never commit original copyrighted game data, disc images, extracted proprietary assets, credentials, tokens, or other secrets.
+
+## Branches and reviews
+
+Use agent-specific task branches:
+
+- `chatgpt/<task>`
+- `claude/<task>`
+
+Prefer small, coherent commits with descriptive messages. Do not have multiple agents casually write to `main` in parallel.
+
+For cross-agent review:
+
+- the author owns the source branch;
+- the reviewer inspects the actual diff, tests and evidence independently;
+- reviewers should leave comments/suggestions rather than silently rewriting the author's branch unless explicitly asked;
+- resolve disagreements in the MR so the reasoning remains visible in project history.
+
+## Before changing behavior
+
+1. Read `docs/STATUS.md` and the relevant portion of `RTA_CURRENT_STATE.md`.
+2. Read the relevant archaeology/evidence under `docs/archaeology/` and `docs/evidence/`.
+3. Inspect the current implementation/tests in `rtao/` rather than relying on chat memory.
+4. Identify the exact evidence boundary before adding behavior.
+
+## Validation
+
+Primary browser gate:
+
+```bash
+cd rtao
+npm run check
+```
+
+PAL-backed tests require local original-game inputs and may not be executable in every agent runtime. If a full gate cannot be run, say so explicitly; do not imply it passed.
+
+C# reference work, when specifically needed, is self-contained under:
+
+```bash
+cd reference/csharp
+```
+
+## Repository hygiene
+
+- `tools/` contains maintained reusable utilities; one-off historical sandbox scripts belong in `docs/archive/`.
+- `docs/evidence/` contains retained primary evidence such as traces, deterministic reports and captures.
+- `docs/archaeology/` contains interpreted subsystem research notes.
+- Generated output belongs in ignored `artifacts/`, `.dev-cache/`, build or coverage directories unless it is deliberately retained as evidence.
+- Do not create ZIP checkpoints, chat handoff manifests or restoration files for normal GitLab development. Git history, branches, MRs and tags replace that workflow.
+- Update path references when moving files. Historical files under `docs/archive/` may retain old paths when they describe the historical environment.

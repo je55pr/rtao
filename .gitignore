@@ -9,14 +9,16 @@ artifacts/
 cache/
 imports/
 **/node_modules/
-web/dist/
-web/coverage/
-web/test-output/
+rtao/dist/
+rtao/sandbox-dist/
+rtao/coverage/
+rtao/test-output/
 .dev-cache/
+
 # Never commit original game data.
 *.iso
 *.cue
 *.bin
 *.BIN
 *.7z
-local-packages/*.nupkg
+**/local-packages/*.nupkg
