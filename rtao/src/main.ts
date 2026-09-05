@@ -213,6 +213,43 @@ fileInput.addEventListener("change", () => {
   if (fileInput.files?.length) void importController.start([...fileInput.files]);
 });
 
+// DEV-ONLY: `?devdisc` brings up the world without a manual file picker, for
+// headless/browser-driven visual checks. It reuses an existing complete install
+// (fast restore from the OPFS mesh cache) and only re-imports the disc from the
+// rta-dev-disc vite middleware when there is no usable install, or when
+// `?devdisc=force` is given. Stripped from production builds.
+if (import.meta.env.DEV && new URLSearchParams(location.search).has("devdisc")) {
+  void (async () => {
+    const force = new URLSearchParams(location.search).get("devdisc") === "force";
+    const { compiledFieldCacheVersion } = await import("./formats/fieldGeometry");
+    const manifest = await readCurrentManifest().catch(() => undefined);
+    const currentMeshes = manifest?.compiledFields.filter((f) => f.cacheVersion === compiledFieldCacheVersion).length ?? 0;
+    const installUsable = !!manifest
+      && manifest.fields.length === 64
+      && currentMeshes === 64
+      && (manifest.collisionFields?.length ?? 0) === 64;
+
+    if (installUsable && !force) {
+      await importController.restore();
+      return;
+    }
+
+    const names = [
+      "Road Trip Adventure (Europe) (En,Fr,De).cue",
+      "Road Trip Adventure (Europe) (En,Fr,De).bin",
+    ];
+    // Drop any half-written install from a previous interrupted dev import so
+    // the fresh import cannot race a broken restore.
+    await clearCurrentPointer().catch(() => undefined);
+    const files = await Promise.all(names.map(async (name) => {
+      const response = await fetch(`/__dev-disc?name=${encodeURIComponent(name)}`);
+      if (!response.ok) throw new Error(`dev disc fetch failed for ${name}: ${response.status}`);
+      return new File([await response.blob()], name);
+    }));
+    await importController.start(files);
+  })().catch((error) => showError("The dev disc could not be auto-imported.", error));
+}
+
 for (const eventName of ["dragenter", "dragover"]) {
   dropZone.addEventListener(eventName, (event) => {
     event.preventDefault();
@@ -326,7 +363,9 @@ requiredElement<HTMLButtonElement>("remove-install").addEventListener("click", a
   showEmpty();
 });
 
-void importController.restore();
+if (!(import.meta.env.DEV && new URLSearchParams(location.search).has("devdisc"))) {
+  void importController.restore();
+}
 
 async function showInstalled(manifest: ImportManifest): Promise<void> {
   stopDrivingSession();
@@ -352,8 +391,17 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   const upgradedManifest = await ensureWholeWorldCache(manifest, (completed, total) => {
     requiredElement<HTMLElement>("field-count").textContent = `${completed}/${total}`;
   });
-  const compiledWorld = [...upgradedManifest.compiledFields].sort((a, b) => a.fieldNumber - b.fieldNumber);
-  if (compiledWorld.length !== 64) throw new Error(`The cached install has ${compiledWorld.length}/64 compiled world sectors.`);
+  // DEV-ONLY: `?onlyfield=213` (comma-separated) loads just those sectors so
+  // iterating on one field's geometry does not pay the whole-world build cost.
+  const devOnlyFields = import.meta.env.DEV
+    ? (new URLSearchParams(location.search).get("onlyfield") ?? "")
+        .split(",").map((part) => Number.parseInt(part.trim(), 10)).filter((value) => Number.isInteger(value))
+    : [];
+  const onlyFieldSet = devOnlyFields.length ? new Set(devOnlyFields) : undefined;
+  const compiledWorld = [...upgradedManifest.compiledFields]
+    .filter((field) => !onlyFieldSet || onlyFieldSet.has(field.fieldNumber))
+    .sort((a, b) => a.fieldNumber - b.fieldNumber);
+  if (!onlyFieldSet && compiledWorld.length !== 64) throw new Error(`The cached install has ${compiledWorld.length}/64 compiled world sectors.`);
   const directory = await currentImportDirectory(upgradedManifest);
   activeDirectory = directory;
   activeManifest = upgradedManifest;
@@ -408,8 +456,10 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   }
   stats = worldView.finishWorld();
   console.info(`Renderer-equivalent static triangles suppressed: ${suppressedStaticTriangles}${suppressedByField.length ? ` (${suppressedByField.join(", ")})` : ""}.`);
-  const collisionWorld = [...(upgradedManifest.collisionFields ?? [])].sort((a, b) => a.fieldNumber - b.fieldNumber);
-  if (collisionWorld.length !== 64) throw new Error(`The cached install has ${collisionWorld.length}/64 collision sectors.`);
+  const collisionWorld = [...(upgradedManifest.collisionFields ?? [])]
+    .filter((field) => !onlyFieldSet || onlyFieldSet.has(field.fieldNumber))
+    .sort((a, b) => a.fieldNumber - b.fieldNumber);
+  if (!onlyFieldSet && collisionWorld.length !== 64) throw new Error(`The cached install has ${collisionWorld.length}/64 collision sectors.`);
   requiredElement<HTMLElement>("viewer-title").textContent = "Preparing driving surfaces";
   for (const [index, collision] of collisionWorld.entries()) {
     drivingWorld.addField(collision.fieldNumber, await readBytes(directory, collision.path));
@@ -440,17 +490,20 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   // Canonical captures deliberately exclude roaming residents. Do not even
   // start their asynchronous model loads in capture mode: otherwise an actor
   // could attach between the visibility snapshot and the offscreen render.
-  if (!captureScene) {
+  if (!captureScene && !onlyFieldSet) {
     void loadResidentModels(upgradedManifest, directory, simulation, modelLoadGeneration).catch((error) => {
       if (modelLoadGeneration === residentModelLoadGeneration) console.error("Resident car models could not finish loading in the background.", error);
     });
   }
-  requiredElement<HTMLElement>("viewer-title").textContent = "The whole world";
+  requiredElement<HTMLElement>("viewer-title").textContent = onlyFieldSet ? `FLD/${devOnlyFields[0]?.toString().padStart(3, "0")}` : "The whole world";
   requiredElement<HTMLElement>("field-count").textContent = String(stats.sectors);
   requiredElement<HTMLElement>("triangle-count").textContent = stats.triangles.toLocaleString();
-  worldLocation.value = "world";
+  worldLocation.value = onlyFieldSet && worldLocation.querySelector(`option[value="${devOnlyFields[0]}"]`)
+    ? String(devOnlyFields[0])
+    : "world";
   worldLocation.disabled = false;
   driveToggle.disabled = false;
+  if (onlyFieldSet && devOnlyFields[0] !== undefined) worldView.focusField(devOnlyFields[0]);
   if (captureScene) {
     await deterministicCaptureController.run(captureScene);
   } else if (parameters.get("driveProbe") === "fuji") {
