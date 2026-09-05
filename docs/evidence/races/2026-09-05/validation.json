@@ -1,9 +1,29 @@
 {
   "checkpoint_date": "2026-09-05",
-  "scope": "Native race course collision checkpoint; continue contact/orientation recovery.",
+  "scope": "Supported ordinary vehicle frame with collision response and 1800 retained moving PAL updates locally verified; playable session remains pending.",
   "authority": "SLES_513.56",
   "executable_sha256": "2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9",
   "last_full_gate": {
+    "commands": [
+      "npm run check",
+      "RTA_PAL_EXECUTABLE=<PAL ELF> RTA_PAL_BIN=<PAL BIN> npm run test:pal"
+    ],
+    "working_directory": "rtao",
+    "unit_test_files_passed": 45,
+    "unit_tests_passed": 230,
+    "pal_test_files_passed": 14,
+    "pal_tests_passed": 33,
+    "pal_test_timeout_ms": 60000,
+    "production_build": "passed",
+    "capture_build": "passed",
+    "exit_code": 0,
+    "logs": [
+      "native-frame-check.log",
+      "native-frame-pal.log"
+    ],
+    "moving_test_timeout_ms": 120000
+  },
+  "previous_collision_gate": {
     "command": "RTA_PAL_EXECUTABLE=<PAL ELF> RTA_PAL_BIN=<PAL BIN> npm run check",
     "working_directory": "web",
     "test_files_passed": 48,
@@ -15,7 +35,7 @@
   "pal_ai_cases": 4096,
   "pal_countdown_cases": 1260,
   "pal_ranking_cases": 256,
-  "pal_oracle_limit": "Bounded scalar instruction interpreter using host float32; audio/fade/UI/scheduler callees are hooks, not emulated subsystems.",
+  "pal_oracle_limit": "Bounded scalar/COP2 host-float32 instruction interpreter. Commands, memset and effects are hooks in the moving comparison. Hardware rounding, timing, VU flags and extended exponents are not established.",
   "captures": [
     {
       "file": "captures/race-00-grid.png",
@@ -28,8 +48,19 @@
       "sha256": "102d55c6a929fec501819b7b5bd6d029d1ff5a975fa3cdc76dff1ca59c93ed55"
     }
   ],
-  "capture_repeat_verification": "Verified exact PNG bytes twice each for Peach and Ninja in the earlier corrected capture run; no new rendered capture in this scalar-query milestone.",
-  "remaining_review": "Finish 0x21C280 contact producer and orientation/VU transforms, verify moving Peach trajectories, then connect race session and once-only results.",
+  "capture_repeat_verification": "Earlier Peach/Ninja rendered grid captures remain unchanged. New scalar moving trajectory checkpoints are in native-frame-report.json; no new rendered moving capture.",
+  "remaining_review": "Review the supported ordinary frame, standard collision response, original obstacle buffers and retained moving cases on codex/pal-race-contact-producer. Next: supported Peach playable session and Q Factory launch.",
+  "native_contact": {
+    "scalar_producer": "0x0021C280..0x0021C864",
+    "synthetic_instruction_cases": 8192,
+    "retained_history_updates": 600,
+    "courses": 15,
+    "grid_cases": 360,
+    "course_queries": 2520,
+    "output_sha256": "82b4b755ab4f205404aa8b82219f8d1f4abe18d94965933a6aa6df553a9ba119",
+    "boundary": "VU transform outputs prescribed; orientation helpers hooked. No moving trajectory validation.",
+    "report": "native-contact-report.json"
+  },
   "native_course_collision": {
     "authority": "SLES_513.56",
     "courses": 15,
@@ -39,5 +70,124 @@
     "outputSha256": "61e221249833e771c1d7a2043fd1a6ef5bd4c5933100706fdb9b24598ab9cfd2",
     "syntheticInstructionCases": 8192,
     "wrapperBoundaryCases": 363
+  },
+  "previous_contact_gate": {
+    "commands": [
+      "npm run check",
+      "RTA_PAL_EXECUTABLE=<PAL ELF> RTA_PAL_BIN=<PAL BIN> npm run test:pal"
+    ],
+    "working_directory": "rtao",
+    "unit_test_files_passed": 41,
+    "unit_tests_passed": 219,
+    "pal_test_files_passed": 9,
+    "pal_tests_passed": 21,
+    "pal_test_timeout_ms": 60000,
+    "production_build": "passed",
+    "capture_build": "passed",
+    "exit_code": 0,
+    "logs": [
+      "native-contact-check.log",
+      "native-contact-pal.log"
+    ]
+  },
+  "native_geometry": {
+    "courses": 15,
+    "grids": 360,
+    "historyUpdates": 600,
+    "queries": 6720,
+    "outputSha256": "9802b940eaf1a341f4c29336e8ccdc72ea0b19d3c859f1e8230fff892c492151",
+    "boundary": "No transform, orientation, collision or support hooks. Effects are observed. Contact-history updates are not moving vehicle trajectories.",
+    "synthetic_instruction_cases": 2048,
+    "vector_matrix_cases": 4096,
+    "signed_yaw_cases": 65536,
+    "normal_adjustment_cases": 4096,
+    "integer_movement_cases": 4096,
+    "vehicle_native_velocity_composition_cases": 2048,
+    "retained_math_instruction_words": 373,
+    "report": "native-geometry-report.json",
+    "trace_verification": "native-math-trace-verification.json"
+  },
+  "previous_geometry_gate": {
+    "commands": [
+      "npm run check",
+      "RTA_PAL_EXECUTABLE=<PAL ELF> RTA_PAL_BIN=<PAL BIN> npm run test:pal"
+    ],
+    "working_directory": "rtao",
+    "unit_test_files_passed": 42,
+    "unit_tests_passed": 224,
+    "pal_test_files_passed": 11,
+    "pal_tests_passed": 28,
+    "pal_test_timeout_ms": 60000,
+    "production_build": "passed",
+    "capture_build": "passed",
+    "exit_code": 0,
+    "logs": [
+      "native-geometry-check.log",
+      "native-geometry-pal.log"
+    ]
+  },
+  "native_frame": {
+    "entry": "0x0021C920",
+    "stop_before": "0x0021D4EC",
+    "instruction_cases": 1024,
+    "moving_updates": 1800,
+    "courses": [
+      {
+        "course": 0,
+        "updates": 600,
+        "obstaclePoints": 0,
+        "collisionUpdates": 36,
+        "finalPosition": [
+          14014536,
+          26589,
+          11254479
+        ],
+        "distance": 3958014,
+        "checkpoint_count": 7
+      },
+      {
+        "course": 3,
+        "updates": 600,
+        "obstaclePoints": 96,
+        "collisionUpdates": 4,
+        "finalPosition": [
+          2932334,
+          209715,
+          8479629
+        ],
+        "distance": 4456627,
+        "checkpoint_count": 7
+      },
+      {
+        "course": 7,
+        "updates": 600,
+        "obstaclePoints": 601,
+        "collisionUpdates": 3,
+        "finalPosition": [
+          8712154,
+          2789212,
+          7228176
+        ],
+        "distance": 7048188,
+        "checkpoint_count": 7
+      }
+    ],
+    "output_sha256": "7f34e9c3d1575f46e88d6ae59bf2a478438356909e836757073c8e9e6ce74b9e",
+    "report": "native-frame-report.json",
+    "boundary": "Original course collision/obstacles and native frame instructions through body/distance. Commands are supplied; effects/memset are hooks. Wheel animation, reset/debug and equipment 0x300C remain outside this gate. No playable race claim.",
+    "trace_verification": "native-frame-trace-verification.json",
+    "instruction_words": 1427
+  },
+  "native_response": {
+    "cases": 8192,
+    "outputSha256": "2116880e106ef587b325dd37c8b645f8da7d8a381bd18a56fdd01e7d592f33f6",
+    "boundary": "Standard response (scene kind != 28). Matrices execute as original instructions; effects and diagnostic output are observed. No trajectory claim.",
+    "report": "native-response-report.json"
+  },
+  "native_obstacles": {
+    "iterator_cases": 4096,
+    "original_courses": 15,
+    "original_points": 1547,
+    "original_wrapper_queries": 60
   }
 }

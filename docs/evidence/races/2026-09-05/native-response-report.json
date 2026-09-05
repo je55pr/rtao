@@ -1,0 +1,5 @@
+{
+  "cases": 8192,
+  "outputSha256": "2116880e106ef587b325dd37c8b645f8da7d8a381bd18a56fdd01e7d592f33f6",
+  "boundary": "Standard response (scene kind != 28). Matrices execute as original instructions; effects and diagnostic output are observed. No trajectory claim."
+}

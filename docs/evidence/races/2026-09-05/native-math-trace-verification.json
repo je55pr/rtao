@@ -1,0 +1,64 @@
+{
+  "executableSha256": "2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9",
+  "instructionWords": 373,
+  "ranges": [
+    {
+      "name": "normal basis and yaw composition",
+      "start": "0x2086c0",
+      "endExclusive": "0x208790",
+      "instructionWords": 52,
+      "textSha256": "de3fc6225cec71ac6933b10b3fb9e97aacc73fb6bf64d33575416fa9d48dc3e0"
+    },
+    {
+      "name": "normal adjustment",
+      "start": "0x21a368",
+      "endExclusive": "0x21a510",
+      "instructionWords": 106,
+      "textSha256": "d0f162bd422f1a5fbc467a060fa87809d299939943d49400e471205ae11c0d54"
+    },
+    {
+      "name": "integer movement transform",
+      "start": "0x21e188",
+      "endExclusive": "0x21e1bc",
+      "instructionWords": 13,
+      "textSha256": "b7fa37ac198b0bc5ac939dc1302b34895be55176135aee4dd4ed707fc0523c05"
+    },
+    {
+      "name": "point transform, matrix product, cross, normalize, inverse",
+      "start": "0x275770",
+      "endExclusive": "0x275928",
+      "instructionWords": 110,
+      "textSha256": "2f988819310358c9a2952483406bf08d2a9077ae0cae2eab247ff4f443fc68b8"
+    },
+    {
+      "name": "vector addition",
+      "start": "0x275990",
+      "endExclusive": "0x2759a8",
+      "instructionWords": 6,
+      "textSha256": "4387bed2d6f365dc9c7d67c3efc7ff780a583af39c1654b0a2d3b0b3b90eb839"
+    },
+    {
+      "name": "identity support",
+      "start": "0x275a20",
+      "endExclusive": "0x275a30",
+      "instructionWords": 4,
+      "textSha256": "81c5f7240c2be7825626f870e4942e9a2b57f1f013ae1a988c0c6baa7224a6a0"
+    },
+    {
+      "name": "identity and rotation polynomial",
+      "start": "0x275a98",
+      "endExclusive": "0x275b38",
+      "instructionWords": 40,
+      "textSha256": "2c2f27d622ea8747f109224e867d647c23b5e9bb386795a07ff0f12ff5455b8c"
+    },
+    {
+      "name": "yaw matrix constructor",
+      "start": "0x275c88",
+      "endExclusive": "0x275d30",
+      "instructionWords": 42,
+      "textSha256": "4c2a0517d181a4dbddebe76648cfb4b41c877895c9329a6418d158e1b51833cd"
+    }
+  ],
+  "traceSha256": "c8abdef47a6b70f9f84b06337cadd66815cf38155551f3bf046a78d1cda877e4",
+  "boundary": "Instruction words from the supplied ELF; instruction execution uses the bounded host-float32 oracle, not PS2 hardware."
+}

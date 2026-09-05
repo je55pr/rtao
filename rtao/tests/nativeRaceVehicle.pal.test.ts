@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 import { readRaceCatalogue } from '../src/formats/raceCatalogue';
-import { advanceNativeRaceVehicle, createNativeRaceVehicleState, integrateNativeRacePosition,
+import { advanceNativeRaceVehicle, advanceNativeRaceVehicleVelocity, createNativeRaceVehicleState, integrateNativeRacePosition,
   nativeRaceDrag, nativeRacePositionCoordinates, ordinaryRaceOpponentEquipment, readNativeRaceEquipment } from '../src/game/nativeRaceVehicle';
 import { PalScalarMachine } from '../test-support/palScalarMachine';
+import {multiplyNativeRaceMatrices,nativeRaceNormalBasis,nativeRaceYawMatrix,normalizeNativeRaceVector,readNativeRaceMathData} from '../src/game/nativeRaceMath';
 const executablePath = process.env.RTA_PAL_EXECUTABLE;
 
 describe.skipIf(!executablePath)('PAL composed vehicle stages', () => {
@@ -26,8 +27,9 @@ describe.skipIf(!executablePath)('PAL composed vehicle stages', () => {
     }
   });
 
-  test('composed command/force/traction/drift state matches the original full call sequence', () => {
+  test.each([false,true])('composed command/force/traction/drift state matches the original full call sequence (native VU: %s)', (nativeVu) => {
     const executable = bytes(), m = new PalScalarMachine(executable), v = m.view;
+    const mathData=readNativeRaceMathData(executable);
     const car = 0x1000000, local = 0x1001000, scene = 0x1002000, support = 0x1003000, curve = 0x1004000, runtimeEquipment = 0x1005000;
     v.setUint32(0x3dd7f0 - 16024, 0x21dcf8, true); v.setUint32(0x3dd7f0 - 16028, 0, true);
     let seed = 0x6374726c;
@@ -54,11 +56,14 @@ describe.skipIf(!executablePath)('PAL composed vehicle stages', () => {
       v.setUint8(car + 0x1ff, state.gear); v.setUint8(car + 0x1fe, state.brakeHold);
       v.setInt32(local, contact.localSideSpeed, true); v.setInt32(local + 8, contact.localForwardSpeed, true);
       v.setInt32(support + 4, contact.contactAccelerationY, true); v.setUint32(scene + 0x28, sceneFlags, true);
+      const matrix=multiplyNativeRaceMatrices(nativeRaceNormalBasis(normalizeNativeRaceVector([0.1,1,0.2,0])),
+        nativeRaceYawMatrix(Math.fround(Math.fround((state.yaw<<16>>16)*Math.fround(Math.PI))/32768),mathData));
+      if(nativeVu)matrix.forEach((n,j)=>v.setFloat32(car+j*4,n,true));
       let slipMagnitude = 0;
       m.run(0x21b1c0, [scene, car, local, commands, support], {
         0x281a58: a => { m.memory.fill(a[1]!, a[0]!, a[0]! + a[2]!); return a[0]!; },
         0x218b18: a => { slipMagnitude = a[2]!; return 0; },
-        0x21e188: a => { m.memory.copyWithin(a[0]!, a[2]!, a[2]! + 16); return 0; },
+        ...(!nativeVu ? {0x21e188: (a:readonly number[]) => { m.memory.copyWithin(a[0]!, a[2]!, a[2]! + 16); return 0; }} : {}),
       });
       const expected = { state: { gear: v.getInt8(car + 0x1ff), brakeHold: v.getUint8(car + 0x1fe),
         steeringAccumulator: v.getInt16(car + 0x1ce, true), steeringSpeedMemory: v.getInt32(car + 0x1d8, true), curvature: v.getInt16(car + 0x1cc, true),
@@ -66,7 +71,13 @@ describe.skipIf(!executablePath)('PAL composed vehicle stages', () => {
         fuel: v.getInt32(car + 0x23c, true), yaw: v.getUint16(car + 0x1d4, true), slipAngle: v.getInt16(car + 0x1d6, true),
         driftRate: v.getInt16(car + 0x1d2, true), runtimeFlags: v.getUint32(car + 0x1f8, true) },
         localForwardSpeed: v.getInt32(car + 0xf8, true), localSideSpeed: v.getInt32(car + 0xf0, true), slipMagnitude };
-      expect(advanceNativeRaceVehicle(state, equipment, contact, commands, sceneFlags), JSON.stringify({ i, selectors, state, contact, commands })).toEqual(expected);
+      const context=JSON.stringify({i,selectors,state,contact,commands});
+      if(nativeVu){
+        const actual=advanceNativeRaceVehicleVelocity(state,equipment,contact,commands,sceneFlags,matrix);
+        expect(actual.state,context).toEqual(expected.state);
+        expect(actual.slipMagnitude,context).toBe(slipMagnitude);
+        expect(actual.worldVelocity,context).toEqual(Array.from({length:4},(_,j)=>v.getInt32(car+0xf0+j*4,true)));
+      }else expect(advanceNativeRaceVehicle(state, equipment, contact, commands, sceneFlags),context).toEqual(expected);
     }
   });
 

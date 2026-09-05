@@ -10,7 +10,7 @@
     "dev": "vite",
     "test": "npm run test:unit",
     "test:unit": "vitest run src",
-    "test:pal": "vitest run tests",
+    "test:pal": "vitest run tests --testTimeout=60000",
     "typecheck": "tsc -b --pretty false",
     "build:web": "vite build",
     "build": "npm run typecheck && npm run build:web",

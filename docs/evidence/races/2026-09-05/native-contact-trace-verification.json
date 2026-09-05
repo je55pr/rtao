@@ -1,0 +1,6 @@
+{
+  "executableSha256": "2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9",
+  "trace": "docs/evidence/races/2026-09-05/traces/contact_matrix.txt",
+  "matchedInstructions": 424,
+  "mismatches": 0
+}

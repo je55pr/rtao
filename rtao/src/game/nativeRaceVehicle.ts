@@ -3,6 +3,7 @@ import type { RaceActivityDescriptor } from '../formats/raceCatalogue';
 import { advanceNativeGear, advanceNativeSteering } from './nativeRaceControls';
 import { advanceNativeRaceDriveForce } from './nativeRaceDriveForce';
 import { advanceNativeRaceDrift, nativeRaceYawStep, nativeTractionSpeed } from './nativeRaceTraction';
+import { transformNativeRaceIntegerVector, type NativeRaceMatrix } from './nativeRaceMath';
 
 export interface NativeRaceEquipment {
   readonly surfaceGrips: readonly number[];
@@ -109,6 +110,16 @@ export function advanceNativeRaceVehicle(state: NativeRaceVehicleState, equipmen
     wheelSpeed: force.wheelSpeed, nativeSpeed, steeringAccumulator: steering.accumulator,
     steeringSpeedMemory: steering.speedMemory, curvature: steering.curvature },
     localForwardSpeed: force.localForwardSpeed, localSideSpeed: force.localSideSpeed, slipMagnitude: force.slipMagnitude };
+}
+
+/** 0x21B654: transform the zero-Y drive vector with the PRE-update car matrix.
+ * This closes the command consumer's VU boundary, not the enclosing frame's
+ * gravity, drag, contact, obstacle and collision-response sequence. */
+export function advanceNativeRaceVehicleVelocity(state: NativeRaceVehicleState, equipment: NativeRaceEquipment,
+  contact: NativeRaceContactInput, commands: number, sceneFlags: number, previousMatrix: NativeRaceMatrix,
+  highShiftSchedule = true) {
+  const result = advanceNativeRaceVehicle(state,equipment,contact,commands,sceneFlags,highShiftSchedule);
+  return {...result,worldVelocity:transformNativeRaceIntegerVector(previousMatrix,[result.localSideSpeed,0,result.localForwardSpeed,0])};
 }
 
 /** Local quadratic drag from 0x0021CD88..0x0021CEA8 (debug text excluded). */

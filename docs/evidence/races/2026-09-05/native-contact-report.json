@@ -1,0 +1,11 @@
+{
+  "authority": "SLES_513.56",
+  "courses": 15,
+  "gridCases": 360,
+  "courseQueries": 2520,
+  "selectedProbes": 2520,
+  "syntheticCases": 8192,
+  "historyUpdates": 600,
+  "outputSha256": "82b4b755ab4f205404aa8b82219f8d1f4abe18d94965933a6aa6df553a9ba119",
+  "boundary": "Prescribed VU probe outputs; orientation helpers observed through hooks. No moving trajectory validation."
+}

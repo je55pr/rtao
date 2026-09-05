@@ -1,4 +1,85 @@
-# Latest milestone: native course collision queries
+# Latest milestone: supported ordinary frame and moving trajectories
+
+The enclosing frame now composes gravity/history, controls and drive, support,
+orientation, original ground/obstacle queries, standard collision response,
+body orientation and distance. Local comparison passes 1,024 composed cases
+and 1,800 retained moving updates across C00/C03/C07. All three courses move
+and encounter collision flags (36, 4 and 3 updates respectively).
+
+The trajectory hash is
+`7f34e9c3d1575f46e88d6ae59bf2a478438356909e836757073c8e9e6ce74b9e`.
+`native-frame-report.json` retains seven full-state checkpoints per course.
+The separate standard response has 8,192 cases; obstacle coverage includes
+4,096 synthetic cases, all 15 original buffers / 1,547 points and 60 wrapper
+queries. Instruction evidence retains 1,427 words, reproducible from the ELF.
+
+Full gates pass: **45 CI-safe files / 230 tests**, **14 PAL files / 33 tests**,
+typecheck and both builds, exit 0. See `native-frame-check.log`,
+`native-frame-pal.log`, `native-response-report.json`,
+`native-frame-trace-verification.json` and
+`docs/PAL_NATIVE_RACE_FRAME_2026-09-05.md`.
+
+The representative #5 gate is locally implemented, pending review on
+`codex/pal-race-contact-producer`. Commands are supplied at the ownership/
+navigation boundary. Full scene initialization, reset/debug, outdoor/scene-28,
+equipment 0x300C, wheel animation and the later UI callback remain outside
+the gate. The instruction oracle uses host float32, not hardware-accurate PS2
+execution. No playable race, payout or new rendered moving capture is claimed.
+Next: supported Peach session (#6), then Q's Factory launch (#7).
+
+# Earlier milestone: native VU math and contact orientation
+
+The required probe transforms, normal/adjustment helpers, orientation and
+inverse now compose with the contact producer on
+`codex/pal-race-contact-producer`, pending review. The command consumer also
+produces world velocity through the native fixed-point transform.
+
+Coverage includes all 65,536 signed yaw values; 4,096 seeded vector/matrix,
+normal and integer-transform cases; 2,048 composed command-consumer cases;
+2,048 complete contact cases; and all 360 original-course grids plus 600
+retained contact updates / 6,720 queries. The original-course output hash is
+`9802b940eaf1a341f4c29336e8ccdc72ea0b19d3c859f1e8230fff892c492151`.
+All 373 retained math instruction words are reproducible from the supplied ELF.
+
+Full gates pass: **42 CI-safe files / 224 tests**, **11 PAL files / 28 tests**,
+typecheck, production and capture builds, exit 0. See
+`docs/PAL_NATIVE_RACE_MATH_2026-09-05.md`, `native-geometry-report.json`,
+`native-math-trace-verification.json`, `native-geometry-check.log` and
+`native-geometry-pal.log`.
+
+The oracle uses bounded host-float32 instruction execution; hardware rounding,
+VU timing/flags and extended exponents remain outside the evidence. The 600
+contact updates hold horizontal input position fixed. Next is the enclosing
+vehicle frame with obstacle/collision response and moving-trajectory validation
+(#5), followed by the playable Peach session (#6) and Q's Factory launch (#7).
+No new moving capture or functional-race claim is made.
+
+# Earlier milestone: scalar seven-probe contact producer
+
+The scalar caller at 0x21C280 is implemented and locally verified on
+`codex/pal-race-contact-producer`, pending review. It matches 8,192 prescribed-
+transform PAL cases, 600 retained-history updates and 360 grid-position cases
+running 2,520 original-course queries across all 15 courses. All 424 retained
+caller instruction words match the supplied PAL executable.
+
+Full gates pass: **41 CI-safe files / 219 tests**, **9 PAL files / 21 tests**,
+typecheck, production build and capture build, exit 0. PAL-only tests use a
+60-second timeout because the previous five-second default timed out in large
+existing collision/support suites under parallel load.
+
+See `docs/PAL_NATIVE_RACE_CONTACT_2026-09-05.md`, `native-contact-report.json`,
+`native-contact-trace-verification.json`, `native-contact-pal.log` and
+`native-contact-check.log`. Original-course contact output SHA-256:
+`82b4b755ab4f205404aa8b82219f8d1f4abe18d94965933a6aa6df553a9ba119`.
+
+Next: verify the required VU probe transforms, normal/adjustment helpers,
+orientation constructors and inverse. Those helpers are prescribed or hooked
+in the current contact comparisons. No moving trajectory, playable race or new
+visual capture is claimed. Reproduce from `rtao` using `npm run test:pal` with
+`RTA_PAL_EXECUTABLE` and `RTA_PAL_BIN`, then run the separate `npm run check`.
+Original bytes remain local and are never included in these reports.
+
+# Earlier milestone: native course collision queries
 
 The full course-cell wrapper and authored strip walker are implemented and
 match 8192 seeded PAL cases, 363 wrapper boundary cases, and 2040 queries against

@@ -1,0 +1,36 @@
+{
+  "executableSha256": "2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9",
+  "instructionWords": 1427,
+  "ranges": [
+    {
+      "name": "course obstacle pointer producer",
+      "start": "0x20ca44",
+      "endExclusive": "0x20ca90",
+      "instructionWords": 19,
+      "textSha256": "0f14025a380e82a098276e4d29c20c22855e4856caf2dac0c5885fec83f0e843"
+    },
+    {
+      "name": "standard and scene-28 response, obstacle iterator and wrapper",
+      "start": "0x21a510",
+      "endExclusive": "0x21af38",
+      "instructionWords": 650,
+      "textSha256": "ebebaa5d04dc68197cc2614203c980ccc654e58af5d5487c51399ad8843b1505"
+    },
+    {
+      "name": "zero-curvature caller-delta write",
+      "start": "0x21b3a4",
+      "endExclusive": "0x21b3b0",
+      "instructionWords": 3,
+      "textSha256": "ed274c04476405cb1f0abccc2fe8c671503d5869ce550667fb3cd5c6c325d8dd"
+    },
+    {
+      "name": "vehicle frame through body orientation and distance",
+      "start": "0x21c920",
+      "endExclusive": "0x21d4ec",
+      "instructionWords": 755,
+      "textSha256": "f62d5aa5787795483929453814a9d7f9ff287a57bef18741a4aad39b12f628db"
+    }
+  ],
+  "traceSha256": "3f6272a763c7d62593cef858a8d580711305d07ab0ebdd25c5852a77919100da",
+  "boundary": "Instruction words from the supplied ELF; instruction execution uses the bounded host-float32 oracle, not PS2 hardware."
+}
