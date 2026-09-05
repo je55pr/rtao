@@ -1,0 +1,61 @@
+Road Trip Adventure PAL ordinary-world seam matrix
+Continuation evidence, 2026-08-21
+
+Source: user-supplied Road Trip Adventure (Europe) (En,Fr,De) MODE2/2352 image.
+Purpose: independently validate WorldSectorTopology against authored FLD minimap road geometry across unrelated parts of the world. No renderer/camera assumptions are used here.
+
+Canonical source topology under test
+------------------------------------
+field digits abc:
+  column = 2*b + (c & 1)
+  row    = 2*a + (c >> 1)
+
+field extent: 1600
+odd-row source-X stagger: +800
+horizontal circumference: 12800
+
+For E/W seams, the table compares the canonical source-Z interval occupied by blue authored road vertices on the opposing boundaries.
+For N/S seams, it compares canonical source-X after the odd-row stagger and cyclic X normalisation have been applied.
+
+Same-row E/W road seams
+-----------------------
+FLD/023 W <-> FLD/022 E : overlap 35.000 m   A [1842.500, 1877.500]   B [1842.500, 1877.500]
+FLD/111 W <-> FLD/110 E : overlap 20.000 m   A [3810.000, 3830.000]   B [3810.000, 3830.000]
+FLD/121 W <-> FLD/120 E : overlap 35.000 m   A [3683.387, 3718.613]   B [3683.500, 3718.500]
+FLD/203 W <-> FLD/202 E : overlap  5.998 m   A [8825.744, 8833.741]   B [8826.768, 8832.767]
+FLD/213 W <-> FLD/212 E : overlap 13.600 m   A [8293.200, 8306.800]   B [8293.200, 8306.800]
+FLD/221 W <-> FLD/220 E : overlap 30.000 m   A [6960.000, 6990.000]   B [6960.000, 6990.000]
+FLD/222 W <-> FLD/213 E : overlap 13.490 m   A [8674.699, 8688.189]   B [8674.699, 8688.189]
+FLD/223 W <-> FLD/222 E : overlap 10.001 m   A [8632.630, 8642.632]   B [8630.885, 8644.381]
+
+Staggered N/S road seams
+------------------------
+FLD/103 N <-> FLD/110 S : overlap 10.000 m   A [3855.000, 3865.000]   B [3855.000, 3865.000]
+FLD/111 N <-> FLD/012 S : overlap 35.000 m   A [5082.500, 5117.500]   B [5082.500, 5117.500]
+FLD/113 N <-> FLD/120 S : overlap 37.991 m   A [6682.009, 6720.000]   B [6682.009, 6720.000]
+FLD/121 N <-> FLD/023 S : overlap 35.000 m   A [9162.387, 9197.613]   B [9162.500, 9197.500]
+FLD/203 N <-> FLD/210 S : overlap 14.000 m   A [3303.000, 3317.000]   B [3303.000, 3317.000]
+FLD/210 N <-> FLD/103 S : overlap 14.000 m   A [3893.000, 3907.000]   B [3893.000, 3907.000]
+FLD/220 N <-> FLD/113 S : overlap 54.800 m   A [6582.700, 6637.500]   B [6582.700, 6637.500]
+FLD/223 N <-> FLD/221 S : overlap 19.945 m   A [9429.880, 9449.825]   B [9429.880, 9449.825]
+
+Concrete next traversal
+-----------------------
+The seam graph gives the following boundary-connected field chain from Peach Town to Fuji City:
+
+  223 --N/S--> 221 --W/E--> 220 --N/S--> 113
+  Peach Town              Bridge              Fuji City
+
+The blue road triangles in each of FLD/223, FLD/221, FLD/220 and FLD/113 union into one connected polygon per field, so these are not unrelated boundary stubs that merely happen to touch the required edges. The authored minimap road surface is connected through each intermediate field.
+
+The ordinary render mesh also agrees at all three route seams. Matching edge coordinates/heights found directly in the raw MSCALF 8 geometry:
+
+  223 N <-> 221 S : 3 unique matching axis/height samples; road surface Y = 30
+  221 W <-> 220 E : 5 unique matching axis/height samples; road surface Y = 5
+  220 N <-> 113 S : 18 unique matching axis/height samples; principal road surface Y = 25 (additional coincident authored layers also exist)
+
+This is still not a claim that the player has successfully driven the complete route in the MonoGame runtime. Collision/vehicle traversal through all three seams remains the next live validation target.
+
+Conclusion
+----------
+The alternating +800 source-row stagger and current filename-to-grid mapping are supported by multiple independent authored road boundaries. A visually surprising camera-relative all-world render is therefore not sufficient evidence for replacing the canonical topology transform.

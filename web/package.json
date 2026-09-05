@@ -1,0 +1,23 @@
+{
+  "name": "rta-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "test": "vitest run",
+    "check": "npm run test && npm run build && npm run build:capture",
+    "build:capture": "node scripts/build-sandbox-capture.mjs"
+  },
+  "dependencies": {
+    "@zip.js/zip.js": "2.8.57",
+    "three": "0.185.1"
+  },
+  "devDependencies": {
+    "@types/three": "0.185.4",
+    "typescript": "7.0.2",
+    "vite": "8.2.2",
+    "vitest": "4.1.11"
+  }
+}

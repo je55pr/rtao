@@ -1,0 +1,10 @@
+{
+  "authority": "SLES_513.56",
+  "countdownCases": 1260,
+  "rates": [
+    50,
+    60
+  ],
+  "rankingCases": 256,
+  "limitation": "Native scalar callback logic; audio/fade/UI/scheduler callees are observed hooks, not emulated subsystems."
+}

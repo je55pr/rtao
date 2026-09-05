@@ -1,0 +1,69 @@
+RTA PAL renderer evidence — Fuji coplanar layers + FLD/221 dynamic palms
+=======================================================================
+Date: 2026-08-21
+
+HumanEyes confirmations
+-----------------------
+- Fuji daytime alpha/window composition now looks correct after night-only-layer and alpha-test work.
+- Fuji tree cards now look correct.
+- A remaining temperamental wall/window shimmer was reported around FLD/113 render-local X875/Z733.
+- Original-game FLD/221 coastal captures show that the apparently leafless trunks are palm trees.
+- The palm crown sways gently back and forth in the shipped game; it is not static ordinary terrain geometry.
+
+Fuji coplanar/static duplicate evidence
+----------------------------------------
+The field has both intentional coplanar facade layers and a very small class of renderer-indistinguishable repeated triangles.
+
+For the latter class, comparing within the same HG2 spatial chunk + material + TME state and quantizing only position to 1 mm / normalized UV to 1e-5 while preserving packed day colour exactly finds:
+- FLD/113: exactly 100 repeated static triangles.
+- full 64-field scan during archaeology: 475 repeated triangles out of roughly 919k decoded field triangles (~0.052%).
+
+These repeats differ only by sub-millimetre source-float noise while producing the same modern rendered colour/UV/material. On the current depth buffer they can shimmer as the camera moves.
+
+Renderer decision:
+- submit HG2's global/static backing layer (chunk 64) before spatial cutout/detail chunks;
+- suppress only repeated triangles inside one static chunk/material/TME batch using the renderer-visible key above;
+- do not globally weld positions, merge coplanar geometry, or apply polygon offset.
+
+Regression: `Fuji near-duplicate static triangles` locks FLD/113 to 100 repeats.
+
+FLD/221 palm crown object path
+------------------------------
+Ordinary field stream:
+- trunk material TBP 11806 occurs at six palm trunks;
+- each trunk ends in a tiny untextured horizontal cap while TBP 11806 remains current; these six cap centroids are data-driven crown attachment markers;
+- palm-shadow TBP 11986 has six authored horizontal shadow cards matching the trunks;
+- hidden frond material TBP 11762 is PSMT8 64x32 and appears in the ordinary stream on a small offstage Y=-50 primitive, providing the texture state rather than the final placed crown geometry.
+
+Extra[1] object container:
+- relative sections begin at 0x20, 0x250, 0x640, 0xBD0 and end at 0x18E0;
+- the first three sections contain 1, 2 and 3 textured triangle-strip primitives respectively (six total);
+- their primary copies run MSCALF 4; equivalent copies later in each section run MSCALF 10;
+- all six pieces radiate from a shared local attachment origin and together form the palm crown seen in the original-game captures;
+- total source vertices: 24;
+- FLD/220 carries the same Extra[1] crown object, supporting a reusable authored dynamic-object interpretation rather than six manually reconstructed quads.
+
+Runtime decision:
+- `FieldPalmTreeReader` structurally decodes the 1+2+3 MSCALF-4 crown groups from Extra[1];
+- placement comes from the six authored trunk-top caps, not hard-coded coordinates;
+- the frond texture/material comes from TBP 11762 replayed through GS local memory;
+- the three authored groups get a small phase-shifted wind rotation. This preserves the object's dynamic grouping and reproduces the observed gentle movement without deforming/rebuilding the source fronds.
+
+Important limitation:
+The original game's exact wind timing/amplitude routine has not yet been assigned. The current small sine rotations are a visual calibration approximation based on HumanEyes footage. Keep geometry, attachment and asset-path conclusions separate from those timing constants.
+
+Regression: `Bridge/countryside dynamic palm crowns` proves FLD/221's 1+2+3 groups, six/24 primitive+vertex shape, six authored trunk anchors, PSMT8 64x32 frond material, and the matching FLD/220 object container.
+
+Validation
+----------
+35/35 PAL-disc regressions passing under .NET SDK 10.0.400.
+Rta.Game Release build: 0 warnings, 0 errors.
+Headless MonoGame captures show six crowns attached to the real coastal trunks; captures separated by ~1.5 s differ only in the animated crown region.
+
+2026-08-22 follow-up: FLD/220 structural palm relocation + Fuji depth precision
+-------------------------------------------------------------------------
+HumanEyes PAL reference confirmed every visible FLD/220 coastal palm trunk carries a crown and all crowns share the same sway timing. The crown object is the same Extra[1] six-frond asset as FLD/221, but its GS material is relocated: the hidden 64x32 PSMT8 frond texture is TBP 10406 in FLD/220 versus TBP 11762 in FLD/221. The ordinary field contains 55 matching authored trunk-top cap markers. Palm lookup now recognises the cap/material structure rather than either field number or TBP.
+
+A user motion capture at FLD/113 around car X863 Z787 showed the remaining facade failure as camera-sensitive coplanar depth fighting: tiny camera changes cause small plaster/timber/window regions to swap winners. Two tempting fixes were rejected by evidence: PAL executable analysis shows the field pass intentionally uses inclusive Z comparison, so changing MonoGame LessEqual to Less would be unfaithful; preserving HG2 contiguous material-run order is more faithful but did not materially change the exact failure frame.
+
+The current desktop projection had a 0.1 m near plane with a 20,000 m far plane. At Fuji facade distances this squanders 24-bit depth precision on the first 10 cm and puts depth quantisation in the same millimetre-scale range as HG2's coplanar/near-coplanar layers. A 0.5/1.0/2.0 m sweep showed 1.0 m as the least aggressive setting that consistently restored the problematic window/facade detail in the deterministic comparison; 2.0 m gave no useful extra benefit. Keep the 20 km far distance. The chase camera sits ~6.2 m behind the car, so 1.0 m leaves ample player-car clearance.

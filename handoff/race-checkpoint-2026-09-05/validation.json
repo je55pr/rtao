@@ -1,0 +1,43 @@
+{
+  "checkpoint_date": "2026-09-05",
+  "scope": "Native race course collision checkpoint; continue contact/orientation recovery.",
+  "authority": "SLES_513.56",
+  "executable_sha256": "2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9",
+  "last_full_gate": {
+    "command": "RTA_PAL_EXECUTABLE=<PAL ELF> RTA_PAL_BIN=<PAL BIN> npm run check",
+    "working_directory": "web",
+    "test_files_passed": 48,
+    "tests_passed": 232,
+    "production_build": "passed",
+    "capture_build": "passed",
+    "exit_code": 0
+  },
+  "pal_ai_cases": 4096,
+  "pal_countdown_cases": 1260,
+  "pal_ranking_cases": 256,
+  "pal_oracle_limit": "Bounded scalar instruction interpreter using host float32; audio/fade/UI/scheduler callees are hooks, not emulated subsystems.",
+  "captures": [
+    {
+      "file": "captures/race-00-grid.png",
+      "size_bytes": 1419939,
+      "sha256": "9e920322d2636e85d86f1601f7bd4e32f09fccfdb4ba067168c798b69c4b3a67"
+    },
+    {
+      "file": "captures/race-03-grid.png",
+      "size_bytes": 1833404,
+      "sha256": "102d55c6a929fec501819b7b5bd6d029d1ff5a975fa3cdc76dff1ca59c93ed55"
+    }
+  ],
+  "capture_repeat_verification": "Verified exact PNG bytes twice each for Peach and Ninja in the earlier corrected capture run; no new rendered capture in this scalar-query milestone.",
+  "remaining_review": "Finish 0x21C280 contact producer and orientation/VU transforms, verify moving Peach trajectories, then connect race session and once-only results.",
+  "native_course_collision": {
+    "authority": "SLES_513.56",
+    "courses": 15,
+    "gridQueries": 360,
+    "queries": 2040,
+    "hits": 1882,
+    "outputSha256": "61e221249833e771c1d7a2043fd1a6ef5bd4c5933100706fdb9b24598ab9cfd2",
+    "syntheticInstructionCases": 8192,
+    "wrapperBoundaryCases": 363
+  }
+}

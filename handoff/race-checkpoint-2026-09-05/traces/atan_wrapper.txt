@@ -1,0 +1,6 @@
+00277b38: 27bdfff0  addiu sp, sp, -16
+00277b3c: ffbf0000  sd ra, 0(sp)
+00277b40: dfbf0000  ld ra, 0(sp)
+00277b44: 0809e048  j 0x00278120
+00277b48: 27bd0010  addiu sp, sp, 16
+00277b4c: 00000000  nop

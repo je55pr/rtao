@@ -1,0 +1,44 @@
+RTA PAL renderer evidence — 2026-08-21
+
+HumanEyes ground-truth coordinates
+----------------------------------
+FLD/221 car X193 Z1443
+  User-visible defect: small rectangular patch showed clear/ocean through grass beside road/guardrail.
+  Render + collision primitive coverage exists at the location.
+  Reproduction: disappears when opaque geometry establishes depth before alpha-bearing fringe textures.
+  Final approximation: alpha-bearing field textures use alpha test `Greater 0`; fully transparent texels are discarded before depth output while visible texels retain normal depth writes.
+
+FLD/113 car X591 Z1060
+  User-visible defect: x-ray/black building panels around Fuji facade.
+  Original-game screenshots supplied for both night and day.
+  Decoded field vertices carry separate DayColor and NightColor vectors.
+  FLD/113 contains 100 untextured primitives with all-black DayColor and at least one non-black NightColor vertex.
+  Original day/night screenshots prove the channels are semantically distinct, but a later Fuji shop-row comparison refined the first interpretation: some of the day-black/night-lit primitives are useful black interior/backing volumes during daytime.
+  Current decision: preserve both channels in FieldRenderVertex and classify this family as IsDayBlackNightLitLayer without blanket suppression. Separate bridge light billboards have their own evidence-driven daytime-hidden classification.
+
+FLD/221 palm-like missing foliage
+---------------------------------
+This remains unresolved and is not the alpha-depth bug.
+
+Authored trunk texture TBP 11806 occurs at six palm/shadow groups. Five near bridge/coast plus one remote example:
+  source approx x48,z547, top y10.5
+  source approx x78,z563, top y10.5
+  source approx x111,z567, top y10.5
+  source approx x121,z567, top y10.5
+  source approx x68,z608, top y13.5
+  source approx x736,z894, top y10.5
+
+Global palm-shadow texture TBP 11986 has six horizontal primitives at matching positions.
+
+Green palm-frond texture TBP 11762 is referenced only once in decoded FLD/221 render primitives:
+  global chunk primitive 33
+  ordinary MSCALF 8 path
+  3 vertices
+  bounds x=0..10, y=-50, z=0..5.25
+  no decoded PlacementOffset
+  vertices:
+    (0,-50,0)     STQ=(0,1,1)
+    (4.75,-50,5.25) STQ=(0.475,0,1)
+    (10,-50,0)    STQ=(1,1,1)
+
+This looks like hidden template geometry and suggests an unimplemented instance/special-object path. Do not hard-code crowns at trunk positions until the placement mechanism is understood. FLD/221 Extra[1] begins with a 0x20 nested container and contains VIF/DMA-shaped subsections including MSCALF 4 geometry; it is a promising next archaeology target.

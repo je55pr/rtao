@@ -1,0 +1,41 @@
+Road Trip Adventure PAL — live Peach -> Fuji seam probe
+========================================================
+
+Environment
+-----------
+.NET SDK 10.0.400
+MonoGame DesktopGL 3.8.5
+Xvfb + llvmpipe software OpenGL
+Supplied PAL BIN/CUE
+
+Command
+-------
+dotnet run -c Release --project src/Rta.Game -- --disc "/path/to/Road Trip Adventure.cue" --debug-fuji-route-seams
+
+Probe sequence
+--------------
+The debug mode teleports Q62 40 m inside each known authored road boundary,
+applies automatic forward throttle, and requires the actual WorldDrivingContext /
+vehicle collision path to enter the expected neighbouring FLD without loading or
+recreating the car.
+
+Observed crossings
+------------------
+Seamless sector crossing: FLD/223 -> FLD/221 [5,4], local (160.2, 1599.8), speed 27.39->27.55 m/s.
+DEBUG FUJI SEAM PASS 1/3: FLD/223 -> FLD/221 (Peach north road) without a load/reset.
+
+Seamless sector crossing: FLD/221 -> FLD/220 [4,4], local (0.2, 575.0), speed 27.39->27.55 m/s.
+DEBUG FUJI SEAM PASS 2/3: FLD/221 -> FLD/220 (countryside -> Bridge west/east road) without a load/reset.
+
+Seamless sector crossing: FLD/220 -> FLD/113 [3,3], local (589.9, 1599.8), speed 27.39->27.55 m/s.
+DEBUG FUJI SEAM PASS 3/3: FLD/220 -> FLD/113 (Bridge north road -> Fuji) without a load/reset.
+
+DEBUG FUJI SEAM MATRIX PASS: all three Peach -> 221 -> Bridge -> Fuji route boundaries crossed under vehicle collision.
+
+Conclusion
+----------
+The authored route chain 223 -> 221 -> 220 -> 113 is valid not only in minimap
+road geometry and render-edge heights, but in the current live vehicle/collision
+runtime. This is strong evidence to freeze the canonical staggered topology and
+move remaining world-map work toward presentation/global-scenery issues instead
+of adding another sector transform.

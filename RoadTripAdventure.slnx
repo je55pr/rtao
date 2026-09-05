@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Rta.Disc/Rta.Disc.csproj" />
+    <Project Path="src/Rta.Formats/Rta.Formats.csproj" />
+    <Project Path="src/Rta.Game/Rta.Game.csproj" />
+    <Project Path="src/Rta.Tools/Rta.Tools.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Rta.Tests/Rta.Tests.csproj" />
+  </Folder>
+</Solution>

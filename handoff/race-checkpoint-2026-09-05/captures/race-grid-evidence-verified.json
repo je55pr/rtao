@@ -1,0 +1,1153 @@
+{
+  "authority": "SLES_513.56",
+  "results": [
+    {
+      "activityId": 0,
+      "activityName": "Peach Raceway",
+      "courseId": 0,
+      "entrants": [
+        {
+          "carIndex": 0,
+          "name": "Player Q62",
+          "startIndex": 23,
+          "position": {
+            "x": 1142.7999877929688,
+            "y": 1.100000023841858,
+            "z": 568.7999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": null
+        },
+        {
+          "carIndex": 1,
+          "name": "Klien",
+          "startIndex": 0,
+          "position": {
+            "x": 1027.7999877929688,
+            "y": 1.100000023841858,
+            "z": 561.2999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 34,
+            "lookAheadRecordIndex": 0,
+            "selectorOutput": 34,
+            "targetGateIndex": 1,
+            "targetAngles": {
+              "low": 12882,
+              "high": 13220
+            }
+          }
+        },
+        {
+          "carIndex": 2,
+          "name": "Kinsera",
+          "startIndex": 1,
+          "position": {
+            "x": 1032.7999877929688,
+            "y": 1.100000023841858,
+            "z": 568.7999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 33,
+            "lookAheadRecordIndex": 34,
+            "selectorOutput": 33,
+            "targetGateIndex": 0,
+            "targetAngles": {
+              "low": 15380,
+              "high": 16292
+            }
+          }
+        },
+        {
+          "carIndex": 3,
+          "name": "Jousset",
+          "startIndex": 2,
+          "position": {
+            "x": 1037.7999877929688,
+            "y": 1.100000023841858,
+            "z": 561.2999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 33,
+            "lookAheadRecordIndex": 34,
+            "selectorOutput": 33,
+            "targetGateIndex": 0,
+            "targetAngles": {
+              "low": 12882,
+              "high": 13565
+            }
+          }
+        },
+        {
+          "carIndex": 4,
+          "name": "Fight",
+          "startIndex": 3,
+          "position": {
+            "x": 1042.7999877929688,
+            "y": 1.100000023841858,
+            "z": 568.7999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 33,
+            "lookAheadRecordIndex": 34,
+            "selectorOutput": 33,
+            "targetGateIndex": 0,
+            "targetAngles": {
+              "low": 16002,
+              "high": 16320
+            }
+          }
+        },
+        {
+          "carIndex": 5,
+          "name": "Newman",
+          "startIndex": 4,
+          "position": {
+            "x": 1047.7999877929688,
+            "y": 1.100000023841858,
+            "z": 561.2999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 33,
+            "lookAheadRecordIndex": 34,
+            "selectorOutput": 33,
+            "targetGateIndex": 0,
+            "targetAngles": {
+              "low": 13763,
+              "high": 14024
+            }
+          }
+        },
+        {
+          "carIndex": 6,
+          "name": "Jones",
+          "startIndex": 5,
+          "position": {
+            "x": 1052.7999877929688,
+            "y": 1.100000023841858,
+            "z": 568.7999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 9,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 32,
+            "lookAheadRecordIndex": 33,
+            "selectorOutput": 32,
+            "targetGateIndex": 34,
+            "targetAngles": {
+              "low": 14929,
+              "high": 16749
+            }
+          }
+        },
+        {
+          "carIndex": 7,
+          "name": "Diez",
+          "startIndex": 6,
+          "position": {
+            "x": 1057.7999877929688,
+            "y": 1.100000023841858,
+            "z": 561.2999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 32,
+            "lookAheadRecordIndex": 33,
+            "selectorOutput": 32,
+            "targetGateIndex": 34,
+            "targetAngles": {
+              "low": 12551,
+              "high": 13917
+            }
+          }
+        },
+        {
+          "carIndex": 8,
+          "name": "Peo",
+          "startIndex": 7,
+          "position": {
+            "x": 1062.7999877929688,
+            "y": 1.100000023841858,
+            "z": 568.7999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 9,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 32,
+            "lookAheadRecordIndex": 33,
+            "selectorOutput": 32,
+            "targetGateIndex": 34,
+            "targetAngles": {
+              "low": 15369,
+              "high": 16638
+            }
+          }
+        },
+        {
+          "carIndex": 9,
+          "name": "James",
+          "startIndex": 8,
+          "position": {
+            "x": 1067.7999877929688,
+            "y": 1.100000023841858,
+            "z": 561.2999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 32,
+            "lookAheadRecordIndex": 33,
+            "selectorOutput": 32,
+            "targetGateIndex": 34,
+            "targetAngles": {
+              "low": 13506,
+              "high": 14024
+            }
+          }
+        },
+        {
+          "carIndex": 10,
+          "name": "Velvet",
+          "startIndex": 9,
+          "position": {
+            "x": 1072.7999877929688,
+            "y": 1.100000023841858,
+            "z": 568.7999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 9,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 32,
+            "lookAheadRecordIndex": 33,
+            "selectorOutput": 32,
+            "targetGateIndex": 34,
+            "targetAngles": {
+              "low": 16091,
+              "high": 16578
+            }
+          }
+        },
+        {
+          "carIndex": 11,
+          "name": "Mayor",
+          "startIndex": 10,
+          "position": {
+            "x": 1077.7999877929688,
+            "y": 1.100000023841858,
+            "z": 561.2999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 32,
+            "lookAheadRecordIndex": 33,
+            "selectorOutput": 32,
+            "targetGateIndex": 34,
+            "targetAngles": {
+              "low": 14087,
+              "high": 14931
+            }
+          }
+        },
+        {
+          "carIndex": 12,
+          "name": "Wallace",
+          "startIndex": 11,
+          "position": {
+            "x": 1082.7999877929688,
+            "y": 1.100000023841858,
+            "z": 568.7999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 9,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 32,
+            "lookAheadRecordIndex": 33,
+            "selectorOutput": 32,
+            "targetGateIndex": 34,
+            "targetAngles": {
+              "low": 15752,
+              "high": 16542
+            }
+          }
+        },
+        {
+          "carIndex": 13,
+          "name": "Hitomi",
+          "startIndex": 12,
+          "position": {
+            "x": 1087.7999877929688,
+            "y": 1.100000023841858,
+            "z": 561.2999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 32,
+            "lookAheadRecordIndex": 33,
+            "selectorOutput": 32,
+            "targetGateIndex": 34,
+            "targetAngles": {
+              "low": 14474,
+              "high": 14825
+            }
+          }
+        },
+        {
+          "carIndex": 14,
+          "name": "Jack",
+          "startIndex": 13,
+          "position": {
+            "x": 1092.7999877929688,
+            "y": 1.100000023841858,
+            "z": 568.7999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 9,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 32,
+            "lookAheadRecordIndex": 33,
+            "selectorOutput": 32,
+            "targetGateIndex": 34,
+            "targetAngles": {
+              "low": 16184,
+              "high": 16516
+            }
+          }
+        },
+        {
+          "carIndex": 15,
+          "name": "Arnold",
+          "startIndex": 14,
+          "position": {
+            "x": 1097.7999877929688,
+            "y": 1.100000023841858,
+            "z": 561.2999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 32,
+            "lookAheadRecordIndex": 33,
+            "selectorOutput": 32,
+            "targetGateIndex": 34,
+            "targetAngles": {
+              "low": 14751,
+              "high": 15356
+            }
+          }
+        },
+        {
+          "carIndex": 16,
+          "name": "Casa",
+          "startIndex": 15,
+          "position": {
+            "x": 1102.7999877929688,
+            "y": 1.100000023841858,
+            "z": 568.7999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 9,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 32,
+            "lookAheadRecordIndex": 33,
+            "selectorOutput": 32,
+            "targetGateIndex": 34,
+            "targetAngles": {
+              "low": 15925,
+              "high": 16498
+            }
+          }
+        },
+        {
+          "carIndex": 17,
+          "name": "Mond",
+          "startIndex": 16,
+          "position": {
+            "x": 1107.7999877929688,
+            "y": 1.100000023841858,
+            "z": 561.2999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 30,
+            "lookAheadRecordIndex": 32,
+            "selectorOutput": 30,
+            "targetGateIndex": 33,
+            "targetAngles": {
+              "low": 14474,
+              "high": 14825
+            }
+          }
+        },
+        {
+          "carIndex": 18,
+          "name": "Sebastian",
+          "startIndex": 17,
+          "position": {
+            "x": 1112.7999877929688,
+            "y": 1.100000023841858,
+            "z": 568.7999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 9,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 30,
+            "lookAheadRecordIndex": 32,
+            "selectorOutput": 30,
+            "targetGateIndex": 33,
+            "targetAngles": {
+              "low": 16184,
+              "high": 16516
+            }
+          }
+        },
+        {
+          "carIndex": 19,
+          "name": "Morrison",
+          "startIndex": 18,
+          "position": {
+            "x": 1117.7999877929688,
+            "y": 1.100000023841858,
+            "z": 561.2999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 30,
+            "lookAheadRecordIndex": 32,
+            "selectorOutput": 30,
+            "targetGateIndex": 33,
+            "targetAngles": {
+              "low": 14751,
+              "high": 15356
+            }
+          }
+        },
+        {
+          "carIndex": 20,
+          "name": "Gump",
+          "startIndex": 19,
+          "position": {
+            "x": 1122.7999877929688,
+            "y": 1.100000023841858,
+            "z": 568.7999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 9,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 30,
+            "lookAheadRecordIndex": 32,
+            "selectorOutput": 30,
+            "targetGateIndex": 33,
+            "targetAngles": {
+              "low": 15925,
+              "high": 16498
+            }
+          }
+        },
+        {
+          "carIndex": 21,
+          "name": "Frank",
+          "startIndex": 20,
+          "position": {
+            "x": 1127.7999877929688,
+            "y": 1.100000023841858,
+            "z": 561.2999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 30,
+            "lookAheadRecordIndex": 32,
+            "selectorOutput": 30,
+            "targetGateIndex": 33,
+            "targetAngles": {
+              "low": 14958,
+              "high": 15222
+            }
+          }
+        },
+        {
+          "carIndex": 22,
+          "name": "Sylvester",
+          "startIndex": 21,
+          "position": {
+            "x": 1132.7999877929688,
+            "y": 1.100000023841858,
+            "z": 568.7999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 9,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 30,
+            "lookAheadRecordIndex": 32,
+            "selectorOutput": 30,
+            "targetGateIndex": 33,
+            "targetAngles": {
+              "low": 16232,
+              "high": 16484
+            }
+          }
+        },
+        {
+          "carIndex": 23,
+          "name": "Princess Nanaha",
+          "startIndex": 22,
+          "position": {
+            "x": 1137.7999877929688,
+            "y": 1.100000023841858,
+            "z": 561.2999877929688
+          },
+          "yaw": -1.5707963267948966,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 16384,
+            "speedBucket": 0,
+            "currentRecordIndex": 30,
+            "lookAheadRecordIndex": 32,
+            "selectorOutput": 30,
+            "targetGateIndex": 33,
+            "targetAngles": {
+              "low": 15119,
+              "high": 15589
+            }
+          }
+        }
+      ],
+      "sha256": "9e920322d2636e85d86f1601f7bd4e32f09fccfdb4ba067168c798b69c4b3a67",
+      "visualEquipment": "Existing neutral wheel preview; native opponent equipment configuration is not asserted by this capture.",
+      "repeatIdentical": true
+    },
+    {
+      "activityId": 3,
+      "activityName": "Ninja Temple Raceway",
+      "courseId": 3,
+      "entrants": [
+        {
+          "carIndex": 0,
+          "name": "Player Q62",
+          "startIndex": 23,
+          "position": {
+            "x": 1471,
+            "y": 10,
+            "z": 187.5
+          },
+          "yaw": 0,
+          "ai": null
+        },
+        {
+          "carIndex": 1,
+          "name": "Klien",
+          "startIndex": 0,
+          "position": {
+            "x": 1478.5,
+            "y": 10,
+            "z": 302.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 124,
+            "lookAheadRecordIndex": 0,
+            "selectorOutput": 142,
+            "targetGateIndex": 1,
+            "targetAngles": {
+              "low": 63869,
+              "high": 64397
+            }
+          }
+        },
+        {
+          "carIndex": 2,
+          "name": "Hanako",
+          "startIndex": 1,
+          "position": {
+            "x": 1471,
+            "y": 10,
+            "z": 297.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 124,
+            "lookAheadRecordIndex": 0,
+            "selectorOutput": 142,
+            "targetGateIndex": 1,
+            "targetAngles": {
+              "low": 63056,
+              "high": 64030
+            }
+          }
+        },
+        {
+          "carIndex": 3,
+          "name": "Kiyokichi",
+          "startIndex": 2,
+          "position": {
+            "x": 1478.5,
+            "y": 10,
+            "z": 292.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 124,
+            "lookAheadRecordIndex": 0,
+            "selectorOutput": 142,
+            "targetGateIndex": 1,
+            "targetAngles": {
+              "low": 64056,
+              "high": 65001
+            }
+          }
+        },
+        {
+          "carIndex": 4,
+          "name": "Heizo",
+          "startIndex": 3,
+          "position": {
+            "x": 1471,
+            "y": 10,
+            "z": 287.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 124,
+            "lookAheadRecordIndex": 0,
+            "selectorOutput": 142,
+            "targetGateIndex": 1,
+            "targetAngles": {
+              "low": 63750,
+              "high": 64191
+            }
+          }
+        },
+        {
+          "carIndex": 5,
+          "name": "Goro",
+          "startIndex": 4,
+          "position": {
+            "x": 1478.5,
+            "y": 10,
+            "z": 282.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 124,
+            "lookAheadRecordIndex": 0,
+            "selectorOutput": 142,
+            "targetGateIndex": 1,
+            "targetAngles": {
+              "low": 64207,
+              "high": 64629
+            }
+          }
+        },
+        {
+          "carIndex": 6,
+          "name": "Sakuzo",
+          "startIndex": 5,
+          "position": {
+            "x": 1471,
+            "y": 10,
+            "z": 277.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 140,
+            "lookAheadRecordIndex": 124,
+            "selectorOutput": 141,
+            "targetGateIndex": 0,
+            "targetAngles": {
+              "low": 62440,
+              "high": 64315
+            }
+          }
+        },
+        {
+          "carIndex": 7,
+          "name": "Diez",
+          "startIndex": 6,
+          "position": {
+            "x": 1478.5,
+            "y": 10,
+            "z": 272.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 9,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 140,
+            "lookAheadRecordIndex": 124,
+            "selectorOutput": 141,
+            "targetGateIndex": 0,
+            "targetAngles": {
+              "low": 64334,
+              "high": 548
+            }
+          }
+        },
+        {
+          "carIndex": 8,
+          "name": "Peo",
+          "startIndex": 7,
+          "position": {
+            "x": 1471,
+            "y": 10,
+            "z": 267.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 140,
+            "lookAheadRecordIndex": 124,
+            "selectorOutput": 141,
+            "targetGateIndex": 0,
+            "targetAngles": {
+              "low": 63005,
+              "high": 64546
+            }
+          }
+        },
+        {
+          "carIndex": 9,
+          "name": "James",
+          "startIndex": 8,
+          "position": {
+            "x": 1478.5,
+            "y": 10,
+            "z": 262.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 140,
+            "lookAheadRecordIndex": 124,
+            "selectorOutput": 141,
+            "targetGateIndex": 0,
+            "targetAngles": {
+              "low": 64542,
+              "high": 65264
+            }
+          }
+        },
+        {
+          "carIndex": 10,
+          "name": "Velvet",
+          "startIndex": 9,
+          "position": {
+            "x": 1471,
+            "y": 10,
+            "z": 257.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 140,
+            "lookAheadRecordIndex": 124,
+            "selectorOutput": 141,
+            "targetGateIndex": 0,
+            "targetAngles": {
+              "low": 64045,
+              "high": 64704
+            }
+          }
+        },
+        {
+          "carIndex": 11,
+          "name": "Mayor",
+          "startIndex": 10,
+          "position": {
+            "x": 1478.5,
+            "y": 10,
+            "z": 252.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 9,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 140,
+            "lookAheadRecordIndex": 124,
+            "selectorOutput": 141,
+            "targetGateIndex": 0,
+            "targetAngles": {
+              "low": 64688,
+              "high": 386
+            }
+          }
+        },
+        {
+          "carIndex": 12,
+          "name": "Wallace",
+          "startIndex": 11,
+          "position": {
+            "x": 1471,
+            "y": 10,
+            "z": 247.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 140,
+            "lookAheadRecordIndex": 124,
+            "selectorOutput": 141,
+            "targetGateIndex": 0,
+            "targetAngles": {
+              "low": 63686,
+              "high": 64818
+            }
+          }
+        },
+        {
+          "carIndex": 13,
+          "name": "Hitomi",
+          "startIndex": 12,
+          "position": {
+            "x": 1478.5,
+            "y": 10,
+            "z": 242.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 140,
+            "lookAheadRecordIndex": 124,
+            "selectorOutput": 141,
+            "targetGateIndex": 0,
+            "targetAngles": {
+              "low": 64798,
+              "high": 65335
+            }
+          }
+        },
+        {
+          "carIndex": 14,
+          "name": "Jack",
+          "startIndex": 13,
+          "position": {
+            "x": 1471,
+            "y": 10,
+            "z": 237.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 140,
+            "lookAheadRecordIndex": 124,
+            "selectorOutput": 141,
+            "targetGateIndex": 0,
+            "targetAngles": {
+              "low": 64403,
+              "high": 64905
+            }
+          }
+        },
+        {
+          "carIndex": 15,
+          "name": "Arnold",
+          "startIndex": 14,
+          "position": {
+            "x": 1478.5,
+            "y": 10,
+            "z": 232.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 9,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 140,
+            "lookAheadRecordIndex": 124,
+            "selectorOutput": 141,
+            "targetGateIndex": 0,
+            "targetAngles": {
+              "low": 64882,
+              "high": 297
+            }
+          }
+        },
+        {
+          "carIndex": 16,
+          "name": "Casa",
+          "startIndex": 15,
+          "position": {
+            "x": 1471,
+            "y": 10,
+            "z": 227.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 140,
+            "lookAheadRecordIndex": 124,
+            "selectorOutput": 141,
+            "targetGateIndex": 0,
+            "targetAngles": {
+              "low": 64080,
+              "high": 64973
+            }
+          }
+        },
+        {
+          "carIndex": 17,
+          "name": "Mond",
+          "startIndex": 16,
+          "position": {
+            "x": 1478.5,
+            "y": 10,
+            "z": 222.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 123,
+            "lookAheadRecordIndex": 139,
+            "selectorOutput": 123,
+            "targetGateIndex": 140,
+            "targetAngles": {
+              "low": 62360,
+              "high": 64645
+            }
+          }
+        },
+        {
+          "carIndex": 18,
+          "name": "Sebastian",
+          "startIndex": 17,
+          "position": {
+            "x": 1471,
+            "y": 10,
+            "z": 217.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 123,
+            "lookAheadRecordIndex": 139,
+            "selectorOutput": 123,
+            "targetGateIndex": 140,
+            "targetAngles": {
+              "low": 61568,
+              "high": 63256
+            }
+          }
+        },
+        {
+          "carIndex": 19,
+          "name": "Morrison",
+          "startIndex": 18,
+          "position": {
+            "x": 1478.5,
+            "y": 10,
+            "z": 212.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 9,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 123,
+            "lookAheadRecordIndex": 139,
+            "selectorOutput": 123,
+            "targetGateIndex": 140,
+            "targetAngles": {
+              "low": 63478,
+              "high": 945
+            }
+          }
+        },
+        {
+          "carIndex": 20,
+          "name": "Gump",
+          "startIndex": 19,
+          "position": {
+            "x": 1471,
+            "y": 10,
+            "z": 207.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 123,
+            "lookAheadRecordIndex": 139,
+            "selectorOutput": 123,
+            "targetGateIndex": 140,
+            "targetAngles": {
+              "low": 61568,
+              "high": 63944
+            }
+          }
+        },
+        {
+          "carIndex": 21,
+          "name": "Frank",
+          "startIndex": 20,
+          "position": {
+            "x": 1478.5,
+            "y": 10,
+            "z": 202.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 123,
+            "lookAheadRecordIndex": 139,
+            "selectorOutput": 123,
+            "targetGateIndex": 140,
+            "targetAngles": {
+              "low": 64018,
+              "high": 65120
+            }
+          }
+        },
+        {
+          "carIndex": 22,
+          "name": "Sylvester",
+          "startIndex": 21,
+          "position": {
+            "x": 1471,
+            "y": 10,
+            "z": 197.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 32769,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 122,
+            "lookAheadRecordIndex": 123,
+            "selectorOutput": 122,
+            "targetGateIndex": 139,
+            "targetAngles": {
+              "low": 62238,
+              "high": 63661
+            }
+          }
+        },
+        {
+          "carIndex": 23,
+          "name": "Princess Nanaha",
+          "startIndex": 22,
+          "position": {
+            "x": 1478.5,
+            "y": 10,
+            "z": 192.5
+          },
+          "yaw": 0,
+          "ai": {
+            "commandMask": 9,
+            "nativeYaw": 0,
+            "speedBucket": 0,
+            "currentRecordIndex": 122,
+            "lookAheadRecordIndex": 123,
+            "selectorOutput": 122,
+            "targetGateIndex": 139,
+            "targetAngles": {
+              "low": 63788,
+              "high": 800
+            }
+          }
+        }
+      ],
+      "sha256": "102d55c6a929fec501819b7b5bd6d029d1ff5a975fa3cdc76dff1ca59c93ed55",
+      "visualEquipment": "Existing neutral wheel preview; native opponent equipment configuration is not asserted by this capture.",
+      "repeatIdentical": true
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+Road Trip Adventure PAL Police facade STQ orientation
+Continuation evidence, 2026-08-21
+
+Source: user-supplied PAL MODE2/2352 disc, FLD/223.BIN.
+Purpose: re-check the vertical field-UV convention without relying on an older MonoGame screenshot or on exporter conventions.
+
+Relevant material
+-----------------
+Police facade primitives use TEX0 TBP 0x3735, a 64x64 PSMT4 indexed atlas in the reconstructed GS-local-memory state.
+
+The facade primitive whose STQ range isolates the lettering region has:
+
+  physical upper edge: Y = 35.95, T/Q = 0.0
+  physical lower edge: Y = 34.70, T/Q = 0.5
+
+Surrounding stone-band primitives sample the complementary T/Q = 0.5..1.0 half.
+
+Independent GS replay of the same TEX0 surface places the readable POLICE lettering in the atlas's 0.0..0.5 vertical half. Therefore the authored geometry and the reconstructed texture surface agree directly:
+
+  runtime V = T / Q
+
+A port-side `1 - T/Q` transform would exchange those vertical halves and invert/misplace the facade lettering.
+
+This is consistent with the existing `FieldSourceStAtlasLayout` regression in tests/Rta.Tests/Program.cs and with the handoff's current FieldTexturedMesh implementation. No new UV flip was introduced in this continuation.
+
+Caveat
+------
+The initial conclusion above came from direct source-data/GS-memory evidence. After .NET SDK 10.0.400 was supplied, the same source was also run through MonoGame DesktopGL under Xvfb/llvmpipe with a camera aimed directly at the Police facade. The fresh framebuffer showed the horizontal POLICE sign, vertical PEACH lettering, police-window poster and nearby Paint Shop sign upright. Raw S/Q,T/Q therefore now has both source-data and runtime-visual confirmation; do not reintroduce a blind vertical STQ inversion for this material.

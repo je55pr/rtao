@@ -1,0 +1,22 @@
+PAL SYS/SORA.GSL sky package evidence
+=================================
+
+Disc file: SYS/SORA.GSL
+Length: 116,336 bytes
+Inline DMA chain: 5 packets total (4 CNT image-transfer packets + END).
+
+GS upload sequence
+------------------
+0: DBP 15614, DBW 8,  PSMT8,  512x96,  49,152 bytes
+1: DBP 15862, DBW 1,  PSMCT32, 16x16,  1,024 bytes
+2: DBP 15866, DBW 16, PSMT4, 1024x128, 65,536 bytes
+3: DBP 16122, DBW 1,  PSMCT32, 16x2,     128 bytes
+
+Decoded logical assets
+----------------------
+- Upload 0 + upload 1: 512x96 opaque daytime panorama. Upper rows are saturated blue; the lower edge fades to the pale/white authored horizon and contains the wispy cloud band visible in original gameplay screenshots.
+- Upload 2 + upload 3: 1024x128 mostly-transparent white-alpha night overlay containing stars and a moon. PSMT4 CSM1 logical indices 8..15 map into physical CLUT entries 16..23, explaining the 16x2 palette upload.
+
+Runtime decision
+----------------
+The current outdoor renderer is still intentionally daytime-only, matching its use of HG2 DayColor. It now renders the exact daytime SORA panorama on a camera-centred upper hemisphere. U wraps 360 degrees; V clamps at the authored horizon/zenith. The night overlay is decoded and retained in the format layer but not rendered until time-of-day/NightColor is enabled. No extracted game texture is stored in the project.

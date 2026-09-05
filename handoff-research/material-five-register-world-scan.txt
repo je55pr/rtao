@@ -1,0 +1,39 @@
+Road Trip Adventure PAL — field material width scan / FLD221 road trace
+=====================================================================
+
+Disc-wide V3-32 material register patterns beginning with the four core registers:
+
+  9275 occurrences, 64 fields: [0E,15,07,09]
+  7433 occurrences, 60 fields: [0E,15,07,09,35]
+
+FLD/221 chunk 26 decisive sequence:
+
+  p133 uses TBP 12178 (64x64 yellow warning sign)
+  next VIF material update is V3x5:
+    registers = [0x0E,0x15,0x07,0x09,0x35]
+    values    = [
+      0x1000000000008004,
+      0x00000F4000080124,
+      0x2005F7259D40AFA9,
+      0x0000000000000001,
+      0x100000000000AFBA
+    ]
+  TEX0 decodes to:
+    TBP 12201
+    TBW 2
+    PSMT4
+    128x64
+    CBP 12217
+  CLAMP decodes WMS=1, WMT=0
+  fifth register 0x35 = MIPTBP1_2
+  p134 and p135 are broad y=5 road strips.
+
+Old parser required exactly four material vectors, ignored this update, and therefore
+left the p133 warning-sign material active for p134/p135. The decoded TBP 12201 base
+texture is grey asphalt with white road-edge stripes and a dashed centre marking,
+matching the original-game screenshot supplied by Jess.
+
+Matched runtime camera smoke test:
+  FLD/221, camera (1170,15,700), yaw pi, pitch -0.12
+  old parser -> yellow/sign-corrupt road and gaps
+  fixed parser -> continuous grey asphalt with lane markings

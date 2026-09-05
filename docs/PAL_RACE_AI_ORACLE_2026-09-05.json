@@ -1,0 +1,32 @@
+{
+  "authority": "SLES_513.56",
+  "executableSha256": "2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9",
+  "cases": 4096,
+  "activityCount": 24,
+  "courseCount": 15,
+  "feedbackCases": 2048,
+  "commandCounts": {
+    "0x0001": 1112,
+    "0x8001": 178,
+    "0x0002": 1926,
+    "0x8002": 327,
+    "0x2002": 326,
+    "0x2001": 194,
+    "0x0000": 20,
+    "0x0009": 5,
+    "0x2000": 4,
+    "0x8000": 4
+  },
+  "yawCorrections": {
+    "positive": 344,
+    "negative": 342
+  },
+  "verified": [
+    "target angle halfwords",
+    "command mask",
+    "native yaw",
+    "all 256 speed targets",
+    "all 256 feedback bytes"
+  ],
+  "oracle": "Original PAL scalar instructions; host float32 COP1 model, not a cycle-accurate R5900 emulator"
+}

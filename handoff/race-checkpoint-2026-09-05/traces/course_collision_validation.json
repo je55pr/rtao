@@ -1,0 +1,10 @@
+{
+  "authority": "SLES_513.56",
+  "courses": 15,
+  "gridQueries": 360,
+  "queries": 2040,
+  "hits": 1882,
+  "outputSha256": "61e221249833e771c1d7a2043fd1a6ef5bd4c5933100706fdb9b24598ab9cfd2",
+  "syntheticInstructionCases": 8192,
+  "wrapperBoundaryCases": 363
+}

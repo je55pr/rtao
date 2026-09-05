@@ -1,0 +1,456 @@
+diff --git a/RTA_CURRENT_STATE.md b/RTA_CURRENT_STATE.md
+index 2992ff5..9503e1d 100644
+--- a/RTA_CURRENT_STATE.md
++++ b/RTA_CURRENT_STATE.md
+@@ -2,9 +2,40 @@
+ 
+ **Checkpoint date:** 2026-09-05  
+ **Canonical implementation:** Three.js / TypeScript web port  
+-**Canonical source lineage:** `RTA_ThreeJS_native_ordinary_race_navigation_selector_2026-09-05.zip`  
++**Canonical source lineage:** `RTA_ThreeJS_native_race_ai_scheduling_checkpoint_2026-09-05.zip`
+ **Status:** known-good race foundation (39 activities, 24 ordinary races, exact player/team/opponent entrant and human/AI control ownership, 15 compiled PAL courses, native start-grid seeds plus collision-grounded transforms, finish/lap gates, 1,664 navigation gates/routing records plus the dynamic PAL record selector and ordinary AI ownership, Cake prizes and licence progress), commerce/progress plus native Parts Shop → Q's Factory fitting, original WHEEL.BIN wheels, complete wheel paint, original Big Tyre geometry + recovered +0.85 chassis lift, executable-backed six-surface tyre grip, exact Engine/Steering/Brake behavior, Chassis inverse-mass response, Transmission launch/terminal endpoints, fitted-sign driving distance and sponsor Cake redemption, Cloud Hill Second-hand sales, deterministic close-car regression, schema-10 equipment/paint/reward/race persistence, exact trade arithmetic, generic Quick-Pic 1–100 completion, and twenty-seven deterministic fixed-interior cases
+ 
++## Saved continuation — AI, race scheduling and live order
++
++All current source, tests, PAL traces and the two race-grid captures are saved.
++The latest complete gate passed **41 files / 214 tests**, production build and
++capture build with the PAL executable supplied. Scheduling and ordering have
++1,260 countdown and 256 ranking differential cases in addition to the 4,096 AI
++cases. The final manual scheduler/order review was paused at the user's request.
++
++**Capture correction:** the script compared the browser's identical
++`unavailable-in-browser-context` hash placeholders. Pixel-identical repeats
++were therefore not proved. Both saved PNGs have real hashes in the checkpoint
++manifest; the repeat gate needs correction and a fresh pair of captures.
++
++Start with `handoff/race-checkpoint-2026-09-05/README.md` for the complete resume
++point, limitations and evidence. Then continue into the native vehicle command
++consumer and speed/physics integration. A playable race loop remains pending.
++The milestone notes below describe earlier checkpoints.
++
++## Earlier continuation — native ordinary-race AI commands
++
++The ordinary AI command generator, authored target corridor and original angle
++calculation are now implemented in `web/src/game/raceAi.ts`. A bounded oracle
++executed the supplied PAL instructions for 4,096 seeded cases across all 24
++profiles and 15 course tables, matching target angles, commands, yaw and both
++complete mutable buffers. Full gate: 39 files / 207 tests and both builds pass.
++See `docs/PAL_ORDINARY_RACE_AI_2026-09-05.md` for addresses and remaining limits.
++
++Next: ordinary manager/update scheduling, command-bit 8 and native speed/vehicle
++integration. This checkpoint still does not claim a playable race. The earlier
++milestone notes below are historical where they defer AI command generation.
++
+ ## Latest race milestone — catalogue, courses and reward progression
+ 
+ PAL `SLES_513.56` now supplies a typed catalogue for all 39 activities: the
+diff --git a/RTA_STATE.json b/RTA_STATE.json
+index fd46377..1b48a65 100644
+--- a/RTA_STATE.json
++++ b/RTA_STATE.json
+@@ -4,9 +4,9 @@
+   "project": "Road Trip Adventure",
+   "active_implementation": "threejs-typescript-web",
+   "reference_implementation": "csharp-monogame-archaeology",
+-  "canonical_source_lineage": "RTA_ThreeJS_native_ordinary_race_navigation_selector_2026-09-05.zip",
++  "canonical_source_lineage": "RTA_ThreeJS_native_race_ai_scheduling_checkpoint_2026-09-05.zip",
+   "status": "known-good PAL race catalogue/course import/exact player-team-opponent entrant and human-AI control ownership/native collision-grounded start grid/finish-lap/dynamic navigation selector and ordinary AI ownership/reward progression, native equipment handling, fitted-sign and Second-hand Cake rewards, commerce/progress and deterministic captures/interiors",
+-  "current_focus": "trace Peach Raceway ordinary-AI steering/speed output and race-state/update scheduling beyond the proven navigation selector",
++  "current_focus": "Paused after saving PAL ordinary-race AI, start scheduling and live-order implementation; finish scheduler/order review and repair capture repeat verification before native vehicle integration",
+   "milestones": {
+     "pal_race_activity_catalogue": "validated_39_activities_24_ordinary_split_descriptor_tables_and_resident_participants",
+     "pal_race_selector_ranges": "validated_12_area_first_count_pairs_and_ordinary_six_nine_nine_class_distribution",
+@@ -120,17 +120,52 @@
+     "second_hand_exact_catalogue_subset": "validated_15_mapped_owned_part_records",
+     "roulette_stake_payout_boundary": "validated_wager_cap10000_debit_record_multiplier_credit",
+     "roulette_physical_result_math": "validated_final_car_angle_q15_half_step3276_bins_pocket_table_and_matcher",
+-    "roulette_playable_scene": "gated_action_a19_scene_and_physical_angle_inputs"
++    "roulette_playable_scene": "gated_action_a19_scene_and_physical_angle_inputs",
++    "native_ordinary_race_ai_2026_09_05": {
++      "status": "implemented_and_pal_instruction_verified",
++      "documentation": "docs/PAL_ORDINARY_RACE_AI_2026-09-05.md",
++      "native_cases": 4096,
++      "boundary": "target_angles_commands_yaw_speed_profiles_feedback_only_not_playable_race"
++    },
++    "native_race_scheduling_and_order_2026_09_05": {
++      "status": "implemented_tests_passed_manual_review_pending",
++      "documentation": "handoff/race-checkpoint-2026-09-05/README.md",
++      "countdown_handler": "0x0022F068",
++      "live_order_handler": "0x0022ED38",
++      "countdown_cases": 1260,
++      "ranking_cases": 256,
++      "boundary": "standalone_scalar_functions_external_host_calls_hooked_no_playable_race_loop"
++    }
+   },
+   "validation": {
+-    "web_test_files_passed": 37,
+-    "web_tests_passed": 199,
++    "web_test_files_passed": 41,
++    "web_tests_passed": 214,
+     "vite_production_build": "passed_52_modules",
+-    "sandbox_capture_bundle_build": "passed_47_modules",
++    "sandbox_capture_bundle_build": "passed_48_modules",
+     "pal_race_activity_count": 39,
+     "pal_ordinary_race_count": 24,
+-    "pal_ordinary_race_class_counts": [6, 9, 9],
+-    "pal_ordinary_course_ids": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
++    "pal_ordinary_race_class_counts": [
++      6,
++      9,
++      9
++    ],
++    "pal_ordinary_course_ids": [
++      0,
++      1,
++      2,
++      3,
++      4,
++      5,
++      6,
++      7,
++      8,
++      9,
++      10,
++      11,
++      12,
++      13,
++      14
++    ],
+     "pal_ordinary_course_source_bytes": 36403312,
+     "pal_ordinary_course_render_triangles": 228072,
+     "pal_ordinary_course_collision_triangles": 45969,
+@@ -138,7 +173,26 @@
+     "pal_race_prize_table_address": "0x002a5218",
+     "pal_race_result_state": "save_license_plus0x651_best_finishes_plus0xff0_24_bytes",
+     "pal_race_finish_gate_table": "0x002a9e80_15_records_48_bytes_three_adjacent_strips",
+-    "pal_peach_finish_strips_native": [[588, 535, 590, 576.7999877929688], [590, 535, 592, 576.7999877929688], [592, 535, 594, 576.7999877929688]],
++    "pal_peach_finish_strips_native": [
++      [
++        588,
++        535,
++        590,
++        576.7999877929688
++      ],
++      [
++        590,
++        535,
++        592,
++        576.7999877929688
++      ],
++      [
++        592,
++        535,
++        594,
++        576.7999877929688
++      ]
++    ],
+     "pal_race_finish_crossing_handler": "0x0022eba0_phase1_to2_to3_to4_then_lap_on_strip0",
+     "pal_race_lap_finish_handler": "0x0022e910_descriptor_byte2_target_and_zero_based_completion_order",
+     "pal_race_start_anchor_table": "0x002a9c10_15_records_16_bytes_native_xyz_heading_polarity",
+@@ -146,7 +200,12 @@
+     "pal_race_grounding_selector": "0x00208790_race_mode_selects_0x00208c50",
+     "pal_race_grounding_helper": "0x00208c50_16x16_chunk_selection_calls_0x00207748_and_writes_car_y",
+     "pal_race_grounded_grid_probe": "passed_360_of_360_actual_pal_course_start_slots",
+-    "pal_race_grounding_max_delta": {"C08": 0.01746, "C09": 30, "C13": 98, "C14": 100.7068},
++    "pal_race_grounding_max_delta": {
++      "C08": 0.01746,
++      "C09": 30,
++      "C13": 98,
++      "C14": 100.7068
++    },
+     "pal_ordinary_descriptor_car_counts": "all_24_descriptors_are_24",
+     "pal_ordinary_participant_counts": "all_24_lists_have_23_resident_references",
+     "pal_ordinary_entrant_builder": "0x0020f9e8_player_config0_car0_start23_team_configs1_2_then_opponents",
+@@ -156,7 +215,23 @@
+     "pal_primary_controller_binding": "0x0020f8a0_schedules_0x0021f540_flags0_controller_state0_to_car0",
+     "pal_race_control_dispatch": "0x0021b840_highflag0080_calls_installed_ai_other_lowflag0002_calls_human_input",
+     "pal_race_navigation_pointer_table": "0x002bf5f0_scene_indexed_gate_and_record_pointer_pairs",
+-    "pal_race_navigation_gate_counts": [35, 43, 120, 143, 66, 163, 90, 128, 42, 37, 143, 90, 143, 224, 197],
++    "pal_race_navigation_gate_counts": [
++      35,
++      43,
++      120,
++      143,
++      66,
++      163,
++      90,
++      128,
++      42,
++      37,
++      143,
++      90,
++      143,
++      224,
++      197
++    ],
+     "pal_race_navigation_gate_total": 1664,
+     "pal_race_navigation_record_total": 1664,
+     "pal_race_navigation_setup": "0x00251f98_installs_24_byte_gate_and_8_byte_record_tables",
+@@ -165,8 +240,19 @@
+     "pal_race_navigation_peach_start": "record0_at_native_anchor_572_2_561_3_resolves_record34_output34_returns_record0_class2",
+     "pal_ordinary_ai_handler": "0x00252ba0_all_24_descriptors_field1_is_steering_target_gate",
+     "pal_race_navigation_alias": "C11_reuses_C06_addresses_0x002b2dd8_and_0x002b3648",
+-    "pal_peach_start_anchor_native": [572.2000122070312, 1.100000023841858, 561.2999877929688, 1, 0],
+-    "pal_peach_start_slot3_native": [557.2000122070312, 1.100000023841858, 568.7999877929688, 16384],
++    "pal_peach_start_anchor_native": [
++      572.2000122070312,
++      1.100000023841858,
++      561.2999877929688,
++      1,
++      0
++    ],
++    "pal_peach_start_slot3_native": [
++      557.2000122070312,
++      1.100000023841858,
++      568.7999877929688,
++      16384
++    ],
+     "low_memory_fixture_fld223_bytes": 6514849,
+     "low_memory_fixture_cached_reuse": "passed_without_pal_source",
+     "peach_day_capture_sha256": "8c8c7c92abe298a5b214784057b35eba0b4a6baa639b54d8667a640e553a20c9",
+@@ -599,7 +685,12 @@
+     "native_engine_panther_scalar": 1800,
+     "native_engine_blue_max_scalar": 2200,
+     "native_engine_mad_v2_scalar": 3300,
+-    "native_steering_scalars": [64, 96, 128, 160],
++    "native_steering_scalars": [
++      64,
++      96,
++      128,
++      160
++    ],
+     "pal_advertising_action_handler": "0x0023d458_registers_0x0023bad0",
+     "pal_advertising_distance_producer": "0x0022fc20_reads_car_plus204_and_option_flag0200",
+     "pal_advertising_reward_formula": "trunc(distance/1000)*10*(sponsor_index+1)_remainder_retained",
+@@ -623,10 +714,75 @@
+     "roulette_action_asset": "ACTION/A19.BIN_1512480_bytes_sha256_9808cd089953b228c98105f4993b7ebfc1ba27d9c709e13194859464c13b9326",
+     "roulette_result_caller": "0x00263be8_final_angle_relative_wheel_q15_plus1638_divu3276",
+     "roulette_pocket_table": "0x002dbf38_20_physical_entries_plus_index20_adjacent_zero_alias",
+-    "roulette_pocket_numbers": [0, 6, 8, 18, 10, 4, 12, 16, 14, 2, 0, 5, 7, 17, 9, 3, 11, 15, 13, 1, 0],
++    "roulette_pocket_numbers": [
++      0,
++      6,
++      8,
++      18,
++      10,
++      4,
++      12,
++      16,
++      14,
++      2,
++      0,
++      5,
++      7,
++      17,
++      9,
++      3,
++      11,
++      15,
++      13,
++      1,
++      0
++    ],
+     "roulette_bet_matcher": "0x00265048_indices0_to17_number_18_to20_six_number_group_21_to22_colour",
+-    "roulette_bet_multipliers": [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 3, 3, 3, 2, 2],
+-    "roulette_physical_authority": "result_math_closed_action_a19_scene_and_physical_inputs_not_implemented"
++    "roulette_bet_multipliers": [
++      18,
++      18,
++      18,
++      18,
++      18,
++      18,
++      18,
++      18,
++      18,
++      18,
++      18,
++      18,
++      18,
++      18,
++      18,
++      18,
++      18,
++      18,
++      3,
++      3,
++      3,
++      2,
++      2
++    ],
++    "roulette_physical_authority": "result_math_closed_action_a19_scene_and_physical_inputs_not_implemented",
++    "native_race_ai_instruction_cases": 4096,
++    "native_race_ai_web_gate": "39_files_207_tests_production_and_capture_builds_passed",
++    "native_race_latest_web_gate": "41_files_214_tests_production_and_capture_builds_passed",
++    "native_race_countdown_instruction_cases": 1260,
++    "native_race_ranking_instruction_cases": 256,
++    "native_race_grid_capture_repeat": "unverified_browser_hash_sentinel_compared_fix_and_recapture",
++    "native_race_grid_capture_files": [
++      {
++        "file": "captures/race-00-grid.png",
++        "size_bytes": 1419939,
++        "sha256": "9e920322d2636e85d86f1601f7bd4e32f09fccfdb4ba067168c798b69c4b3a67"
++      },
++      {
++        "file": "captures/race-03-grid.png",
++        "size_bytes": 1833404,
++        "sha256": "102d55c6a929fec501819b7b5bd6d029d1ff5a975fa3cdc76dff1ca59c93ed55"
++      }
++    ],
++    "race_checkpoint_evidence": "handoff/race-checkpoint-2026-09-05"
+   },
+   "library": {
+     "current_source": "/RTA/Current/RTA_current_source.zip",
+@@ -638,7 +794,9 @@
+     "handoffs": "/RTA/Handoffs"
+   },
+   "next_tasks": [
+-    "Trace Peach Raceway ordinary-AI steering/speed output and race-state/update scheduling from the now-executable navigation selector and control-owned entrant layout",
++    "Fix race_grid_capture.mjs repeat check to compare/hash PNG bytes in Node; existing browser hash is unavailable, so prior repeatIdentical flags are unverified",
++    "Finish manual PAL review of raceScheduling.ts and racePositions.ts and their oracle memory setup before integration; 1260 countdown and 256 ranking cases already pass",
++    "Trace ordinary race manager and command consumer around 0x0021D000, command-bit 8 and native speed/vehicle integration after AI command generation",
+     "Connect Q's Factory race selection to the first playable course only after those native paths close",
+     "Recover and connect another Cake producer only when its trigger, mutation and authored host path are complete",
+     "Recover intermediate Transmission shift timing only after native speed and engine-state units are bridged",
+diff --git a/web/src/game/worldView.ts b/web/src/game/worldView.ts
+index fe61429..f91dd78 100644
+--- a/web/src/game/worldView.ts
++++ b/web/src/game/worldView.ts
+@@ -361,6 +361,7 @@ export class WorldView {
+   async capturePng(
+     scene: WorldOverviewCaptureScene | FieldOverviewCaptureScene,
+     size: CaptureSize = scene.size,
++    includeActors = false,
+   ): Promise<Blob> {
+     const previousOrigin = this.originFieldNumber;
+     const previousTimeOfDayUnits = this.timeOfDayUnits;
+@@ -373,7 +374,7 @@ export class WorldView {
+     const previousActorVisibility = new Map<THREE.Object3D, boolean>();
+     for (const actor of this.actors.values()) {
+       previousActorVisibility.set(actor.object, actor.object.visible);
+-      actor.object.visible = false;
++      if (!includeActors) actor.object.visible = false;
+     }
+     const previousVehicleVisible = this.vehicle?.visible;
+     if (this.vehicle) this.vehicle.visible = false;
+diff --git a/web/src/sandboxCaptureRunner.ts b/web/src/sandboxCaptureRunner.ts
+index 0cc2066..fbfea75 100644
+--- a/web/src/sandboxCaptureRunner.ts
++++ b/web/src/sandboxCaptureRunner.ts
+@@ -18,6 +18,7 @@ import { readShopInteriorBackdrop, shopInteriorPackagePath, shopInteriorSlotCoun
+ import { captureSceneById, type CaptureScene, type CarVisualCaptureScene, type FieldOverviewCaptureScene, type WorldOverviewCaptureScene } from "./game/captureScenes";
+ import { Q62CarModel } from "./game/carView";
+ import { RaceCourseGridSampler } from "./game/raceCourseGrid";
++import { readOrdinaryRaceSpeedProfiles, stepOrdinaryRaceAi, type NativeRaceAiOutput } from "./game/raceAi";
+ import { browserCompatibilityPaintWord, decodeNativeBodyPaint, nativeWheelPaintColor, nativeWheelPaintIndex } from "./game/paintShop";
+ import { aggregatePartsAppearance, applyKnownNativeEquipmentSelectors, defaultPartLoadout } from "./game/parts";
+ import { applyRecoveredDialogueHostAction } from "./game/dialogueProgress";
+@@ -215,6 +216,25 @@ export interface SandboxCaptureApi {
+   inspectRaceCatalogue(files: readonly File[]): Promise<SandboxRaceCatalogueSummary>;
+   /** Compile one PAL COURSE/Cxx package through the shared field geometry/collision readers. */
+   inspectRaceCourse(courseId: number, files: readonly File[]): Promise<SandboxRaceCourseSummary>;
++  /** Deterministic native grid/body/paint inspection; no simulated race movement. */
++  captureRaceGridFromBrowserFiles(activityId: number, files: readonly File[]): Promise<SandboxRaceGridCapture>;
++}
++
++export interface SandboxRaceGridCapture {
++  readonly activityId: number;
++  readonly activityName: string;
++  readonly courseId: number;
++  readonly dataUrl: string;
++  readonly sha256: string;
++  readonly entrants: readonly {
++    readonly carIndex: number;
++    readonly name: string;
++    readonly startIndex: number;
++    readonly position: { readonly x: number; readonly y: number; readonly z: number };
++    readonly yaw: number;
++    readonly ai: NativeRaceAiOutput | null;
++  }[];
++  readonly visualEquipment: string;
+ }
+ 
+ export interface SandboxRaceCatalogueSummary {
+@@ -1436,6 +1456,64 @@ async function inspectRaceCourse(courseId: number, files: readonly File[]): Prom
+   }
+ }
+ 
++async function captureRaceGridFromBrowserFiles(activityId: number, files: readonly File[]): Promise<SandboxRaceGridCapture> {
++  const source = await openDirectImportSource([...files]);
++  let world: WorldView | undefined;
++  const models: Q62CarModel[] = [];
++  try {
++    const identity = await readSupportedIdentity(source);
++    const executable = await source.disc.readFile(identity.bootExecutable);
++    const activity = readRaceCatalogue(executable).ordinaryRaces[activityId];
++    if (!activity) throw new RangeError("Race grid capture requires an ordinary activity ID 0..23.");
++    const anchor = readRaceStartAnchors(executable)[activity.sceneId]!;
++    const navigation = readRaceNavigationCourses(executable)[activity.sceneId]!;
++    const profile = readOrdinaryRaceSpeedProfiles(executable)[activityId]!;
++    const courseBytes = await source.disc.readFile(`COURSE/C${activity.sceneId.toString().padStart(2, "0")}.BIN`);
++    const grid = new RaceCourseGridSampler(compileFieldCollision(courseBytes));
++    const entrants = ordinaryRaceEntrants(activity, anchor);
++    const size = { width: 1280, height: 960 };
++    world = new WorldView(ensureHost(size, "rta-sandbox-race-grid"));
++    world.startWorld();
++    // Isolated render slot: no overworld topology or race scene-ID equivalence is implied.
++    world.addCompiledFieldMesh(223, compileFieldVertexColorMesh(courseBytes));
++    world.finishWorld();
++    const tireBytes = await source.disc.readFile("CARS/TIRE.BIN");
++    const wheelBytes = await source.disc.readFile("CARS/WHEEL.BIN");
++    const bodyBytes = new Map<number, Uint8Array>();
++    const summaries: SandboxRaceGridCapture["entrants"][number][] = [];
++    for (const entrant of entrants) {
++      const bodyId = entrant.kind === "opponent" ? entrant.participant.bodyId : 62;
++      const name = entrant.kind === "opponent" ? entrant.participant.name : "Player Q62";
++      const paintWord = entrant.kind === "opponent" ? entrant.participant.packedPaint : browserCompatibilityPaintWord;
++      if (!bodyBytes.has(bodyId)) bodyBytes.set(bodyId, await source.disc.readFile(carAssetPath(bodyId)));
++      const model = new Q62CarModel(bodyBytes.get(bodyId)!, tireBytes, { name, wheelBytes, ...carVisualPaintOptions({ paintWord }) });
++      models.push(model);
++      const grounded = grid.ground(entrant.seed);
++      world.addWorldActor(`race-car-${entrant.carIndex}`, model, 223, grounded.position, grounded.yaw);
++      const ai = entrant.controlSource === "ordinary-ai" ? stepOrdinaryRaceAi(navigation, {
++        ...entrant.seed, nativeSpeed: 0, configPointerIndex: entrant.configPointerIndex,
++        currentRecordIndex: 0, steeringEnabled: true, speedLimit: 0,
++      }, { sceneFlags: 4, updateSpeedFeedback: false }, { speedTargets: profile.slice(), speedFeedback: new Uint8Array(256) }) : null;
++      summaries.push({ carIndex: entrant.carIndex, name, startIndex: entrant.startIndex, position: grounded.position, yaw: grounded.yaw, ai });
++    }
++    const player = summaries[0]!;
++    const forwardX = Math.sin(player.yaw), forwardZ = Math.cos(player.yaw);
++    const blob = await world.capturePng({ id: `race-grid-${activityId}`, label: `${activity.name} — native grid inspection`,
++      kind: "field-overview", fieldNumber: 223, size, visibilityMode: "unlimited",
++      camera: { position: [player.position.x - forwardX * 10, player.position.y + 4.8, player.position.z - forwardZ * 10],
++        target: [player.position.x + forwardX * 16, player.position.y + 1, player.position.z + forwardZ * 16] },
++    }, size, true);
++    return { activityId, activityName: activity.name, courseId: activity.sceneId, entrants: summaries,
++      dataUrl: await blobDataUrl(blob), sha256: await sha256Hex(new Uint8Array(await blob.arrayBuffer())),
++      visualEquipment: "Existing neutral wheel preview; native opponent equipment configuration is not asserted by this capture." };
++  } finally {
++    world?.dispose();
++    models.forEach((model) => model.dispose());
++    document.getElementById("rta-sandbox-race-grid")?.remove();
++    await source.cleanup();
++  }
++}
++
+ async function captureQFactoryFromBrowserFiles(files: readonly File[]): Promise<SandboxCaptureResult> {
+   const scene = captureSceneById("qfactory");
+   if (!scene || scene.kind !== "qfactory") throw new Error("Q's Factory capture definition is unavailable.");
+@@ -1537,4 +1615,5 @@ window.__rtaSandboxCapture = {
+   inspectExecutableVirtualBytes,
+   inspectRaceCatalogue,
+   inspectRaceCourse,
++  captureRaceGridFromBrowserFiles,
+ };
+diff --git a/web/vite.config.ts b/web/vite.config.ts
+index 1c2dcdf..acc949d 100644
+--- a/web/vite.config.ts
++++ b/web/vite.config.ts
+@@ -17,6 +17,6 @@ export default defineConfig({
+   },
+   test: {
+     environment: "node",
+-    include: ["src/**/*.test.ts"],
++    include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
+   },
+ });

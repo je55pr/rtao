@@ -1,0 +1,28 @@
+Peach -> Fuji daytime cleanup evidence (2026-08-22)
+
+HumanEyes final drive report:
+- tree cards and dock bunting had white/cyan semi-transparent fringes that visually clipped background;
+- green bridge sprites were visible in daytime but absent in original daytime bridge capture; original nighttime capture shows the same green/amber coronas illuminated;
+- Fuji shop doorways under curtains needed black interior/backing like the original.
+
+Alpha edge follow-up / corrected diagnosis:
+- the earlier premultiplied-alpha explanation was not the cause of the reported bunting/foliage clipping. FLD/220 bunting TBP 10493 is strictly binary alpha (1028 opaque / 1020 transparent texels), and every transparent texel is RGB black; premultiplication therefore changes none of its source pixels. The FLD/220 bush TBP 10742 is likewise binary-alpha with black transparent RGB.
+- a deterministic reproduction at FLD/220 render-local camera X1383/Z1365 shows that the golden hill visible through/behind the flags belongs to a neighbouring resident FLD. Rendering FLD/220 alone leaves literal sky behind those cards.
+- persistent-world submission was still sector-local: sector A opaque -> sector A alpha -> sector B opaque -> sector B alpha. A linearly filtered low-alpha edge from FLD/220 could therefore blend against sky and write depth before the neighbouring sector's opaque hill/building was submitted, so that later geometry could not replace the sky-coloured fringe.
+- the renderer now performs frame-global phases: all visible-sector opaque batches first, then all visible-sector alpha/cutout batches. Opaque and alpha billboard batches are split into the same phases; dynamic palm crowns remain in the alpha phase. This fixes the background-clipping pixels while preserving the authored linear filtering.
+- PAL GS TEST_2 packets with half-alpha thresholds were investigated as a diagnostic. Forcing ReferenceAlpha=128 also hides the fringe, but it is not a valid global fix: FLD/220 TBP 10926 contains authored ground-shadow texels with alpha 64, and the half-alpha shortcut deletes those shadows. Keep the existing fully-transparent discard (Greater/0) for the current renderer.
+- the prior premultiplied upload/blend path remains in this cleanup branch, but it is no longer considered the explanation or fix for the bunting/foliage clipping issue.
+
+Bridge billboards:
+- FLD/220 has 147 billboards total. The world-wide unique daytime-hidden light signature Night avg >=180 and Day avg <=110 selects exactly 62, all in FLD/220:
+  * 8 x TBP 10505 64x64 soft yellow glow (day ~102, night 192)
+  * 48 x TBP 10525 64x64 green corona (day ~51.2, night 200)
+  * 6 x TBP 10534 64x64 orange/yellow corona (day ~51.2, night 200)
+- FLD/221 returns zero for the same predicate. Full earlier scan found no matching billboard in the other outdoor fields.
+- deterministic bridge A/B removes the visible green cable coronas and yellow post glows during daytime while preserving bridge geometry.
+
+Fuji day-black/night-lit static geometry:
+- FLD/113 still contains exactly 100 untextured primitives with DayColor black and NightColor non-zero.
+- these must not be treated as universally day-hidden. At the user's shop comparison around car X584/Z1197, re-submitting them restores the authored black interior immediately below the curtains, matching the original daytime screenshot.
+- a separate check around the earlier X591/Z1060 facade/window area shows no regression after restoring them with the corrected texture-enable/alpha/depth pipeline.
+- retain the classification as IsDayBlackNightLitLayer for future time-of-day blending; do not delete night data.

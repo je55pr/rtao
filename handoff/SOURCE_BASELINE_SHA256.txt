@@ -1,0 +1,7 @@
+RTA_ThreeJS_night_work_snapshot_2026-08-30.zip
+SHA-256 e0e185aae7d10792cfa83283487549172f84790447851efcb4ece398cc639b40
+Extracted as the project root of this handoff.
+
+reference/RoadTripAdventureMonoGame-interiors.zip
+SHA-256 aa02eb7484d7430ea7cf1aeedb8629f85f62e1837f2d2aa59b17bcbe1d1859b2
+Bundled archaeology/reference source.
