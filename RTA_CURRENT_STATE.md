@@ -428,7 +428,7 @@ The current interior tranche establishes:
   all 235 same-index dialogue entities decoded and zero deferrals.
 - One-pass entry classification: 16 ordinary entry dialogues, 72 entry-choice
   flows, 147 immediate host boundaries and zero decoder deferrals. The
-  complete dependency map is in `SHOP_INTERIOR_DEPENDENCY_CENSUS_2026-09-01.*`.
+  complete dependency map is in `docs/archaeology/SHOP_INTERIOR_DEPENDENCY_CENSUS_2026-09-01.*`.
 - Original dialogue/choice flow and clean exit for high-confidence generic
   rooms including Peach Bartender, Kinsera, Kevin's mum, Parts Shop, Body Shop,
   and Papaya Policeman. Quick-Pic coverage now spans all seven authored SHOP-slot
@@ -453,7 +453,7 @@ boundary and validated the repeated convention against Fuji Barkeeper and
 Echigoya sales assistant. Fuji Barkeeper, Echigoya sales assistant and Dumpling
 Cake shop were captured at 1280x960 and visually inspected; their authored
 rooms, textures, live cars and fixed camera were coherent. Details and hashes
-are recorded in `SHOP_INTERIOR_RUNTIME_READINESS_2026-09-01.md`.
+are recorded in `docs/archaeology/SHOP_INTERIOR_RUNTIME_READINESS_2026-09-01.md`.
 
 The named regression runner passed all twenty cases. Peach Bartender, Jousset,
 Fight, Grandpa Tal and Wolf plus Fuji Barkeeper, Echigoya sales assistant and
@@ -468,12 +468,12 @@ mutations. Shop Manager grants `[15,39]`; Peach FM grants `[15,11]`,
 Flower grants `[15,1]`, and Fight grants `[0,150]` after their original input
 flags are consumed. All rooms still repeated byte-for-byte and retained their
 verified visual hashes. See
-`PERSISTENT_INDEXED_DIALOGUE_PROGRESS_2026-09-01.md`.
+`docs/archaeology/PERSISTENT_INDEXED_DIALOGUE_PROGRESS_2026-09-01.md`.
 
 Action-0d host mutation is now covered in the same PAL harness: wallet,
 football and birthday-gift success paths consume their namespace-15 input and
 persist stamps 5, 31 and 65 respectively. The executable trace and schema-v2
-scope are in `STAMP_REWARD_PERSISTENCE_2026-09-01.md`.
+scope are in `docs/archaeology/STAMP_REWARD_PERSISTENCE_2026-09-01.md`.
 
 White Mountain Lettar's 1280x960 capture is 2,420,875 bytes with SHA-256
 `1940bc633120fee261155806c4f94840c9884ff291b85de064a4a906d270cb36`.
@@ -481,9 +481,9 @@ It repeated byte-for-byte in the full suite. Visual inspection found coherent
 authored post-office/shop scenery, wood floor, counter and walls, live postal
 staff truck/player car and sensible fixed-camera staging. The regression also
 proves the slot-03 package-46 grant and stamp-65 slot-07 branch/reward paths.
-The original quest-path evidence is in `LETTAR_STAMP_BRANCH_2026-09-01.md`;
+The original quest-path evidence is in `docs/archaeology/LETTAR_STAMP_BRANCH_2026-09-01.md`;
 the now-closed first-meeting boundary is in
-`FIXED_INTERACTION_FIRST_MEETING_STATE_2026-09-01.md`.
+`docs/archaeology/FIXED_INTERACTION_FIRST_MEETING_STATE_2026-09-01.md`.
 
 White Mountain Emily's 1280x960 capture is 2,566,864 bytes with SHA-256
 `ffe4073ff43695682e9b4aba5d29579a1d0f933bba4a6bda1408bce0e8197863`.
@@ -491,7 +491,7 @@ It repeated byte-for-byte. Visual inspection found the authored timber room,
 checker floor, stump/table furniture, wall decoration, live cars and fixed
 camera coherent with no blank or catastrophic output. Its item-42 -> item-41,
 stamp-64 producer and stamp-64 thank-you paths are in
-`EMILY_FLOWER_CHAIN_2026-09-01.md`.
+`docs/archaeology/EMILY_FLOWER_CHAIN_2026-09-01.md`.
 
 Picarl's 1280x960 capture is 1,942,122 bytes with SHA-256
 `646133c77daf53eaf8fa82c57ba183f4dba06f11eec5af0eddf499aadad9dbe1`.
@@ -504,7 +504,7 @@ Peach FM's is 2,596,156 bytes, SHA-256
 `f36c36ec89c738159082aa0fcab16168ae0a2349f31ae3ee5468bb560c1f4668`.
 Both were visually inspected with coherent textured rooms, live cars and no
 catastrophic rendering failure. The structural decoder evidence is recorded in
-`DIALOGUE_BOUNDED_ZERO_RECOVERY_2026-09-01.md`.
+`docs/archaeology/DIALOGUE_BOUNDED_ZERO_RECOVERY_2026-09-01.md`.
 
 An executable-level follow-up separated the quest condition from post-text
 action `0x05`: pre-text opcode `0x03` checks an indexed state bit and `0x11`
@@ -512,7 +512,7 @@ clears it. PAL-backed Chrome regressions seed the wallet/voucher bits, enter
 slot 03, reach each original slot-04 success stream, and verify the bit is
 consumed. Both PNGs remain byte-for-byte identical to their verified baselines.
 Exact addresses and item mappings are in
-`QUEST_INVENTORY_DIALOGUE_VM_2026-09-01.md`.
+`docs/archaeology/QUEST_INVENTORY_DIALOGUE_VM_2026-09-01.md`.
 
 Mushroom Road Laz's 1280x960 capture is 2,581,798 bytes, SHA-256
 `8050791e60a5a2328c92de47a4d045e3b8c1128e64b20d457ee7840872ee5940`.
@@ -522,21 +522,21 @@ geometry, furniture, live cars and camera staging. Native callback
 proved `22 -> 0x09` and `1 -> 0x08`; the 1400×1100 UI capture is 1,481,140
 bytes, SHA-256
 `a456553606bd044dbc0830a8e043e7961771f07eb999aa800242a74aff8cb12f`.
-Details are in `ACTION05_NUMERIC_SELECTOR_ARCHAEOLOGY_2026-09-01.md`.
+Details are in `docs/archaeology/ACTION05_NUMERIC_SELECTOR_ARCHAEOLOGY_2026-09-01.md`.
 
 Papaya Island Flower's 1280x960 capture is 2,776,710 bytes, SHA-256
 `81703303c183a98d98141c8eaac989914fcd6b717c3eb3dacca1b9fffd932978`.
 It repeated byte-for-byte and passed visual inspection. Its PAL state checks
 prove seed item 41 is retained at slot 04's selection boundary and consumed at
 slot 06 before reward action `0x07 [15,1]`. Details are in
-`FLOWER_SEED_INTERIOR_2026-09-01.md`.
+`docs/archaeology/FLOWER_SEED_INTERIOR_2026-09-01.md`.
 
 The expanded 235-room census recovered exact namespace-15 item dependencies
 for 15 interactions. Proven chains include wallet 23 → voucher 24, magazine 31
 → cards 25, pink flower 42 → seed 41, football 39, and Lettar's gift 46 →
 Jousset. Luke's item 19 remains explicitly unnamed. The complete map and
-confidence notes are in `QUEST_INVENTORY_CENSUS_2026-09-01.md`; exact operand
-shapes are in `SHOP_INTERIOR_DEPENDENCY_CENSUS_2026-09-01.json`.
+confidence notes are in `docs/archaeology/QUEST_INVENTORY_CENSUS_2026-09-01.md`; exact operand
+shapes are in `docs/archaeology/SHOP_INTERIOR_DEPENDENCY_CENSUS_2026-09-01.json`.
 
 Sandpolis Captain Rombo's 1280x960 capture is 2,309,166 bytes, SHA-256
 `7049ea077dbe4972c38b81291eeac1e410dae85dd094c078b22fdc8be8719a44`.
@@ -551,13 +551,13 @@ therefore not attributable to the Quick-Pic source edits; visual inspection pass
 Both passed dialogue/action-shape assertions, repeated byte-for-byte and were
 visually inspected with coherent authored scenery, textures, live cars and
 fixed-camera staging. Details are in
-`REGIONAL_GENERIC_INTERIOR_REGRESSIONS_2026-09-01.md`.
+`docs/archaeology/REGIONAL_GENERIC_INTERIOR_REGRESSIONS_2026-09-01.md`.
 
 The four new Peach room captures were visually inspected together. All contain
 visible textured room geometry and floors, live staff/player cars, coherent
 fixed-camera staging and no blank or catastrophic rendering failure. Exact
 sizes, hashes, path boundaries and deferred progression effects are recorded in
-`PEACH_ORDINARY_NPC_INTERIORS_2026-09-01.md`.
+`docs/archaeology/PEACH_ORDINARY_NPC_INTERIORS_2026-09-01.md`.
 
 A redundant cold full-world Vite probe was terminated after several minutes
 while the 64-sector first install was still compiling; it produced no Chrome,
@@ -572,7 +572,7 @@ town state. The 1328x996 screenshot is 1,273,637 bytes with SHA-256
 `de2b63bd2913c67d6f75003fc58f5da888bb185aaa1ba42c1180b3ef3016336b`.
 Visual inspection found coherent geometry, textures, staff/player staging and
 camera framing with no catastrophic rendering failure. Details are recorded in
-`BODY_SHOP_RECONSTRUCTION_2026-09-01.md` and the matching Research note.
+`docs/archaeology/BODY_SHOP_RECONSTRUCTION_2026-09-01.md` and the matching Research note.
 
 Peach Paint Shop was subsequently completed for the evidence-backed player
 body/two-tone path. Chrome 151 + SwiftShader opened original slot 02, edited
@@ -585,7 +585,7 @@ the post-purchase frame is 1,127,432 bytes (SHA-256
 Visual inspection passed. That body-only milestone is historical; the 2026-09-04
 native-wheel checkpoint subsequently recovers the wheel palette and complete
 0/100/200-Cake transaction while teammate paint remains deferred. See
-`NATIVE_WHEEL_BANK_AND_WHEEL_PAINT_2026-09-04.md`.
+`docs/archaeology/NATIVE_WHEEL_BANK_AND_WHEEL_PAINT_2026-09-04.md`.
 
 Peach Quick-Pic No.1 was then completed in Chrome 151 + SwiftShader. The photo
 Blob is a valid 1280×960 PNG, 1,942,202 bytes, SHA-256
@@ -593,7 +593,7 @@ Blob is a valid 1280×960 PNG, 1,942,202 bytes, SHA-256
 The save remained unchanged before **Keep picture**, then stored photo 1 in
 the schema-7 field (retained by current schema 10). A fresh page at question slot 02 branched to slot 03 and displayed
 “Would you like to take it again?”. Visual inspection passed. Exact opcode and
-save-bit evidence is in `QUICK_PIC_PHOTO_STATE_AND_CAPTURE_2026-09-01.md`.
+save-bit evidence is in `docs/archaeology/QUICK_PIC_PHOTO_STATE_AND_CAPTURE_2026-09-01.md`.
 
 Peach Quick-Pic No.2 independently validates the shared host and persistent
 photo bit 2. Its historical pre-native-wheel room baseline was 1,942,698 bytes /
@@ -602,7 +602,7 @@ No.1/No.2 still share the same room/car/camera composition and distinct executab
 entities/photo-state bits. The native WHEEL.BIN checkpoint deliberately refreshes
 the shared current visible room frame to 1,938,350 bytes /
 `352fa4e49e38866f24cd7f32a0a1e38ab325389b5f4772b39061a7ab09d78227`.
-Details of the original state milestone remain in `QUICK_PIC_NO2_REGRESSION_2026-09-02.md`.
+Details of the original state milestone remain in `docs/archaeology/QUICK_PIC_NO2_REGRESSION_2026-09-02.md`.
 
 The 2026-09-04 correction expands this same runtime to IDs 1–100, now retained by schema 10,
 and awards Stamp 96 when the record action completes the full set. Six additional
@@ -610,13 +610,13 @@ representatives (13, 17, 28, 36, 71 and direct-room Cloud Hill 97) cover every
 authored raw SHOP-slot family alongside Peach. All seven raw family hashes match
 the archaeology census; all eight Quick-Pic named cases retain the same known-good
 SwiftShader room frame. No.97 additionally proves the PAL-backed 99→100 + Stamp 96
-transition. Details are in `QUICK_PIC_1_100_RUNTIME_EXPANSION_2026-09-04.md`.
+transition. Details are in `docs/archaeology/QUICK_PIC_1_100_RUNTIME_EXPANSION_2026-09-04.md`.
 
 The RoadTripAdventure YouTube Peach/Fuji playlists and exact Bartender, Parts
 Shop and Body Shop entries were mapped. This cloud browser could verify their
 pages/titles/durations but its YouTube media CDN did not deliver stream frames.
 The precise source map, implemented evidence and remaining gaps are recorded in
-`SHOP_INTERIOR_ORIGINAL_REFERENCE_2026-09-01.md` and the matching Research note.
+`docs/archaeology/SHOP_INTERIOR_ORIGINAL_REFERENCE_2026-09-01.md` and the matching Research note.
 
 `shop_room_capture.py` keeps visual capture available even if a future dialogue
 entity cannot be decoded: the PNG is produced and the optional metadata sidecar
@@ -710,13 +710,13 @@ complete 6,514,849-byte FLD/223 fixture and emitted the canonical 1,568,898-byte
 Peach daytime capture at 29,091 triangles. SHA-256 remained
 `8c8c7c92abe298a5b214784057b35eba0b4a6baa639b54d8667a640e553a20c9`;
 visual inspection passed. Full details are in
-`BODY_SHOP_TRANSACTIONAL_COMMERCE_2026-09-01.md` and its Research copy.
+`docs/archaeology/BODY_SHOP_TRANSACTIONAL_COMMERCE_2026-09-01.md` and its Research copy.
 
 The deterministic Peach Parts Shop frame also remains byte-identical at
 2,689,255 bytes with SHA-256
 `4b61e8053c9af0329af09e7c59ecf482c0560e40307e1c4a865d446dd333e44d`;
 visual inspection passed. Exact evidence and the nine ownership coordinates are
-recorded in `PARTS_SHOP_TRANSACTIONAL_COMMERCE_2026-09-01.md`.
+recorded in `docs/archaeology/PARTS_SHOP_TRANSACTIONAL_COMMERCE_2026-09-01.md`.
 
 The native equipment-write path is now separately reconstructed. All three
 15-byte configuration selector blocks round-trip through the current schema 10; schema 1–4
@@ -725,7 +725,7 @@ slot-06 probe wrote category 11/item 4 to OPFS and rendered a coherent
 1400×1100 interior/action frame (1,284,143 bytes, SHA-256
 `fa981b8d9cb0e906e18352912fd17fe2b2cedbd80781c1c4b13386143a1367bf`).
 Full addresses, script examples and remaining catalogue-mapping boundary are in
-`EQUIPMENT_SELECTOR_PERSISTENCE_2026-09-01.md`.
+`docs/archaeology/EQUIPMENT_SELECTOR_PERSISTENCE_2026-09-01.md`.
 
 The subsequent native catalogue pass corrected Off Road Tyre to `(1,7)` and
 mapped the exact Options 0–8 names/roles. Owner's persisted item-4 selector now
@@ -733,7 +733,7 @@ renders a visible Peach Town sign on the player car. The updated 1400×1100
 frame is 1,284,432 bytes, SHA-256
 `8106a3b596fdcf30d864a8dcac414a9d78ac171af9cf2b36f58653678aacd31b`;
 visual inspection passed. Evidence and the deliberate provisional sign-geometry
-limit are in `NATIVE_EQUIPMENT_CATALOGUE_BRIDGE_2026-09-01.md`.
+limit are in `docs/archaeology/NATIVE_EQUIPMENT_CATALOGUE_BRIDGE_2026-09-01.md`.
 
 The 2026-09-04 native Q's Factory pass now connects that recovered ownership and
 selector state into the player-facing Parts Shop → fit → drive/reload loop. Change
@@ -751,7 +751,7 @@ with a tiny local libarchive extractor, the browser installed all 64 sectors,
 Mesh `(7,1)` was bought for 500 Cake without auto-equipping, Q's Factory exposed
 it as owned, fitting wrote one native selector change, outdoor driving resumed,
 and a reload restored `Mesh Wheel · FITTED · 1 OWNED`. Details are in
-`QFACTORY_NATIVE_EQUIPMENT_LOOP_2026-09-04.md`.
+`docs/archaeology/QFACTORY_NATIVE_EQUIPMENT_LOOP_2026-09-04.md`.
 
 A deterministic close-car regression harness complements that state/UI test.
 It pins Q62 to the same Peach FLD/223 pose with matched front/rear three-quarter
@@ -778,7 +778,7 @@ Mesh deterministically. All 27 fixed-interior visual baselines were deliberately
 refreshed because their player Q62 now uses the same original close-wheel path;
 dialogue/state checks remain unchanged. The scenery-only Peach baseline remains
 byte-identical at SHA-256 `8c8c7c92...`. Full evidence is in
-`NATIVE_WHEEL_BANK_AND_WHEEL_PAINT_2026-09-04.md`.
+`docs/archaeology/NATIVE_WHEEL_BANK_AND_WHEEL_PAINT_2026-09-04.md`.
 
 
 The 2026-09-05 Big Tyre pass closes the visual/lift half of native selector `(1,11)`.
@@ -793,7 +793,7 @@ tyre contact transforms, including Q's Factory preview/apply/cancel synchronizat
 The TIRE PSMT4 CLUT-bank path also follows native wheel-colour index byte `+5`.
 Matched front/rear captures visibly pass; Normal remains byte-identical at
 `91ab3453...`, and scenery-only Peach remains `8c8c7c92...`. Full evidence is in
-`BIG_TYRE_NATIVE_VISUAL_AND_RIDE_HEIGHT_2026-09-05.md`.
+`docs/archaeology/BIG_TYRE_NATIVE_VISUAL_AND_RIDE_HEIGHT_2026-09-05.md`.
 
 The follow-up tyre-performance pass proves that all **non-Big** tyre selectors share
 the same PAL driving-model visual path: normal renderer `0x00222370` reads only
@@ -812,13 +812,13 @@ the previous provisional Sports/Off-Road/Big grip multipliers and corrects two o
 assumptions: Sports improves native Off-road grip over Normal, while Off Road retains
 exactly Normal Dry grip. Q's Factory stats now report Road/Dirt/Grass from the draft
 native selector. Full gate is 29/29 files and 150/150 tests; details are in
-`NATIVE_TYRE_GRIP_TABLE_AND_BROWSER_BRIDGE_2026-09-05.md` and
-`NATIVE_FIELD_SURFACE_SELECTOR_2026-09-05.md`.
+`docs/archaeology/NATIVE_TYRE_GRIP_TABLE_AND_BROWSER_BRIDGE_2026-09-05.md` and
+`docs/archaeology/NATIVE_FIELD_SURFACE_SELECTOR_2026-09-05.md`.
 
 The native Parts trade arithmetic is now complete and regression-covered. The
 offset-labelled implementation of `0x0023ebb8` is paired with the exact
 `0x002456e8` seller-credit/recipient-debit formulas; evidence and the remaining
-runtime-state boundary are in `PARTS_TRADE_COMPOSITE_SCORE_2026-09-01.md`.
+runtime-state boundary are in `docs/archaeology/PARTS_TRADE_COMPOSITE_SCORE_2026-09-01.md`.
 
 The 2026-09-05 native Engine/Steering pass connects two further equipment
 categories without guessed tuning. PAL function `0x00218f70` copies Engine record
@@ -828,7 +828,7 @@ scalars 1.0/1.2/22÷15/2.2. The same setup function copies the Steering record
 halfword into `car+0x242`; consumer `0x0021b300` multiplies the signed steering
 accumulator then divides by 32. Normal/Quick/X2/X3 use exact relative scalars
 1.0/1.5/2.0/2.5. Full evidence is in
-`NATIVE_ENGINE_STEERING_BEHAVIOUR_2026-09-05.md`.
+`docs/archaeology/NATIVE_ENGINE_STEERING_BEHAVIOUR_2026-09-05.md`.
 
 The native Brake pass is also complete. Category-6 records begin at
 `0x00302190` with a 44-byte stride: 12 bytes of metadata followed by the
@@ -837,7 +837,7 @@ The native Brake pass is also complete. Category-6 records begin at
 sample 32, resets on release, and computes `(curveByte * 10000) >> 5`. All four
 Normal/Soft/Hard/Metal curves now drive the browser's 60 Hz fixed update, and
 the former guessed pad scalars are removed. Full gate is 31/31 files and
-163/163 tests; details are in `NATIVE_BRAKE_HOLD_CURVE_2026-09-05.md`.
+163/163 tests; details are in `docs/archaeology/NATIVE_BRAKE_HOLD_CURVE_2026-09-05.md`.
 
 The Chassis/Transmission endpoint pass replaces their remaining arbitrary
 percentages. Chassis selector records supply weight words 25/22/20/18/15 at
@@ -848,7 +848,7 @@ uses their proven first-forward inverse-divisor launch ratio and final-forward
 terminal ratio under the common 10,000 engine-speed cap. The located PAL shift
 callbacks remain evidence-gated on native speed/state conversion. Full gate is
 33/33 files and 173/173 tests; details are in
-`NATIVE_CHASSIS_TRANSMISSION_ENDPOINTS_2026-09-05.md`.
+`docs/archaeology/NATIVE_CHASSIS_TRANSMISSION_ENDPOINTS_2026-09-05.md`.
 
 Cloud Hill's authored Second-hand shop now completes another native Cake
 producer. Area 9 / slot 5 action `0x13 [3]` reaches the PAL direct-sale callback:
@@ -865,7 +865,7 @@ pocket table. All 23 number/group/colour bets and 18×/3×/2× payouts are now
 materialised as a pure tested layer, including the native index-20 zero alias.
 The `A19` scene/physics presentation remains unported. Full gate is 34/34 files
 and 181/181 tests; details are in
-`SECOND_HAND_CAKE_PRODUCER_AND_ROULETTE_BOUNDARY_2026-09-05.md`.
+`docs/archaeology/SECOND_HAND_CAKE_PRODUCER_AND_ROULETTE_BOUNDARY_2026-09-05.md`.
 
 The fitted-sign advertising loop is now complete. Option category 11 items 4..8
 all carry native flag `0x0200` and sponsor indices 0..4. Successful driven world
@@ -876,7 +876,7 @@ credited at 10/20/30/40/50 per block. The five counters and Cake persist togethe
 in recovered save schema 10; schema 1..9 migration remains supported. PAL dialogue
 text independently confirms each rate. The Peach Owner room/action capture passes
 at SHA-256 `a7c4886c...`; that milestone's gate was 30/30 files and 159/159
-tests. Evidence is in `NATIVE_ADVERTISING_CAKE_LOOP_2026-09-05.md`.
+tests. Evidence is in `docs/archaeology/NATIVE_ADVERTISING_CAKE_LOOP_2026-09-05.md`.
 
 PAL fixed-interaction first-meeting state is now complete. Opcode-4 handler
 `0x0023c918` tests bit `(area, local slot)` through `0x0023f158`; opening writer
@@ -886,14 +886,14 @@ Emily, Jousset, Fight, Policeman, Captain Rombo, Shop Manager, Mr. King,
 Picarl, Laz and Flower entries now reach their authored long introductions;
 returning quest branches remain available after reload. The then-current 20 deterministic
 room regressions retained their byte-identical capture hashes. Full evidence is
-in `FIXED_INTERACTION_FIRST_MEETING_STATE_2026-09-01.md`.
+in `docs/archaeology/FIXED_INTERACTION_FIRST_MEETING_STATE_2026-09-01.md`.
 
 The follow-up post-text trace proves action `0x02 [0,0]` selects target zero for
 either Yes/No answer and that ordinary `0x03 [0]` is a host exit, not an
 implicit next-slot jump. Consequently Lettar slot 03 and Emily slot 02 remain
 evidence-gated on an unrecovered external activity-state producer rather than
 being made reachable speculatively. Exact callbacks are recorded in
-`FIXED_INTERACTION_ZERO_TARGET_HOST_TRACE_2026-09-02.md`.
+`docs/archaeology/FIXED_INTERACTION_ZERO_TARGET_HOST_TRACE_2026-09-02.md`.
 
 ## Recommended next work
 
