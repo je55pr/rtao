@@ -16,7 +16,10 @@ from pathlib import Path
 import _shop_regression_impl as regression
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-regression.BUNDLE = REPO_ROOT / "rtao" / "sandbox-dist" / "rta-sandbox-capture.js"
+BUNDLE = REPO_ROOT / "rtao" / "sandbox-dist" / "rta-sandbox-capture.js"
+regression.BUNDLE = BUNDLE
 
 if __name__ == "__main__":
+    if not BUNDLE.is_file():
+        raise SystemExit("Capture bundle is missing. Run `npm run build:capture` in rtao/ first.")
     regression.main()

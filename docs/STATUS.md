@@ -28,10 +28,11 @@ The scalar ground-support solver at `0x0021BDD8` is already verified. The first 
 
 ## Where to look
 
-- Full current state: [`../RTA_CURRENT_STATE.md`](../RTA_CURRENT_STATE.md)
-- Machine-readable transitional state: [`../RTA_STATE.json`](../RTA_STATE.json)
+- Current human-readable state: [`../RTA_CURRENT_STATE.md`](../RTA_CURRENT_STATE.md)
+- Current machine-readable state: [`../RTA_STATE.json`](../RTA_STATE.json)
 - Race evidence: [`evidence/races/2026-09-05/`](evidence/races/2026-09-05/)
 - Subsystem archaeology: [`archaeology/`](archaeology/)
+- Architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md)
 - Shared contributor/agent rules: [`../AGENTS.md`](../AGENTS.md)
 
 Do not infer missing native behavior from the C# reference or from convenience. PAL evidence remains the implementation boundary.
