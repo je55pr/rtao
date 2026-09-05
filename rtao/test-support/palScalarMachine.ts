@@ -1,15 +1,18 @@
 /**
  * Bounded test oracle: executes the supplied PAL ELF's scalar instructions.
  * No executable bytes are bundled. This is deliberately not a PS2 emulator:
- * normal finite COP1 operations use host float32 rounding, and unsupported
- * instructions fail. Used only for the recovered race AI + angle call graph.
+ * normal finite COP1/COP2 operations use host float32 rounding, and unsupported
+ * instructions fail. Used only for the bounded recovered race call graph.
  */
+import { PalVuMachine } from './palVuMachine';
+
 export class PalScalarMachine {
   readonly memory = new Uint8Array(0x2000000);
   readonly view = new DataView(this.memory.buffer);
   private readonly registers = Array<bigint>(32).fill(0n);
   private readonly floatWords = new Uint32Array(32);
   private readonly floats = new Float32Array(this.floatWords.buffer);
+  readonly vu = new PalVuMachine();
   private readonly codeRanges: readonly (readonly [number, number])[] = [
     [0x252198, 0x252324], [0x252ba0, 0x253090], [0x277b38, 0x277b50],
     [0x278120, 0x278310], [0x27a780, 0x27aa48],
@@ -17,7 +20,13 @@ export class PalScalarMachine {
     [0x21b238, 0x21b400], [0x21dcf8, 0x21df68], [0x218dc0, 0x218f70],
     [0x219d90, 0x21a364],
     [0x21b1c0, 0x21b6cc], [0x21af38, 0x21b1c0],
-    [0x21bdd8, 0x21c280],
+    [0x21bdd8, 0x21c920],
+    [0x21c920, 0x21d550],
+    [0x2086c0, 0x208790], [0x21a368, 0x21a510],
+    [0x21a510, 0x21af38],
+    [0x20ca68, 0x20ca90],
+    [0x275770, 0x275928], [0x275990, 0x2759a8], [0x275a20, 0x275a30],
+    [0x275a98, 0x275b38], [0x275c88, 0x275d30], [0x21e188, 0x21e1bc],
     [0x207748, 0x207aa0], [0x208c50, 0x208d30],
     [0x218f70, 0x21915c], [0x21cd88, 0x21cea8], [0x21d1b8, 0x21d24c], [0x21d2f0, 0x21d380],
   ];
@@ -37,9 +46,15 @@ export class PalScalarMachine {
 
   register(index: number): number { return Number(BigInt.asIntN(32, this.registers[index]!)); }
 
+  /** Observe scalar arguments at explicitly hooked VU/orientation boundaries. */
+  floatRegister(index: number): number { return this.floats[index]!; }
+
   run(entry: number, arguments_: readonly number[], hooks: Readonly<Record<number, (arguments_: readonly number[]) => number>> = {},
-    slice: { registers?: Readonly<Record<number, number>>; stopAt?: number } = {}): number {
+    slice: { registers?: Readonly<Record<number, number>>; floats?: Readonly<Record<number, number>>;
+      observe?: Readonly<Record<number, () => void>>; stopAt?: number; maxSteps?: number } = {}): number {
     const r = this.registers; r.fill(0n); this.floatWords.fill(0);
+    this.vu.reset();
+    for (const [index, value] of Object.entries(slice.floats ?? {})) this.floats[Number(index)] = value;
     arguments_.forEach((value, i) => { r[4 + i] = BigInt(value); });
     r[28] = BigInt(this.gp); r[29] = 0x1f00000n; r[31] = 0x1fffffcn;
     for (const [index, value] of Object.entries(slice.registers ?? {})) r[Number(index)] = BigInt(value);
@@ -47,8 +62,9 @@ export class PalScalarMachine {
     const u = (index: number): number => Number(BigInt.asUintN(32, r[index]!));
     const s = (index: number): number => u(index) | 0;
     const set32 = (index: number, value: number): void => { r[index] = BigInt(value | 0); };
-    for (let steps = 0; steps < 20_000; steps++) {
+    for (let steps = 0; steps < (slice.maxSteps ?? 20_000); steps++) {
       if (pc === 0x1fffffc || pc === slice.stopAt) return u(2);
+      slice.observe?.[pc]?.();
       const hook = hooks[pc];
       if (hook) {
         set32(2, hook(Array.from({ length: 8 }, (_, i) => u(4 + i))));
@@ -109,7 +125,7 @@ export class PalScalarMachine {
       } else if ([4, 5, 6, 7, 20, 21, 22, 23].includes(op)) {
         const kind = op & 15;
         branch(kind === 4 ? r[rs] === r[rt] : kind === 5 ? r[rs] !== r[rt] : kind === 6 ? r[rs]! <= 0n : r[rs]! > 0n, op >= 20);
-      } else if (op === 9) set32(rt, s(rs) + simm);
+      } else if (op === 8 || op === 9) set32(rt, s(rs) + simm);
       else if (op === 10) r[rt] = r[rs]! < BigInt(simm) ? 1n : 0n;
       else if (op === 11) r[rt] = BigInt.asUintN(64, r[rs]!) < BigInt.asUintN(64, BigInt(simm)) ? 1n : 0n;
       else if (op === 12) r[rt] = r[rs]! & BigInt(imm);
@@ -137,11 +153,35 @@ export class PalScalarMachine {
           else handled = false;
         } else if (rs === 20 && fn === 32) this.floats[sh] = this.floatWords[rd]! | 0;
         else handled = false;
+      } else if (op === 18) {
+        if (rs >= 16) this.vu.execute(word);
+        else if (rs === 1) {
+          r[rt] = this.vu.words[rd]!.reduce((n,w,i) => n | BigInt(w) << BigInt(i*32),0n);
+        } else if (rs === 5) {
+          if (rd !== 0) for (let i=0;i<4;i++) this.vu.words[rd]![i] = Number(BigInt.asUintN(32,r[rt]! >> BigInt(i*32)));
+        } else handled = false;
       } else if (op === 28) {
         if (fn === 18) r[rd] = lo1;
         else if (fn === 16) r[rd] = hi1;
         else if (fn === 26) { lo1 = BigInt(Math.trunc(s(rs) / s(rt))); hi1 = BigInt(s(rs) % s(rt)); }
+        else if (fn === 8 && sh === 17) {
+          let packed=0n;
+          for(let i=0;i<4;i++)packed|=BigInt.asUintN(32,(r[rs]!>>BigInt(i*32))-(r[rt]!>>BigInt(i*32)))<<BigInt(i*32);
+          r[rd]=packed;
+        } else if ((fn === 8 || fn === 40) && sh === 18) {
+          const first = fn === 8 ? 0 : 2, lane = (reg: number, i: number) => BigInt.asUintN(32,r[reg]! >> BigInt(i*32));
+          r[rd] = lane(rt,first) | lane(rs,first) << 32n | lane(rt,first+1) << 64n | lane(rs,first+1) << 96n;
+        } else if (fn === 9 && sh === 14) r[rd] = BigInt.asUintN(64,r[rt]!) | BigInt.asUintN(64,r[rs]!) << 64n;
+        else if (fn === 41 && sh === 14) r[rd] = BigInt.asUintN(64,r[rs]! >> 64n) | BigInt.asUintN(64,r[rt]! >> 64n) << 64n;
         else handled = false;
+      } else if (op === 30) r[rt] = this.view.getBigUint64(address,true) | this.view.getBigUint64(address+8,true) << 64n;
+      else if (op === 31) {
+        this.view.setBigUint64(address,BigInt.asUintN(64,r[rt]!),true);
+        this.view.setBigUint64(address+8,BigInt.asUintN(64,r[rt]! >> 64n),true);
+      } else if (op === 54) {
+        if (rt !== 0) for (let i=0;i<4;i++) this.vu.words[rt]![i] = this.view.getUint32(address+i*4,true);
+      } else if (op === 62) {
+        for (let i=0;i<4;i++) this.view.setUint32(address+i*4,this.vu.words[rt]![i]!,true);
       } else if (op === 32) r[rt] = BigInt(this.view.getInt8(address));
       else if (op === 33) r[rt] = BigInt(this.view.getInt16(address, true));
       else if (op === 35) r[rt] = BigInt(this.view.getInt32(address, true));

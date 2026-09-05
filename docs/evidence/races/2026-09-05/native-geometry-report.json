@@ -1,0 +1,8 @@
+{
+  "courses": 15,
+  "grids": 360,
+  "historyUpdates": 600,
+  "queries": 6720,
+  "outputSha256": "9802b940eaf1a341f4c29336e8ccdc72ea0b19d3c859f1e8230fff892c492151",
+  "boundary": "No transform, orientation, collision or support hooks. Effects are observed. Contact-history updates are not moving vehicle trajectories."
+}

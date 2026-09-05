@@ -1,0 +1,14 @@
+
+> rta-web@0.1.0 test:pal
+> vitest run tests --testTimeout=60000
+
+
+ RUN  v4.1.11 C:/Codex/Projects/RTAO/rtao
+
+
+ Test Files  14 passed (14)
+      Tests  33 passed (33)
+   Start at  23:46:34
+   Duration  77.17s (transform 7.76s, setup 0ms, import 10.98s, tests 383.37s, environment 4ms)
+
+Exit code: 0

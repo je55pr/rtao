@@ -1,0 +1,70 @@
+
+> rta-web@0.1.0 check
+> npm run test:unit && npm run typecheck && npm run build:web && npm run build:capture
+
+
+> rta-web@0.1.0 test:unit
+> vitest run src
+
+
+ RUN  v4.1.11 C:/Codex/Projects/RTAO/rtao
+
+
+ Test Files  45 passed (45)
+      Tests  230 passed (230)
+   Start at  23:46:34
+   Duration  18.95s (transform 42.15s, setup 0ms, import 62.25s, tests 4.93s, environment 37ms)
+
+
+> rta-web@0.1.0 typecheck
+> tsc -b --pretty false
+
+
+> rta-web@0.1.0 build:web
+> vite build
+
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 57 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                            0.66 kB │ gzip:  0.37 kB
+dist/assets/import.worker-B9Bvi1S2.js    157.23 kB
+dist/assets/index-CdltCiQ0.css            24.12 kB │ gzip:  5.93 kB
+dist/assets/skyTexture-CP_prkpr.js         1.09 kB │ gzip:  0.62 kB
+dist/assets/binary-BAvRQTRq.js             1.13 kB │ gzip:  0.47 kB
+dist/assets/worldTopology-VdSlsC34.js      1.22 kB │ gzip:  0.65 kB
+dist/assets/elf32-mslooCOg.js              1.35 kB │ gzip:  0.69 kB
+dist/assets/shopInterior-DBuJzCNI.js       1.88 kB │ gzip:  0.90 kB
+dist/assets/fieldCollision-CjFUjyLs.js     2.12 kB │ gzip:  0.96 kB
+dist/assets/overworld-C7nPEmZJ.js          2.23 kB │ gzip:  1.12 kB
+dist/assets/field-BuHHaOnB.js              2.33 kB │ gzip:  1.08 kB
+dist/assets/ps2-IzXCZ5TE.js                2.65 kB │ gzip:  1.39 kB
+dist/assets/worldSimulation-D4R4r67A.js    3.48 kB │ gzip:  1.52 kB
+dist/assets/worldCollision-BmXdeAZl.js     5.18 kB │ gzip:  2.02 kB
+dist/assets/drivingGame-DrHmwaDT.js        7.61 kB │ gzip:  2.89 kB
+dist/assets/gsTextures-DkXlQn7e.js         7.78 kB │ gzip:  2.54 kB
+dist/assets/interiorView-BZ3XWAE-.js      10.42 kB │ gzip:  2.72 kB
+dist/assets/dialogue-DkUEU8Yq.js          14.50 kB │ gzip:  4.50 kB
+dist/assets/fieldGeometry-UaMwSvhR.js     14.59 kB │ gzip:  4.90 kB
+dist/assets/carView-C134J1P1.js           15.68 kB │ gzip:  5.56 kB
+dist/assets/worldView-CZkmsVMw.js         42.78 kB │ gzip: 11.14 kB
+dist/assets/index-RAc9f0Ub.js            118.25 kB │ gzip: 34.58 kB
+dist/assets/three.core-C-z_k1Tq.js       175.83 kB │ gzip: 47.81 kB
+dist/assets/renderCapture-CL1X8Dly.js    345.09 kB │ gzip: 83.91 kB
+
+✓ built in 1.09s
+
+> rta-web@0.1.0 build:capture
+> node scripts/build-sandbox-capture.mjs
+
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 48 modules transformed.
+rendering chunks...
+computing gzip size...
+sandbox-dist/rta-sandbox-capture.js  1,560.31 kB │ gzip: 318.69 kB
+
+✓ built in 962ms
+
+Exit code: 0

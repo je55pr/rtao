@@ -7,11 +7,17 @@
   "active_implementation": "rtao",
   "reference_implementation": "reference/csharp",
   "authority": "European PAL executable/data supplied locally by the developer",
-  "current_focus": "Finish the native seven-probe contact producer and orientation/VU transforms before connecting playable Peach Raceway movement.",
+  "current_focus": "Connect the supported native movement path to the first playable Peach Raceway session, including ownership/commands, rendering, laps/results and persistent Cake rewards.",
   "tracking": {
     "actionable_backlog": "GitLab issues",
     "main_ts_refactor_issue": 2,
-    "race_issue_chain": [3, 4, 5, 6, 7]
+    "race_issue_chain": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ]
   },
   "race": {
     "activities": 39,
@@ -24,6 +30,12 @@
       "navigation_selector": "0x00252328",
       "ordinary_ai": "0x00252BA0",
       "ground_support_solver": "0x0021BDD8",
+      "contact_producer_scalar": "0x0021C280..0x0021C864",
+      "contact_instruction_cases_with_prescribed_transforms": 8192,
+      "contact_history_updates": 600,
+      "contact_original_grid_cases": 360,
+      "contact_original_course_queries": 2520,
+      "contact_output_sha256": "82b4b755ab4f205404aa8b82219f8d1f4abe18d94965933a6aa6df553a9ba119",
       "course_collision_query": "0x00207748",
       "course_collision_wrapper": "0x00208C50",
       "ai_seeded_cases": 4096,
@@ -34,30 +46,77 @@
       "course_collision_original_course_queries": 2040,
       "course_collision_grid_positions": 360,
       "course_collision_hits": 1882,
-      "course_collision_output_sha256": "61e221249833e771c1d7a2043fd1a6ef5bd4c5933100706fdb9b24598ab9cfd2"
+      "course_collision_output_sha256": "61e221249833e771c1d7a2043fd1a6ef5bd4c5933100706fdb9b24598ab9cfd2",
+      "contact_orientation_composition": "0x0021C280..0x0021C920",
+      "orientation_instruction_cases": 2048,
+      "orientation_original_grid_cases": 360,
+      "orientation_history_updates": 600,
+      "orientation_original_course_queries": 6720,
+      "orientation_output_sha256": "9802b940eaf1a341f4c29336e8ccdc72ea0b19d3c859f1e8230fff892c492151",
+      "math_vector_matrix_cases": 4096,
+      "math_signed_yaw_cases": 65536,
+      "math_normal_adjustment_cases": 4096,
+      "math_integer_movement_cases": 4096,
+      "vehicle_native_velocity_composition_cases": 2048,
+      "ordinary_frame": "0x0021C920..0x0021D4EC",
+      "ordinary_frame_instruction_cases": 1024,
+      "standard_collision_response": "0x0021A510",
+      "standard_collision_response_cases": 8192,
+      "obstacle_iterator": "0x0021AB60",
+      "obstacle_iterator_cases": 4096,
+      "obstacle_original_course_points": 1547,
+      "obstacle_original_wrapper_queries": 60,
+      "moving_trajectory_updates": 1800,
+      "moving_trajectory_courses": [
+        0,
+        3,
+        7
+      ],
+      "moving_trajectory_sha256": "7f34e9c3d1575f46e88d6ae59bf2a478438356909e836757073c8e9e6ce74b9e"
     },
     "next": [
-      "Recover and implement the seven-probe contact producer around 0x0021C280.",
-      "Recover and verify orientation/VU helpers around 0x002086C0 and 0x00208738.",
-      "Validate deterministic moving trajectories against PAL.",
-      "Connect Peach Raceway movement only after the native contact/orientation paths close.",
-      "Connect Q's Factory race selection/launch only after the first playable race path is valid."
+      "Connect the supported Peach Raceway session: entrant initialization/ownership, player/AI commands, rendering, ordered laps/finish, results and persistent Cake rewards (#6).",
+      "Connect Q's Factory race selection/launch to the validated playable course (#7).",
+      "Keep reset/debug, outdoor/scene-28, equipment 0x300C, wheel animation and the later UI callback explicitly outside the current frame gate."
     ],
-    "next_issues": [3, 4, 5, 6, 7],
+    "next_issues": [
+      6,
+      7
+    ],
+    "local_review_pending": {
+      "issues": [
+        3,
+        4,
+        5
+      ],
+      "branch": "codex/pal-race-contact-producer",
+      "merged": false
+    },
+    "contact_boundary": "Complete contact/orientation and supported ordinary movement frame through body/distance match retained moving PAL instruction sequences. Commands are supplied; full scene initialization, reset/debug, outdoor/scene-28, equipment 0x300C, wheel animation and later UI callback remain outside the gate. Bounded host-float32 oracle, not hardware parity. No playable race or rendered moving capture.",
     "evidence": "docs/evidence/races/2026-09-05",
     "documentation": [
+      "docs/PAL_NATIVE_RACE_FRAME_2026-09-05.md",
+      "docs/PAL_NATIVE_RACE_MATH_2026-09-05.md",
+      "docs/PAL_NATIVE_RACE_CONTACT_2026-09-05.md",
       "docs/PAL_NATIVE_RACE_COLLISION_2026-09-05.md",
       "docs/PAL_NATIVE_GROUND_SUPPORT_2026-09-05.md",
       "docs/PAL_NATIVE_RACE_CONTROLS_2026-09-05.md"
     ]
   },
   "latest_recorded_validation": {
-    "test_files_passed": 48,
-    "tests_passed": 232,
+    "test_files_passed": 59,
+    "tests_passed": 263,
+    "unit_test_files_passed": 45,
+    "unit_tests_passed": 230,
+    "pal_test_files_passed": 14,
+    "pal_tests_passed": 33,
     "production_build": "passed",
     "capture_build": "passed",
     "exit_code": 0,
-    "recorded_evidence": "docs/evidence/races/2026-09-05/native-course-collision-check.log"
+    "recorded_evidence": "docs/evidence/races/2026-09-05/native-frame-check.log",
+    "pal_recorded_evidence": "docs/evidence/races/2026-09-05/native-frame-pal.log",
+    "pal_test_timeout_ms": 60000,
+    "moving_test_timeout_ms": 120000
   },
   "closed_systems": [
     "64-field persistent outdoor world and renderer milestone",
@@ -78,7 +137,7 @@
     "Intermediate native transmission shift timing.",
     "Roulette ACTION/A19 physical scene and wheel simulation.",
     "Parts trade teammate/save-slot producer state.",
-    "Any missing race contact/orientation behavior not yet supported by PAL evidence."
+    "Native frame reset/debug, outdoor/scene-28 and equipment 0x300C paths. Ownership/navigation dispatch, full scene initialization, wheel animation and later UI callback are outside the moving comparison."
   ],
   "historical_state_archive": {
     "human": "docs/archive/state/RTA_CURRENT_STATE_PRE_GITLAB_2026-09-05.md",

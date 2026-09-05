@@ -1,0 +1,2947 @@
+{
+  "totalUpdates": 1800,
+  "courses": [
+    {
+      "course": 0,
+      "updates": 600,
+      "obstaclePoints": 0,
+      "collisionUpdates": 36,
+      "finalPosition": [
+        14014536,
+        26589,
+        11254479
+      ],
+      "distance": 3958014,
+      "checkpoints": [
+        {
+          "tick": 0,
+          "commands": 1,
+          "state": {
+            "vehicle": {
+              "gear": 1,
+              "brakeHold": 0,
+              "steeringAccumulator": 0,
+              "steeringSpeedMemory": 0,
+              "curvature": 0,
+              "engineSpeed": 72,
+              "nativeSpeed": 0,
+              "wheelSpeed": 65,
+              "fuel": 262141,
+              "yaw": 16384,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                11999946,
+                23068,
+                11771314
+              ],
+              "referenceY": 1.0999679565429688,
+              "support": [
+                4096,
+                4096,
+                4096
+              ],
+              "supportDelta": [
+                0,
+                0,
+                0
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 16384
+            },
+            "velocity": [
+              66,
+              0,
+              0,
+              0
+            ],
+            "previousVelocity": [
+              0,
+              -89,
+              0,
+              0
+            ],
+            "matrix": [
+              0,
+              0,
+              -0.9999999403953552,
+              0,
+              0,
+              0.9999999403953552,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              0,
+              0,
+              1,
+              0,
+              0,
+              0.9999999403953552,
+              0,
+              0,
+              -0.9999999403953552,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "coordinates": [
+              572.2020263671875,
+              1.0999679565429688,
+              561.2999877929688,
+              1
+            ],
+            "surfaces": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 0,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 179,
+          "commands": 1,
+          "state": {
+            "vehicle": {
+              "gear": 3,
+              "brakeHold": 0,
+              "steeringAccumulator": 0,
+              "steeringSpeedMemory": 11085,
+              "curvature": 0,
+              "engineSpeed": 6269,
+              "nativeSpeed": 11085,
+              "wheelSpeed": 11117,
+              "fuel": 261604,
+              "yaw": 16384,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                12673933,
+                23068,
+                11771314
+              ],
+              "referenceY": 1.0999679565429688,
+              "support": [
+                3800,
+                4714,
+                4714
+              ],
+              "supportDelta": [
+                -13,
+                14,
+                14
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 16384
+            },
+            "velocity": [
+              11118,
+              0,
+              0,
+              0
+            ],
+            "previousVelocity": [
+              11086,
+              -89,
+              0,
+              0
+            ],
+            "matrix": [
+              0,
+              0,
+              -0.9999999403953552,
+              0,
+              0,
+              0.9999999403953552,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              0,
+              0,
+              1,
+              0,
+              0,
+              0.9999999403953552,
+              0,
+              0,
+              -0.9999999403953552,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              -0.020815778523683548,
+              0,
+              0,
+              0.020815778523683548,
+              1,
+              0,
+              0,
+              -0.004913330078125,
+              0,
+              1
+            ],
+            "coordinates": [
+              604.3402099609375,
+              1.0999679565429688,
+              561.2999877929688,
+              1
+            ],
+            "surfaces": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 1042125,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 239,
+          "commands": 8193,
+          "state": {
+            "vehicle": {
+              "gear": 3,
+              "brakeHold": 0,
+              "steeringAccumulator": 32,
+              "steeringSpeedMemory": 11085,
+              "curvature": 253,
+              "engineSpeed": 7294,
+              "nativeSpeed": 12904,
+              "wheelSpeed": 12935,
+              "fuel": 261424,
+              "yaw": 19773,
+              "slipAngle": 287,
+              "driftRate": 1,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                13131067,
+                23068,
+                11715867
+              ],
+              "referenceY": 1.0999679565429688,
+              "support": [
+                3969,
+                4964,
+                3895
+              ],
+              "supportDelta": [
+                0,
+                4,
+                1
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 19773
+            },
+            "velocity": [
+              12292,
+              0,
+              -4032,
+              0
+            ],
+            "previousVelocity": [
+              12296,
+              -89,
+              -3925,
+              0
+            ],
+            "matrix": [
+              -0.3192295432090759,
+              0,
+              -0.9476774334907532,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0.9476774334907532,
+              0,
+              -0.3192295432090759,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              -0.3192295432090759,
+              0,
+              0.9476774334907532,
+              0,
+              0,
+              1,
+              0,
+              0,
+              -0.9476774334907532,
+              0,
+              -0.3192295432090759,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              0.9997571110725403,
+              0.022037701681256294,
+              0,
+              0,
+              -0.022043054923415184,
+              1,
+              -0.01047621201723814,
+              0,
+              -0.00023087163572199643,
+              0.01047366764396429,
+              1.0002429485321045,
+              0,
+              0,
+              -0.003143310546875,
+              0,
+              1
+            ],
+            "coordinates": [
+              626.1380615234375,
+              1.0999679565429688,
+              558.6560668945312,
+              1
+            ],
+            "surfaces": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 1763483,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 359,
+          "commands": 1,
+          "state": {
+            "vehicle": {
+              "gear": 3,
+              "brakeHold": 0,
+              "steeringAccumulator": 0,
+              "steeringSpeedMemory": 9259,
+              "curvature": 0,
+              "engineSpeed": 5222,
+              "nativeSpeed": 9259,
+              "wheelSpeed": 9260,
+              "fuel": 261064,
+              "yaw": 25119,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                13971130,
+                26321,
+                11397315
+              ],
+              "referenceY": 1.2752056121826172,
+              "support": [
+                6660,
+                1903,
+                726
+              ],
+              "supportDelta": [
+                -16,
+                -16,
+                62
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 25119
+            },
+            "velocity": [
+              6568,
+              265,
+              -5783,
+              0
+            ],
+            "previousVelocity": [
+              7163,
+              173,
+              -5935,
+              0
+            ],
+            "matrix": [
+              -0.7080833911895752,
+              -0.040763821452856064,
+              -0.7049512267112732,
+              0,
+              -0.045545708388090134,
+              0.9988900423049927,
+              -0.012012768536806107,
+              0,
+              0.7046584486961365,
+              0.023601461201906204,
+              -0.7091540098190308,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              -0.7080833911895752,
+              -0.045545708388090134,
+              0.7046584486961365,
+              0,
+              -0.040763821452856064,
+              0.9988900423049927,
+              0.023601461201906204,
+              0,
+              -0.7049512267112732,
+              -0.012012768536806107,
+              -0.7091540098190308,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              0.9997056126594543,
+              0.024262897670269012,
+              0,
+              0,
+              -0.024270042777061462,
+              1,
+              0.1217518076300621,
+              0,
+              0.002954051597043872,
+              -0.1217159628868103,
+              1.0002944469451904,
+              0,
+              0,
+              0.003326416015625,
+              0,
+              1
+            ],
+            "coordinates": [
+              666.7178955078125,
+              1.2752056121826172,
+              543.0963745117188,
+              1
+            ],
+            "surfaces": [
+              9043,
+              9043,
+              9043,
+              -1,
+              9043,
+              9043,
+              9043
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 3433521,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 1,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 419,
+          "commands": 2,
+          "state": {
+            "vehicle": {
+              "gear": 1,
+              "brakeHold": 32,
+              "steeringAccumulator": 0,
+              "steeringSpeedMemory": 2138,
+              "curvature": 0,
+              "engineSpeed": 0,
+              "nativeSpeed": 609,
+              "wheelSpeed": 0,
+              "fuel": 261064,
+              "yaw": 29215,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                14014845,
+                27168,
+                11298598
+              ],
+              "referenceY": 1.29547119140625,
+              "support": [
+                4854,
+                3347,
+                2786
+              ],
+              "supportDelta": [
+                -6,
+                13,
+                73
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 29215
+            },
+            "velocity": [
+              695,
+              8,
+              -1960,
+              0
+            ],
+            "previousVelocity": [
+              715,
+              -81,
+              -2016,
+              0
+            ],
+            "matrix": [
+              -0.9412291646003723,
+              -0.04990053176879883,
+              -0.3340625762939453,
+              0,
+              -0.04841451346874237,
+              0.9987455606460571,
+              -0.012778390198946,
+              0,
+              0.33428120613098145,
+              0.004146084189414978,
+              -0.9424643516540527,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              -0.9412291646003723,
+              -0.04841451346874237,
+              0.33428120613098145,
+              0,
+              -0.04990053176879883,
+              0.9987455606460571,
+              0.004146084189414978,
+              0,
+              -0.3340625762939453,
+              -0.012778390198946,
+              -0.9424643516540527,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              0.999933123588562,
+              0.011567190289497375,
+              0,
+              0,
+              -0.011567964218556881,
+              1,
+              0.040720582008361816,
+              0,
+              0.00047102270764298737,
+              -0.04071785882115364,
+              1.000066876411438,
+              0,
+              0,
+              0.004150390625,
+              0,
+              1
+            ],
+            "coordinates": [
+              668.2799072265625,
+              1.29547119140625,
+              538.7591552734375,
+              1
+            ],
+            "surfaces": [
+              9043,
+              9043,
+              9043,
+              9043,
+              9043,
+              9043,
+              9043
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 3710006,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 479,
+          "commands": 5,
+          "state": {
+            "vehicle": {
+              "gear": 0,
+              "brakeHold": 0,
+              "steeringAccumulator": 0,
+              "steeringSpeedMemory": 1427,
+              "curvature": 0,
+              "engineSpeed": 9189,
+              "nativeSpeed": -1427,
+              "wheelSpeed": -6819,
+              "fuel": 260884,
+              "yaw": 29727,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                14016209,
+                27151,
+                11292125
+              ],
+              "referenceY": 1.2946605682373047,
+              "support": [
+                4760,
+                3471,
+                3463
+              ],
+              "supportDelta": [
+                -1,
+                1,
+                1
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 29727
+            },
+            "velocity": [
+              -427,
+              -2,
+              1422,
+              0
+            ],
+            "previousVelocity": [
+              -410,
+              -91,
+              1367,
+              0
+            ],
+            "matrix": [
+              -0.9564986824989319,
+              -0.05002324655652046,
+              -0.2874162197113037,
+              0,
+              -0.04839938506484032,
+              0.9987466335296631,
+              -0.012757115066051483,
+              0,
+              0.28769412636756897,
+              0.0017086034640669823,
+              -0.9577209949493408,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              -0.9564986824989319,
+              -0.04839938506484032,
+              0.28769412636756897,
+              0,
+              -0.05002324655652046,
+              0.9987466335296631,
+              0.0017086034640669823,
+              0,
+              -0.2874162197113037,
+              -0.012757115066051483,
+              -0.9577209949493408,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              1,
+              0.00016496205353178084,
+              0,
+              0,
+              -0.00016496205353178084,
+              1,
+              0.029447266831994057,
+              0,
+              0.000004857681688008597,
+              -0.029447266831994057,
+              1,
+              0,
+              0,
+              -0.000518798828125,
+              0,
+              1
+            ],
+            "coordinates": [
+              668.344970703125,
+              1.2946605682373047,
+              538.4505004882812,
+              1
+            ],
+            "surfaces": [
+              9043,
+              9043,
+              9043,
+              9043,
+              9043,
+              9043,
+              9043
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 3764880,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 599,
+          "commands": 32769,
+          "state": {
+            "vehicle": {
+              "gear": 1,
+              "brakeHold": 0,
+              "steeringAccumulator": -32,
+              "steeringSpeedMemory": 6,
+              "curvature": -4658,
+              "engineSpeed": 8653,
+              "nativeSpeed": 2629,
+              "wheelSpeed": 7841,
+              "fuel": 260524,
+              "yaw": 23787,
+              "slipAngle": -1251,
+              "driftRate": -5,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                14014536,
+                26589,
+                11254479
+              ],
+              "referenceY": 1.267862319946289,
+              "support": [
+                4247,
+                3971,
+                1973
+              ],
+              "supportDelta": [
+                6,
+                -10,
+                -30
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 23787
+            },
+            "velocity": [
+              1990,
+              73,
+              -1803,
+              0
+            ],
+            "previousVelocity": [
+              2031,
+              -17,
+              -1677,
+              0
+            ],
+            "matrix": [
+              -0.650413453578949,
+              -0.04123183339834213,
+              -0.7584604620933533,
+              0,
+              -0.048421092331409454,
+              0.9987453818321228,
+              -0.012771104462444782,
+              0,
+              0.75803542137146,
+              0.02841898426413536,
+              -0.6515939235687256,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              -0.650413453578949,
+              -0.048421092331409454,
+              0.75803542137146,
+              0,
+              -0.04123183339834213,
+              0.9987453818321228,
+              0.02841898426413536,
+              0,
+              -0.7584604620933533,
+              -0.012771104462444782,
+              -0.6515939235687256,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              0.999152421951294,
+              0.04116435348987579,
+              0,
+              0,
+              -0.041199274361133575,
+              1,
+              0.02903732657432556,
+              0,
+              0.0011953028151765466,
+              -0.029012715443968773,
+              1.000848412513733,
+              0,
+              0,
+              0.014862060546875,
+              0,
+              1
+            ],
+            "coordinates": [
+              668.26513671875,
+              1.267862319946289,
+              536.6553955078125,
+              1
+            ],
+            "surfaces": [
+              9043,
+              9043,
+              9043,
+              9043,
+              9043,
+              9043,
+              9043
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 3958014,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        }
+      ]
+    },
+    {
+      "course": 3,
+      "updates": 600,
+      "obstaclePoints": 96,
+      "collisionUpdates": 4,
+      "finalPosition": [
+        2932334,
+        209715,
+        8479629
+      ],
+      "distance": 4456627,
+      "checkpoints": [
+        {
+          "tick": 0,
+          "commands": 1,
+          "state": {
+            "vehicle": {
+              "gear": 1,
+              "brakeHold": 0,
+              "steeringAccumulator": 0,
+              "steeringSpeedMemory": 0,
+              "curvature": 0,
+              "engineSpeed": 72,
+              "nativeSpeed": 0,
+              "wheelSpeed": 65,
+              "fuel": 262141,
+              "yaw": 0,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                2548039,
+                209715,
+                6343926
+              ],
+              "referenceY": 9.999990463256836,
+              "support": [
+                4096,
+                4096,
+                4096
+              ],
+              "supportDelta": [
+                0,
+                0,
+                0
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 0
+            },
+            "velocity": [
+              0,
+              0,
+              66,
+              0
+            ],
+            "previousVelocity": [
+              0,
+              -89,
+              0,
+              0
+            ],
+            "matrix": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "coordinates": [
+              121.49996948242188,
+              9.999990463256836,
+              302.5019836425781,
+              1
+            ],
+            "surfaces": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 0,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 179,
+          "commands": 1,
+          "state": {
+            "vehicle": {
+              "gear": 3,
+              "brakeHold": 0,
+              "steeringAccumulator": 0,
+              "steeringSpeedMemory": 11085,
+              "curvature": 0,
+              "engineSpeed": 6269,
+              "nativeSpeed": 11085,
+              "wheelSpeed": 11117,
+              "fuel": 261604,
+              "yaw": 0,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                2548039,
+                209715,
+                7017913
+              ],
+              "referenceY": 9.999990463256836,
+              "support": [
+                3800,
+                4714,
+                4714
+              ],
+              "supportDelta": [
+                -13,
+                14,
+                14
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 0
+            },
+            "velocity": [
+              0,
+              0,
+              11118,
+              0
+            ],
+            "previousVelocity": [
+              0,
+              -89,
+              11086,
+              0
+            ],
+            "matrix": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              -0.020815778523683548,
+              0,
+              0,
+              0.020815778523683548,
+              1,
+              0,
+              0,
+              -0.004913330078125,
+              0,
+              1
+            ],
+            "coordinates": [
+              121.49996948242188,
+              9.999990463256836,
+              334.6401672363281,
+              1
+            ],
+            "surfaces": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 1042125,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 239,
+          "commands": 8193,
+          "state": {
+            "vehicle": {
+              "gear": 3,
+              "brakeHold": 0,
+              "steeringAccumulator": 32,
+              "steeringSpeedMemory": 11085,
+              "curvature": 253,
+              "engineSpeed": 7296,
+              "nativeSpeed": 12906,
+              "wheelSpeed": 12939,
+              "fuel": 261424,
+              "yaw": 3388,
+              "slipAngle": 287,
+              "driftRate": 1,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                2603478,
+                209715,
+                7475012
+              ],
+              "referenceY": 9.999990463256836,
+              "support": [
+                3969,
+                4968,
+                3882
+              ],
+              "supportDelta": [
+                0,
+                4,
+                0
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 3388
+            },
+            "velocity": [
+              4031,
+              0,
+              12294,
+              0
+            ],
+            "previousVelocity": [
+              3924,
+              -89,
+              12298,
+              0
+            ],
+            "matrix": [
+              0.9477081298828125,
+              0,
+              -0.31913837790489197,
+              0,
+              0,
+              0.9999999403953552,
+              0,
+              0,
+              0.31913840770721436,
+              0,
+              0.9477080702781677,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              0.9477081298828125,
+              0,
+              0.31913840770721436,
+              0,
+              0,
+              0.9999999403953552,
+              0,
+              0,
+              -0.31913837790489197,
+              0,
+              0.9477080702781677,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              0.9997493624687195,
+              0.02238798700273037,
+              0,
+              0,
+              -0.022393599152565002,
+              1,
+              -0.010385114699602127,
+              0,
+              -0.00023250181402545422,
+              0.010382511653006077,
+              1.0002506971359253,
+              0,
+              0,
+              -0.003082275390625,
+              0,
+              1
+            ],
+            "coordinates": [
+              124.14350891113281,
+              9.999990463256836,
+              356.4363708496094,
+              1
+            ],
+            "surfaces": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 1763431,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 359,
+          "commands": 1,
+          "state": {
+            "vehicle": {
+              "gear": 4,
+              "brakeHold": 0,
+              "steeringAccumulator": 0,
+              "steeringSpeedMemory": 16250,
+              "curvature": 0,
+              "engineSpeed": 6550,
+              "nativeSpeed": 16250,
+              "wheelSpeed": 16272,
+              "fuel": 261064,
+              "yaw": 3614,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                2988312,
+                209715,
+                8542581
+              ],
+              "referenceY": 9.999990463256836,
+              "support": [
+                4033,
+                4292,
+                4291
+              ],
+              "supportDelta": [
+                1,
+                1,
+                1
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 3614
+            },
+            "velocity": [
+              5526,
+              0,
+              15306,
+              0
+            ],
+            "previousVelocity": [
+              5520,
+              -89,
+              15289,
+              0
+            ],
+            "matrix": [
+              0.9405712485313416,
+              0,
+              -0.3395964205265045,
+              0,
+              0,
+              0.9999999403953552,
+              0,
+              0,
+              0.3395964503288269,
+              0,
+              0.9405711889266968,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              0.9405712485313416,
+              0,
+              0.3395964503288269,
+              0,
+              0,
+              0.9999999403953552,
+              0,
+              0,
+              -0.3395964205265045,
+              0,
+              0.9405711889266968,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              1,
+              0.000020620256691472605,
+              0,
+              0,
+              -0.000020620256691472605,
+              1,
+              -0.005875788629055023,
+              0,
+              -1.211602693729219e-7,
+              0.005875788629055023,
+              1,
+              0,
+              0,
+              -0.00201416015625,
+              0,
+              1
+            ],
+            "coordinates": [
+              142.4938201904297,
+              9.999990463256836,
+              407.3420104980469,
+              1
+            ],
+            "surfaces": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 3532924,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 419,
+          "commands": 2,
+          "state": {
+            "vehicle": {
+              "gear": 1,
+              "brakeHold": 32,
+              "steeringAccumulator": 0,
+              "steeringSpeedMemory": 0,
+              "curvature": 0,
+              "engineSpeed": 0,
+              "nativeSpeed": 0,
+              "wheelSpeed": 0,
+              "fuel": 261064,
+              "yaw": 3102,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                2988568,
+                209715,
+                8547374
+              ],
+              "referenceY": 9.999990463256836,
+              "support": [
+                4115,
+                4176,
+                4176
+              ],
+              "supportDelta": [
+                13,
+                -1,
+                -1
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 3102
+            },
+            "velocity": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "previousVelocity": [
+              0,
+              -89,
+              0,
+              0
+            ],
+            "matrix": [
+              0.9561014771461487,
+              0,
+              -0.2930357754230499,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0.2930357754230499,
+              0,
+              0.9561014771461487,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              0.9561014771461487,
+              0,
+              0.2930357754230499,
+              0,
+              0,
+              1,
+              0,
+              0,
+              -0.2930357754230499,
+              0,
+              0.9561014771461487,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              -0.0013892368879169226,
+              0,
+              0,
+              0.0013892368879169226,
+              1,
+              0,
+              0,
+              -0.001495361328125,
+              0,
+              1
+            ],
+            "coordinates": [
+              142.5060272216797,
+              9.999990463256836,
+              407.570556640625,
+              1
+            ],
+            "surfaces": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 4094447,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 479,
+          "commands": 5,
+          "state": {
+            "vehicle": {
+              "gear": 0,
+              "brakeHold": 0,
+              "steeringAccumulator": 0,
+              "steeringSpeedMemory": 3949,
+              "curvature": 0,
+              "engineSpeed": 8723,
+              "nativeSpeed": -3949,
+              "wheelSpeed": -6474,
+              "fuel": 260884,
+              "yaw": 3102,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                2965634,
+                209715,
+                8472434
+              ],
+              "referenceY": 9.999990463256836,
+              "support": [
+                4873,
+                3376,
+                3376
+              ],
+              "supportDelta": [
+                1,
+                1,
+                1
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 3102
+            },
+            "velocity": [
+              -1177,
+              0,
+              -3840,
+              0
+            ],
+            "previousVelocity": [
+              -1157,
+              -89,
+              -3776,
+              0
+            ],
+            "matrix": [
+              0.9561014771461487,
+              0,
+              -0.2930357754230499,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0.2930357754230499,
+              0,
+              0.9561014771461487,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              0.9561014771461487,
+              0,
+              0.2930357754230499,
+              0,
+              0,
+              1,
+              0,
+              0,
+              -0.2930357754230499,
+              0,
+              0.9561014771461487,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0.03409323841333389,
+              0,
+              0,
+              -0.03409323841333389,
+              1,
+              0,
+              0,
+              -0.0008544921875,
+              0,
+              1
+            ],
+            "coordinates": [
+              141.41244506835938,
+              9.999990463256836,
+              403.99713134765625,
+              1
+            ],
+            "surfaces": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 4212909,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 599,
+          "commands": 32769,
+          "state": {
+            "vehicle": {
+              "gear": 1,
+              "brakeHold": 0,
+              "steeringAccumulator": -32,
+              "steeringSpeedMemory": 3,
+              "curvature": -4658,
+              "engineSpeed": 8499,
+              "nativeSpeed": 3970,
+              "wheelSpeed": 7702,
+              "fuel": 260524,
+              "yaw": 56480,
+              "slipAngle": -1344,
+              "driftRate": -9,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                2932334,
+                209715,
+                8479629
+              ],
+              "referenceY": 9.999990463256836,
+              "support": [
+                3748,
+                4095,
+                5547
+              ],
+              "supportDelta": [
+                -1,
+                -13,
+                20
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 56480
+            },
+            "velocity": [
+              -2775,
+              0,
+              2945,
+              0
+            ],
+            "previousVelocity": [
+              -2633,
+              -89,
+              2999,
+              0
+            ],
+            "matrix": [
+              0.6461760401725769,
+              0,
+              0.7631884217262268,
+              0,
+              0,
+              1,
+              0,
+              0,
+              -0.7631884217262268,
+              0,
+              0.6461760401725769,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              0.6461760401725769,
+              0,
+              -0.7631884217262268,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0.7631884217262268,
+              0,
+              0.6461760401725769,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              0.9995520710945129,
+              -0.029927203431725502,
+              0,
+              0,
+              0.029940614476799965,
+              1,
+              -0.02443690411746502,
+              0,
+              0.0007313282112590969,
+              0.02442595735192299,
+              1.0004481077194214,
+              0,
+              0,
+              -0.0057373046875,
+              0,
+              1
+            ],
+            "coordinates": [
+              139.8245849609375,
+              9.999990463256836,
+              404.3402404785156,
+              1
+            ],
+            "surfaces": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 4456627,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        }
+      ]
+    },
+    {
+      "course": 7,
+      "updates": 600,
+      "obstaclePoints": 601,
+      "collisionUpdates": 3,
+      "finalPosition": [
+        8712154,
+        2789212,
+        7228176
+      ],
+      "distance": 7048188,
+      "checkpoints": [
+        {
+          "tick": 0,
+          "commands": 1,
+          "state": {
+            "vehicle": {
+              "gear": 1,
+              "brakeHold": 0,
+              "steeringAccumulator": 0,
+              "steeringSpeedMemory": 0,
+              "curvature": 0,
+              "engineSpeed": 72,
+              "nativeSpeed": 0,
+              "wheelSpeed": 65,
+              "fuel": 262141,
+              "yaw": 49152,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                12951968,
+                3628072,
+                5987369
+              ],
+              "referenceY": 172.9999542236328,
+              "support": [
+                4096,
+                4096,
+                4096
+              ],
+              "supportDelta": [
+                0,
+                0,
+                0
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 49152
+            },
+            "velocity": [
+              -66,
+              0,
+              0,
+              0
+            ],
+            "previousVelocity": [
+              0,
+              -89,
+              0,
+              0
+            ],
+            "matrix": [
+              0,
+              0,
+              0.9999999403953552,
+              0,
+              0,
+              0.9999999403953552,
+              0,
+              0,
+              -1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              0,
+              0,
+              -1,
+              0,
+              0,
+              0.9999999403953552,
+              0,
+              0,
+              0.9999999403953552,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "coordinates": [
+              617.5979614257812,
+              172.9999542236328,
+              285.5,
+              1
+            ],
+            "surfaces": [
+              1052945,
+              1052945,
+              1052945,
+              1052945,
+              1052945,
+              1052945,
+              1052945
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 0,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 179,
+          "commands": 1,
+          "state": {
+            "vehicle": {
+              "gear": 3,
+              "brakeHold": 0,
+              "steeringAccumulator": 0,
+              "steeringSpeedMemory": 10693,
+              "curvature": 0,
+              "engineSpeed": 7535,
+              "nativeSpeed": 10693,
+              "wheelSpeed": 13362,
+              "fuel": 261604,
+              "yaw": 49152,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                12345650,
+                3595675,
+                5987369
+              ],
+              "referenceY": 171.4551544189453,
+              "support": [
+                3695,
+                4695,
+                4577
+              ],
+              "supportDelta": [
+                3,
+                0,
+                4
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 49152
+            },
+            "velocity": [
+              -10623,
+              -1653,
+              0,
+              0
+            ],
+            "previousVelocity": [
+              -10554,
+              -1731,
+              0,
+              0
+            ],
+            "matrix": [
+              0.0006318885716609657,
+              -0.004060088656842709,
+              0.9999915361404419,
+              0,
+              -0.15378154814243317,
+              0.9880962371826172,
+              0.004108965862542391,
+              0,
+              -0.9881047010421753,
+              -0.15378287434577942,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              0.0006318885716609657,
+              -0.15378154814243317,
+              -0.9881047010421753,
+              0,
+              -0.004060088656842709,
+              0.9880962371826172,
+              -0.15378287434577942,
+              0,
+              0.9999915361404419,
+              0.004108965862542391,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              0.9999970197677612,
+              0.0024331831373274326,
+              0,
+              0,
+              -0.002433190355077386,
+              1,
+              -0.021430686116218567,
+              0,
+              -0.000052144783694529906,
+              0.021430622786283493,
+              1.0000029802322388,
+              0,
+              0,
+              -0.002105712890625,
+              0,
+              1
+            ],
+            "coordinates": [
+              588.6864624023438,
+              171.4551544189453,
+              285.5,
+              1
+            ],
+            "surfaces": [
+              12561,
+              12561,
+              12561,
+              12561,
+              12561,
+              12561,
+              12561
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 940988,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 239,
+          "commands": 8193,
+          "state": {
+            "vehicle": {
+              "gear": 3,
+              "brakeHold": 0,
+              "steeringAccumulator": 32,
+              "steeringSpeedMemory": 10693,
+              "curvature": 262,
+              "engineSpeed": 7959,
+              "nativeSpeed": 14082,
+              "wheelSpeed": 14114,
+              "fuel": 261424,
+              "yaw": 52883,
+              "slipAngle": 341,
+              "driftRate": 1,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                11888596,
+                3470940,
+                6051860
+              ],
+              "referenceY": 165.50732421875,
+              "support": [
+                3943,
+                4859,
+                1917
+              ],
+              "supportDelta": [
+                4,
+                32,
+                -122
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 52883
+            },
+            "velocity": [
+              -12876,
+              -3314,
+              4739,
+              0
+            ],
+            "previousVelocity": [
+              -12869,
+              -3396,
+              4616,
+              0
+            ],
+            "matrix": [
+              0.34914901852607727,
+              0.04582301154732704,
+              0.9359461665153503,
+              0,
+              -0.23517554998397827,
+              0.9711218476295471,
+              0.04018563777208328,
+              0,
+              -0.9070762991905212,
+              -0.23414242267608643,
+              0.34984269738197327,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              0.34914901852607727,
+              -0.23517554998397827,
+              -0.9070762991905212,
+              0,
+              0.04582301154732704,
+              0.9711218476295471,
+              -0.23414242267608643,
+              0,
+              0.9359461665153503,
+              0.04018563777208328,
+              0.34984269738197327,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              0.9981649518013,
+              0.060553472489118576,
+              0,
+              0,
+              -0.06066479533910751,
+              1,
+              0.012639777734875679,
+              0,
+              0.0007653824286535382,
+              -0.01261658314615488,
+              1.0018384456634521,
+              0,
+              0,
+              0.013153076171875,
+              0,
+              1
+            ],
+            "coordinates": [
+              566.8924560546875,
+              165.50732421875,
+              288.5751647949219,
+              1
+            ],
+            "surfaces": [
+              12561,
+              12561,
+              12561,
+              12561,
+              12561,
+              12561,
+              12561
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 1691234,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 359,
+          "commands": 1,
+          "state": {
+            "vehicle": {
+              "gear": 4,
+              "brakeHold": 0,
+              "steeringAccumulator": 0,
+              "steeringSpeedMemory": 19515,
+              "curvature": 0,
+              "engineSpeed": 7967,
+              "nativeSpeed": 19515,
+              "wheelSpeed": 19793,
+              "fuel": 261064,
+              "yaw": 53118,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                10725252,
+                3122435,
+                6532282
+              ],
+              "referenceY": 148.88931274414062,
+              "support": [
+                0,
+                0,
+                0
+              ],
+              "supportDelta": [
+                0,
+                0,
+                0
+              ],
+              "impulses": [
+                1854,
+                1575,
+                1760
+              ],
+              "unsupportedTicks": 2,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 53118
+            },
+            "velocity": [
+              -16946,
+              -6614,
+              7063,
+              0
+            ],
+            "previousVelocity": [
+              -16950,
+              -6623,
+              7064,
+              0
+            ],
+            "matrix": [
+              0.41500070691108704,
+              -0.09504642337560654,
+              0.904842734336853,
+              0,
+              -0.2757580578327179,
+              0.9346072673797607,
+              0.22464773058891296,
+              0,
+              -0.8670247197151184,
+              -0.34274667501449585,
+              0.36165285110473633,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              0.41500070691108704,
+              -0.2757580578327179,
+              -0.8670247197151184,
+              0,
+              -0.09504642337560654,
+              0.9346072673797607,
+              -0.34274667501449585,
+              0,
+              0.904842734336853,
+              0.22464773058891296,
+              0.36165285110473633,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0.125,
+              0,
+              1
+            ],
+            "coordinates": [
+              511.4198913574219,
+              148.88931274414062,
+              311.4834899902344,
+              1
+            ],
+            "surfaces": [
+              12561,
+              12561,
+              12561,
+              12561,
+              12561,
+              12561,
+              12561
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 3726740,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 419,
+          "commands": 2,
+          "state": {
+            "vehicle": {
+              "gear": 4,
+              "brakeHold": 32,
+              "steeringAccumulator": 0,
+              "steeringSpeedMemory": 17102,
+              "curvature": 0,
+              "engineSpeed": 0,
+              "nativeSpeed": 8540,
+              "wheelSpeed": 0,
+              "fuel": 261064,
+              "yaw": 53118,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                10084161,
+                2968108,
+                6789492
+              ],
+              "referenceY": 141.53042602539062,
+              "support": [
+                2602,
+                1215,
+                1061
+              ],
+              "supportDelta": [
+                54,
+                236,
+                60
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 53118
+            },
+            "velocity": [
+              -15603,
+              -2968,
+              6182,
+              0
+            ],
+            "previousVelocity": [
+              -15647,
+              -3065,
+              6199,
+              0
+            ],
+            "matrix": [
+              0.38947492837905884,
+              -0.15716546773910522,
+              0.9075286984443665,
+              0,
+              -0.10104235261678696,
+              0.972095251083374,
+              0.2117103934288025,
+              0,
+              -0.9154778122901917,
+              -0.17415472865104675,
+              0.3627263903617859,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              0.38947492837905884,
+              -0.10104235261678696,
+              -0.9154778122901917,
+              0,
+              -0.15716546773910522,
+              0.972095251083374,
+              -0.17415472865104675,
+              0,
+              0.9075286984443665,
+              0.2117103934288025,
+              0.3627263903617859,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              0.9999949932098389,
+              0.003175503807142377,
+              0,
+              0,
+              -0.0031755196396261454,
+              1,
+              0.03334168344736099,
+              0,
+              0.00010587664291961119,
+              -0.03334151580929756,
+              1.0000051259994507,
+              0,
+              0,
+              0.06793212890625,
+              0,
+              1
+            ],
+            "coordinates": [
+              480.85028076171875,
+              141.53042602539062,
+              323.7481994628906,
+              1
+            ],
+            "surfaces": [
+              12561,
+              12561,
+              12561,
+              12561,
+              12561,
+              12561,
+              12561
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 4698588,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 479,
+          "commands": 5,
+          "state": {
+            "vehicle": {
+              "gear": 0,
+              "brakeHold": 0,
+              "steeringAccumulator": 0,
+              "steeringSpeedMemory": 13751,
+              "curvature": 0,
+              "engineSpeed": 9189,
+              "nativeSpeed": 13751,
+              "wheelSpeed": -6819,
+              "fuel": 260884,
+              "yaw": 53118,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                9537082,
+                2913869,
+                7007002
+              ],
+              "referenceY": 138.94410705566406,
+              "support": [
+                1192,
+                662,
+                3356
+              ],
+              "supportDelta": [
+                -1780,
+                -2334,
+                10
+              ],
+              "impulses": [
+                94,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 53118
+            },
+            "velocity": [
+              -12703,
+              -544,
+              5081,
+              0
+            ],
+            "previousVelocity": [
+              -12779,
+              -61,
+              5107,
+              0
+            ],
+            "matrix": [
+              0.3676837384700775,
+              0.05877421051263809,
+              0.9280917644500732,
+              0,
+              -0.07766999304294586,
+              0.9964547157287598,
+              -0.03233284503221512,
+              0,
+              -0.9267017245292664,
+              -0.060196615755558014,
+              0.37094515562057495,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              0.3676837384700775,
+              -0.07766999304294586,
+              -0.9267017245292664,
+              0,
+              0.05877421051263809,
+              0.9964547157287598,
+              -0.060196615755558014,
+              0,
+              0.9280917644500732,
+              -0.03233284503221512,
+              0.37094515562057495,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              0.9984606504440308,
+              -0.0554654598236084,
+              0,
+              0,
+              0.05555097386240959,
+              1,
+              -0.01860666461288929,
+              0,
+              0.0010320271831005812,
+              0.018578022718429565,
+              1.0015418529510498,
+              0,
+              0,
+              0.076171875,
+              0,
+              1
+            ],
+            "coordinates": [
+              454.7635192871094,
+              138.94410705566406,
+              334.1199035644531,
+              1
+            ],
+            "surfaces": [
+              12561,
+              12561,
+              12561,
+              12561,
+              12561,
+              12561,
+              12561
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 5629114,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        },
+        {
+          "tick": 599,
+          "commands": 32769,
+          "state": {
+            "vehicle": {
+              "gear": 2,
+              "brakeHold": 0,
+              "steeringAccumulator": -32,
+              "steeringSpeedMemory": 0,
+              "curvature": -4658,
+              "engineSpeed": 4352,
+              "nativeSpeed": 1338,
+              "wheelSpeed": 5508,
+              "fuel": 260524,
+              "yaw": 44543,
+              "slipAngle": 0,
+              "driftRate": 0,
+              "runtimeFlags": 2
+            },
+            "contact": {
+              "position": [
+                8712154,
+                2789212,
+                7228176
+              ],
+              "referenceY": 133,
+              "support": [
+                1638,
+                3994,
+                5125
+              ],
+              "supportDelta": [
+                -48,
+                95,
+                72
+              ],
+              "impulses": [
+                0,
+                0,
+                0
+              ],
+              "unsupportedTicks": 0,
+              "runtimeFlags": 2,
+              "specialState": 0,
+              "yaw": 44543
+            },
+            "velocity": [
+              -1298,
+              0,
+              -538,
+              0
+            ],
+            "previousVelocity": [
+              -1242,
+              -89,
+              -499,
+              0
+            ],
+            "matrix": [
+              -0.42764168977737427,
+              0,
+              0.9039483070373535,
+              0,
+              0,
+              1,
+              0,
+              0,
+              -0.9039483070373535,
+              0,
+              -0.42764168977737427,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "inverse": [
+              -0.42764168977737427,
+              0,
+              -0.9039483070373535,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0.9039483070373535,
+              0,
+              -0.42764168977737427,
+              0,
+              0,
+              0,
+              0,
+              1
+            ],
+            "bodyMatrix": [
+              0.9997281432151794,
+              -0.023315170779824257,
+              0,
+              0,
+              0.02332151122391224,
+              1,
+              -0.0665239468216896,
+              0,
+              0.001551017165184021,
+              0.06650586426258087,
+              1.0002719163894653,
+              0,
+              0,
+              0.03045654296875,
+              0,
+              1
+            ],
+            "coordinates": [
+              415.4278869628906,
+              133,
+              344.6662902832031,
+              1
+            ],
+            "surfaces": [
+              13568,
+              13568,
+              13568,
+              13568,
+              13568,
+              13568,
+              13568
+            ],
+            "carFlags": 2,
+            "positionIndex": 0,
+            "distance": 7048188,
+            "countdownByte": 0,
+            "countdownHalf": 0,
+            "verticalControl": 0,
+            "shiftScheduleFlag": 1
+          },
+          "contactFlags": 0,
+          "obstacleFlags": 0
+        }
+      ]
+    }
+  ],
+  "outputSha256": "7f34e9c3d1575f46e88d6ae59bf2a478438356909e836757073c8e9e6ce74b9e",
+  "boundary": "Original course collision/obstacles and native frame instructions through body/distance. Commands are supplied; effects/memset are hooks. Wheel animation, reset/debug and equipment 0x300C remain outside this gate. No playable race claim."
+}

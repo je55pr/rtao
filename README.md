@@ -35,7 +35,7 @@ PAL-backed tests additionally use locally supplied original-game inputs through 
 
 ## Current development focus
 
-Races are the current priority. Native course collision queries are verified; the next evidence-gated work is the seven-probe contact producer around `0x0021C280` and the native orientation/VU transform helpers around `0x002086C0` / `0x00208738`. The first playable Peach Raceway should only be connected after those native paths are closed and verified.
+Races are the current priority. The ordinary vehicle frame now composes movement, ground/obstacle contact, orientation and collision response, matching 1,800 retained PAL updates across three original courses. The next milestone is the supported playable Peach Raceway session, followed by Q's Factory launch and finish-to-Cake integration. Reset/debug and special equipment paths remain gated; see [`docs/PAL_NATIVE_RACE_FRAME_2026-09-05.md`](docs/PAL_NATIVE_RACE_FRAME_2026-09-05.md).
 
 For the concise current status, see [`docs/STATUS.md`](docs/STATUS.md). For architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). For the full current task/evidence boundary, see [`RTA_CURRENT_STATE.md`](RTA_CURRENT_STATE.md).
 

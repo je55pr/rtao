@@ -32,10 +32,32 @@ Races are the active development priority and the main remaining player-facing p
   - all 360 grid positions included;
   - 1,882 hits;
   - deterministic output SHA-256 `61e221249833e771c1d7a2043fd1a6ef5bd4c5933100706fdb9b24598ab9cfd2`.
-- Latest recorded full PAL gate: **48 test files / 232 tests**, production build pass, capture build pass, exit 0.
+- Scalar seven-probe contact producer `0x0021C280` is implemented through the
+  orientation inputs: 8,192 prescribed-transform PAL cases, 600 retained-history
+  updates, and 360 original-course grid cases / 2,520 queries across all 15 courses.
+  This earlier isolated regression remains intact.
+- Probe transforms, native yaw polynomial, normal/adjustment, orientation and
+  inverse now compose with the contact producer: 2,048 full caller cases,
+  360 original-course grids and 600 retained contact updates / 6,720 queries.
+  Helper coverage includes all 65,536 signed yaw values and 4,096 seeded cases
+  for vector/matrix operations and integer movement transforms.
+- Command/force/traction/drift composition now executes the native world-velocity
+  transform in 2,048 additional PAL cases using the pre-update matrix.
+- Standard collision response matches 8,192 PAL cases; obstacle iteration matches
+  4,096 cases plus all 15 original-course buffers / 1,547 points and 60 wrapper queries.
+- The enclosing ordinary frame through body orientation/distance matches 1,024
+  composed cases and **1,800 retained moving updates** on C00/C03/C07, including
+  acceleration, steering, braking, reverse and collision response. Output SHA-256:
+  `7f34e9c3d1575f46e88d6ae59bf2a478438356909e836757073c8e9e6ce74b9e`.
+- Latest gates: **45 CI-safe files / 230 tests** and **14 PAL files / 33 tests**,
+  production build pass, capture build pass, exit 0. PAL tests have a 60-second
+  default timeout; the longer moving sequence has a 120-second timeout.
 
 Primary race write-ups:
 
+- [`docs/PAL_NATIVE_RACE_FRAME_2026-09-05.md`](docs/PAL_NATIVE_RACE_FRAME_2026-09-05.md)
+- [`docs/PAL_NATIVE_RACE_MATH_2026-09-05.md`](docs/PAL_NATIVE_RACE_MATH_2026-09-05.md)
+- [`docs/PAL_NATIVE_RACE_CONTACT_2026-09-05.md`](docs/PAL_NATIVE_RACE_CONTACT_2026-09-05.md)
 - [`docs/PAL_NATIVE_RACE_COLLISION_2026-09-05.md`](docs/PAL_NATIVE_RACE_COLLISION_2026-09-05.md)
 - [`docs/PAL_NATIVE_GROUND_SUPPORT_2026-09-05.md`](docs/PAL_NATIVE_GROUND_SUPPORT_2026-09-05.md)
 - [`docs/PAL_NATIVE_RACE_CONTROLS_2026-09-05.md`](docs/PAL_NATIVE_RACE_CONTROLS_2026-09-05.md)
@@ -43,13 +65,14 @@ Primary race write-ups:
 
 ### Immediate next work
 
-1. Recover/implement the seven-probe **contact producer** around `0x0021C280`.
-2. Recover/verify orientation/VU transform helpers around `0x002086C0` and `0x00208738`.
-3. Validate deterministic moving vehicle trajectories against PAL.
-4. Only after those paths close, connect native movement to the first playable **Peach Raceway** vertical slice.
-5. Connect Q's Factory race selection/launch to that first playable course without inventing any missing native state.
+1. Connect the supported native movement path to the first playable **Peach Raceway**
+   session: entrant initialization/ownership, player/AI command dispatch, renderer,
+   ordered laps/finish, results and persistent Cake rewards (#6).
+2. Connect Q's Factory race selection/launch to that validated course (#7).
+3. Keep reset/debug, outdoor/scene-28 and equipment `0x300C` paths gated; wheel
+   animation and the subsequent UI callback are outside the current frame comparison.
 
-**Current boundary:** the first playable race is not complete. There is no new valid moving-race capture yet.
+**Current boundary:** the first playable race is not complete. Moving scalar trajectories are verified; no new rendered moving-race capture exists. Commands are supplied at the ownership/navigation boundary, and the complete native scene initializer is not executed. PAL comparisons use a bounded host-float32 instruction oracle; hardware rounding, VU timing/flags and extended exponents are not established. Milestones #3/#4 and the representative #5 trajectory gate are locally implemented on `codex/pal-race-contact-producer`, pending review and unmerged.
 
 Useful primary traces for the next step:
 
