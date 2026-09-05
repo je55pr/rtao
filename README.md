@@ -12,8 +12,8 @@ The GitLab repository is the canonical development source. The project intention
 | [`tools/`](tools/) | Maintained archaeology, deterministic capture and evidence-generation utilities |
 | [`docs/`](docs/) | Architecture, archaeology notes, evidence and archived historical material |
 | [`reference/csharp/`](reference/csharp/) | Earlier C#/MonoGame implementation retained as reference/archaeology, not the active product |
-| [`RTA_CURRENT_STATE.md`](RTA_CURRENT_STATE.md) | Comprehensive human-readable current evidence boundary |
-| [`RTA_STATE.json`](RTA_STATE.json) | Machine-readable project state retained during the GitLab transition |
+| [`RTA_CURRENT_STATE.md`](RTA_CURRENT_STATE.md) | Concise human-readable current evidence boundary |
+| [`RTA_STATE.json`](RTA_STATE.json) | Concise machine-readable current state |
 | [`AGENTS.md`](AGENTS.md) | Shared working conventions for ChatGPT, Claude and future contributors |
 
 ## Quick start
@@ -37,7 +37,7 @@ PAL-backed tests additionally use locally supplied original-game inputs through 
 
 Races are the current priority. Native course collision queries are verified; the next evidence-gated work is the seven-probe contact producer around `0x0021C280` and the native orientation/VU transform helpers around `0x002086C0` / `0x00208738`. The first playable Peach Raceway should only be connected after those native paths are closed and verified.
 
-For the concise current status, see [`docs/STATUS.md`](docs/STATUS.md). For the full archaeological state and exact validation history, see [`RTA_CURRENT_STATE.md`](RTA_CURRENT_STATE.md).
+For the concise current status, see [`docs/STATUS.md`](docs/STATUS.md). For architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). For the full current task/evidence boundary, see [`RTA_CURRENT_STATE.md`](RTA_CURRENT_STATE.md).
 
 ## Clean-room boundary
 

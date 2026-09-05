@@ -3,7 +3,7 @@
 Authority: local PAL `SLES_513.56`, SHA-256
 `2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9`.
 
-`web/src/game/nativeRaceCollision.ts` implements the complete scalar strip
+`rtao/src/game/nativeRaceCollision.ts` implements the complete scalar strip
 walker at **0x207748–0x207A9C** and the course-cell selection/result writes at
 **0x208C50–0x208D2C**. The seven-probe caller at 0x21C280 uses this course query.
 This supplies the contact-query building block; it does not yet connect a
@@ -49,7 +49,7 @@ unchanged. Rendering and start-grid capture code are unchanged by this milestone
 
 ## Verification
 
-`web/tests/nativeRaceCollision.pal.test.ts` executes supplied PAL instructions:
+`rtao/tests/nativeRaceCollision.pal.test.ts` executes supplied PAL instructions:
 
 - 8192 seeded strip queries compare flags, plane identity and all three heights.
   Cases include both triangle parities, edges, varying coefficients, misses,
@@ -71,7 +71,7 @@ The bounded scalar oracle uses host float32 arithmetic; it is not a full PS2
 emulator or proof of hardware behaviour for exceptional floating-point values.
 
 Full gate passes **48 files / 232 tests**, production and capture builds, with
-exit status 0 observed. Reproduce from `web`:
+exit status 0 observed. Reproduce from `rtao`:
 
 ```sh
 RTA_PAL_EXECUTABLE=/path/to/SLES_513.56 \

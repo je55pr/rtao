@@ -50,8 +50,8 @@ PAL/browser capture tools commonly use `RTA_GAME_DIR` and `RTA_CHROMIUM_EXECUTAB
 ## Architecture and evidence boundary
 
 - Current development status: [`../docs/STATUS.md`](../docs/STATUS.md)
-- Comprehensive current state: [`../RTA_CURRENT_STATE.md`](../RTA_CURRENT_STATE.md)
-- Browser architecture/import/storage details: [`../docs/WEB_PORT.md`](../docs/WEB_PORT.md)
+- Current state: [`../RTA_CURRENT_STATE.md`](../RTA_CURRENT_STATE.md)
+- Architecture: [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)
 - Archaeology notes: [`../docs/archaeology/`](../docs/archaeology/)
 - Primary retained evidence: [`../docs/evidence/`](../docs/evidence/)
 - Shared agent/contributor rules: [`../AGENTS.md`](../AGENTS.md)
