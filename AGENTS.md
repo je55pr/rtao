@@ -1,6 +1,6 @@
 # RTAO shared agent conventions
 
-This repository is a shared development surface for human contributors and coding agents, currently including ChatGPT and Claude.
+This repository is a shared development surface for human contributors and coding agents, currently including ChatGPT, Codex and Claude.
 
 ## Canonical source and ownership
 
@@ -23,10 +23,15 @@ The PAL executable and supplied PAL game data are authoritative for native behav
 
 ## Branches and reviews
 
-Use agent-specific task branches:
+Every agent-authored task branch must identify the environment actually doing the work:
 
-- `chatgpt/<task>`
-- `claude/<task>`
+- `chatgpt/<task>` — work performed directly by ChatGPT in a normal ChatGPT conversation/session.
+- `codex/<task>` — work performed by a Codex coding agent/session.
+- `claude/<task>` — work performed by Claude.
+
+Do not create generic agent branches such as `feature/...`, `fix/...`, `work/...` or an unprefixed task name. The prefix describes **who is making the commits at that moment**, not who requested the work or which model family may exist underneath the product.
+
+Keep a branch's original ownership prefix for its lifetime. If another agent needs to make substantial changes rather than merely review it, that agent should normally branch from the relevant commit using its own prefix instead of silently taking ownership of the existing branch.
 
 Prefer small, coherent commits with descriptive messages. Do not have multiple agents casually write to `main` in parallel.
 
