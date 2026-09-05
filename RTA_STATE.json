@@ -8,6 +8,11 @@
   "reference_implementation": "reference/csharp",
   "authority": "European PAL executable/data supplied locally by the developer",
   "current_focus": "Finish the native seven-probe contact producer and orientation/VU transforms before connecting playable Peach Raceway movement.",
+  "tracking": {
+    "actionable_backlog": "GitLab issues",
+    "main_ts_refactor_issue": 2,
+    "race_issue_chain": [3, 4, 5, 6, 7]
+  },
   "race": {
     "activities": 39,
     "ordinary_races": 24,
@@ -38,6 +43,7 @@
       "Connect Peach Raceway movement only after the native contact/orientation paths close.",
       "Connect Q's Factory race selection/launch only after the first playable race path is valid."
     ],
+    "next_issues": [3, 4, 5, 6, 7],
     "evidence": "docs/evidence/races/2026-09-05",
     "documentation": [
       "docs/PAL_NATIVE_RACE_COLLISION_2026-09-05.md",
