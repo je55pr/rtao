@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Deterministic close-car visual captures for the RTA Three.js port.
+"""Deterministic close-car visual captures for the RTAO Three.js port.
 
 Uses the lightweight sandbox capture bundle and reads only the requested field,
 Q62, WHEEL/TIRE assets, and sky from an extracted PAL BIN/CUE. The first capture
 prepares the stage once; subsequent matched angle/time captures reuse it.
 
-Examples:
-  xvfb-run -a python3 car_visual_capture.py day-set /tmp/car-day
-  xvfb-run -a python3 car_visual_capture.py lighting-set /tmp/car-lighting --selector 7:1
-  xvfb-run -a python3 car_visual_capture.py car-peach-night /tmp/night.png --paint 0x00b8f4af
+Examples (from the repository root):
+  xvfb-run -a python3 tools/car_visual_capture.py day-set /tmp/car-day
+  xvfb-run -a python3 tools/car_visual_capture.py lighting-set /tmp/car-lighting --selector 7:1
+  xvfb-run -a python3 tools/car_visual_capture.py car-peach-night /tmp/night.png --paint 0x00b8f4af
 
 State options:
   --selector CATEGORY:ITEM   Set a first-loadout native selector byte. Repeatable.
@@ -30,9 +30,9 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright
 
-ROOT = Path(__file__).resolve().parent
-WEB = ROOT / "web"
-BUNDLE = WEB / "sandbox-dist" / "rta-sandbox-capture.js"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+RTAO = REPO_ROOT / "rtao"
+BUNDLE = RTAO / "sandbox-dist" / "rta-sandbox-capture.js"
 GAME = Path(os.environ.get("RTA_GAME_DIR", "/mnt/data/rta_game_extract"))
 CUE = GAME / "Road Trip Adventure (Europe) (En,Fr,De).cue"
 BIN = GAME / "Road Trip Adventure (Europe) (En,Fr,De).bin"
@@ -54,7 +54,7 @@ PRESET_GROUPS: dict[str, tuple[str, ...]] = {
 
 def require_inputs() -> str:
     if not BUNDLE.is_file():
-        raise SystemExit(f"Missing {BUNDLE}. Run `npm run build:capture` in web/ first.")
+        raise SystemExit(f"Missing {BUNDLE}. Run `npm run build:capture` in rtao/ first.")
     missing = [str(path) for path in (CUE, BIN) if not path.is_file()]
     if missing:
         raise SystemExit("PAL capture source is missing: " + ", ".join(missing))
