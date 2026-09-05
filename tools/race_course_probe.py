@@ -2,7 +2,7 @@
 """Compile every executable-referenced ordinary PAL race course and save evidence.
 
 Usage:
-  python3 race_course_probe.py OUTPUT.json
+  python3 tools/race_course_probe.py OUTPUT.json
 
 The browser capture bundle reads the user's BIN/CUE directly. Course IDs come
 from the PAL executable catalogue rather than from a handwritten list.
@@ -19,8 +19,9 @@ from pathlib import Path
 from playwright.async_api import async_playwright
 
 
-ROOT = Path(__file__).resolve().parent
-BUNDLE = ROOT / "web" / "sandbox-dist" / "rta-sandbox-capture.js"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+RTAO = REPO_ROOT / "rtao"
+BUNDLE = RTAO / "sandbox-dist" / "rta-sandbox-capture.js"
 GAME = Path(os.environ.get("RTA_GAME_DIR", "/mnt/data/rta_game_extract"))
 CUE = GAME / "Road Trip Adventure (Europe) (En,Fr,De).cue"
 BIN = GAME / "Road Trip Adventure (Europe) (En,Fr,De).bin"
@@ -29,7 +30,7 @@ BROWSER = os.environ.get("RTA_CHROMIUM_EXECUTABLE", "/usr/bin/chromium")
 
 async def run(output: Path) -> None:
     if not BUNDLE.is_file():
-        raise SystemExit("Capture bundle is missing. Run `npm run build:capture` in web/ first.")
+        raise SystemExit("Capture bundle is missing. Run `npm run build:capture` in rtao/ first.")
     for path in (CUE, BIN):
         if not path.is_file():
             raise SystemExit(f"PAL source is missing: {path}")
