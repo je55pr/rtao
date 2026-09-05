@@ -1,16 +1,18 @@
 # External inputs deliberately not bundled
 
-This handoff ZIP is intended to be a clean source/research checkpoint. It deliberately does **not** duplicate large or copyrighted/reproducible inputs.
+RTAO is a clean-room source repository. Large, copyrighted, machine-local or reproducible inputs are deliberately kept outside Git.
 
-Useful files to supply separately when needed:
+Useful inputs that may be supplied locally when needed include:
 
-- `Road Trip Adventure (Europe) (En,Fr,De).7z` — user-owned PAL game image used for archaeology and deterministic real-disc captures.
-- `dotnet-sdk-10.0.400-linux-x64.tar.gz` — offline .NET SDK used in the restricted sandbox.
-- MonoGame/NVorbis `.nupkg` files if an offline NuGet restore is required.
-- the compatible `node_modules` archive or equivalent npm dependency tree for full Vitest/Vite/Chromium validation.
+- a user-owned European PAL Road Trip Adventure game image (`BIN/CUE`, ISO, archive or extracted files supported by the relevant tool);
+- the PAL `SLES_513.56` executable for opt-in native/oracle tests;
+- an offline .NET SDK/toolchain when working in a restricted runtime;
+- MonoGame/NVorbis `.nupkg` files when an offline C# reference restore is required;
+- npm dependencies / a compatible `node_modules` cache when network package restore is unavailable;
+- Chromium/Chrome plus Playwright for deterministic browser capture tooling.
 
-The small MonoGame archaeology/reference source ZIP **is** bundled at:
+The C# reference source itself is tracked directly under [`../../reference/csharp/`](../../reference/csharp/); no source ZIP is required for normal Git development.
 
-`reference/RoadTripAdventureMonoGame-interiors.zip`
+When preserving an offline NuGet cache in a checkout, the historical repo-root `local-packages/` location remains supported by `reference/csharp/NuGet.Config` and is ignored by Git.
 
-Do not add original game assets to the repository/source handoff.
+Never add original game assets, disc images, extracted proprietary data, credentials or secrets to the repository.
