@@ -7,8 +7,9 @@ This repository is a shared development surface for human contributors and codin
 - GitLab `main` is the canonical project state.
 - The active game is **`rtao/`** (Three.js / TypeScript).
 - **`reference/csharp/`** is the earlier C#/MonoGame implementation retained for archaeology and comparison. Do not treat it as the active product unless a task explicitly targets it.
-- `RTA_CURRENT_STATE.md` is the comprehensive current evidence boundary. `docs/STATUS.md` is the short entry point.
-- `RTA_STATE.json` remains available as machine-readable transitional state; do not casually delete or rewrite it until its useful information has been replaced by durable GitLab issues/tests/docs.
+- `RTA_CURRENT_STATE.md` is the concise human-readable current evidence boundary.
+- `RTA_STATE.json` is the concise machine-readable current state.
+- The final pre-GitLab state blobs are preserved verbatim under `docs/archive/state/` for historical lookup; do not use them as current instructions.
 
 ## Evidence rule
 
@@ -38,7 +39,7 @@ For cross-agent review:
 
 ## Before changing behavior
 
-1. Read `docs/STATUS.md` and the relevant portion of `RTA_CURRENT_STATE.md`.
+1. Read `docs/STATUS.md`, `RTA_CURRENT_STATE.md` and `RTA_STATE.json`.
 2. Read the relevant archaeology/evidence under `docs/archaeology/` and `docs/evidence/`.
 3. Inspect the current implementation/tests in `rtao/` rather than relying on chat memory.
 4. Identify the exact evidence boundary before adding behavior.

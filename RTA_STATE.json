@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "updated": "2026-09-05",
+  "project": "Road Trip Adventure Online",
+  "short_name": "RTAO",
+  "canonical_source": "GitLab main",
+  "active_implementation": "rtao",
+  "reference_implementation": "reference/csharp",
+  "authority": "European PAL executable/data supplied locally by the developer",
+  "current_focus": "Finish the native seven-probe contact producer and orientation/VU transforms before connecting playable Peach Raceway movement.",
+  "race": {
+    "activities": 39,
+    "ordinary_races": 24,
+    "unique_courses": 15,
+    "first_playable_race_complete": false,
+    "new_moving_capture_available": false,
+    "verified": {
+      "entrant_builder": "0x0020F9E8",
+      "navigation_selector": "0x00252328",
+      "ordinary_ai": "0x00252BA0",
+      "ground_support_solver": "0x0021BDD8",
+      "course_collision_query": "0x00207748",
+      "course_collision_wrapper": "0x00208C50",
+      "ai_seeded_cases": 4096,
+      "ground_support_instruction_cases": 8192,
+      "ground_support_history_updates": 600,
+      "course_collision_instruction_cases": 8192,
+      "course_collision_wrapper_boundary_cases": 363,
+      "course_collision_original_course_queries": 2040,
+      "course_collision_grid_positions": 360,
+      "course_collision_hits": 1882,
+      "course_collision_output_sha256": "61e221249833e771c1d7a2043fd1a6ef5bd4c5933100706fdb9b24598ab9cfd2"
+    },
+    "next": [
+      "Recover and implement the seven-probe contact producer around 0x0021C280.",
+      "Recover and verify orientation/VU helpers around 0x002086C0 and 0x00208738.",
+      "Validate deterministic moving trajectories against PAL.",
+      "Connect Peach Raceway movement only after the native contact/orientation paths close.",
+      "Connect Q's Factory race selection/launch only after the first playable race path is valid."
+    ],
+    "evidence": "docs/evidence/races/2026-09-05",
+    "documentation": [
+      "docs/PAL_NATIVE_RACE_COLLISION_2026-09-05.md",
+      "docs/PAL_NATIVE_GROUND_SUPPORT_2026-09-05.md",
+      "docs/PAL_NATIVE_RACE_CONTROLS_2026-09-05.md"
+    ]
+  },
+  "latest_recorded_validation": {
+    "test_files_passed": 48,
+    "tests_passed": 232,
+    "production_build": "passed",
+    "capture_build": "passed",
+    "exit_code": 0,
+    "recorded_evidence": "docs/evidence/races/2026-09-05/native-course-collision-check.log"
+  },
+  "closed_systems": [
+    "64-field persistent outdoor world and renderer milestone",
+    "fixed-interior generic runtime to current evidence boundary",
+    "Body Shop transactional purchase",
+    "Parts Shop purchase and Q's Factory native equipment fitting",
+    "native wheel geometry and wheel paint",
+    "Big Tyre native geometry and +0.85 lift",
+    "native tyre grip table and field surface selector",
+    "Engine and Steering native scalars",
+    "Brake native hold curves",
+    "Chassis inverse mass and Transmission proven endpoints",
+    "advertising-sign Cake loop",
+    "Cloud Hill Second-hand sale",
+    "Quick-Pic 1-100 with Stamp 96 completion"
+  ],
+  "deferred": [
+    "Intermediate native transmission shift timing.",
+    "Roulette ACTION/A19 physical scene and wheel simulation.",
+    "Parts trade teammate/save-slot producer state.",
+    "Any missing race contact/orientation behavior not yet supported by PAL evidence."
+  ],
+  "historical_state_archive": {
+    "human": "docs/archive/state/RTA_CURRENT_STATE_PRE_GITLAB_2026-09-05.md",
+    "machine": "docs/archive/state/RTA_STATE_PRE_GITLAB_2026-09-05.json"
+  }
+}
