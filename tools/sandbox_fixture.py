@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Low-memory deterministic outdoor capture fixture for the RTA web port.
+"""Low-memory deterministic outdoor capture fixture for RTAO.
 
 Usage (Chromium/WebGL normally needs Xvfb in the sandbox):
-  xvfb-run -a python3 sandbox_fixture.py refresh 223 113 220
-  xvfb-run -a python3 sandbox_fixture.py capture peach-night-ground /tmp/peach.png
+  xvfb-run -a python3 tools/sandbox_fixture.py refresh 223 113 220
+  xvfb-run -a python3 tools/sandbox_fixture.py capture peach-night-ground /tmp/peach.png
 
 `refresh` is the only mode that opens the user's PAL BIN/CUE. It exports SORA.GSL
 and one serialized RTAFLD mesh at a time into .dev-cache/capture-fixture.
@@ -21,10 +21,10 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright
 
-ROOT = Path(__file__).resolve().parent
-WEB = ROOT / "web"
-BUNDLE = WEB / "sandbox-dist" / "rta-sandbox-capture.js"
-FIXTURE = ROOT / ".dev-cache" / "capture-fixture"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+RTAO = REPO_ROOT / "rtao"
+BUNDLE = RTAO / "sandbox-dist" / "rta-sandbox-capture.js"
+FIXTURE = REPO_ROOT / ".dev-cache" / "capture-fixture"
 GAME = Path(os.environ.get("RTA_GAME_DIR", "/mnt/data/rta_game_extract"))
 CUE = GAME / "Road Trip Adventure (Europe) (En,Fr,De).cue"
 BIN = GAME / "Road Trip Adventure (Europe) (En,Fr,De).bin"
@@ -32,7 +32,7 @@ BIN = GAME / "Road Trip Adventure (Europe) (En,Fr,De).bin"
 
 def require_bundle() -> str:
     if not BUNDLE.is_file():
-        raise SystemExit(f"Missing {BUNDLE}. Run `npm run build:capture` once after source changes.")
+        raise SystemExit(f"Missing {BUNDLE}. Run `npm run build:capture` in rtao/ after source changes.")
     return BUNDLE.read_text()
 
 
@@ -46,7 +46,7 @@ def require_pal_files() -> list[str]:
 def fixture_files() -> list[str]:
     required = [FIXTURE / "fixture.json", FIXTURE / "SORA.GSL"]
     if any(not path.is_file() for path in required):
-        raise SystemExit("Development fixture is missing. Run `sandbox_fixture.py refresh ...` first.")
+        raise SystemExit("Development fixture is missing. Run `tools/sandbox_fixture.py refresh ...` first.")
     meshes = sorted(FIXTURE.glob("field-*.mesh"))
     if not meshes:
         raise SystemExit("Development fixture contains no field meshes.")

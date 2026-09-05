@@ -6,8 +6,9 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = path.dirname(fileURLToPath(import.meta.url));
-const output = path.resolve(process.argv[2] ?? "artifacts/race-grid");
+const toolsDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(toolsDir, "..");
+const output = path.resolve(process.argv[2] ?? path.join(repoRoot, "artifacts/race-grid"));
 const activities = process.argv.slice(3).length ? process.argv.slice(3).map(Number) : [0, 3];
 if (activities.some(id => !Number.isInteger(id) || id < 0 || id > 23)) throw new Error("Use ordinary race IDs 0..23.");
 const game = process.env.RTA_GAME_DIR;
@@ -22,7 +23,7 @@ catch {
 const { chromium } = require("playwright");
 const browser = await chromium.launch({ headless: true, executablePath,
   args: ["--no-sandbox", "--ignore-gpu-blocklist", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
-const bundle = await readFile(path.join(root, "web/sandbox-dist/rta-sandbox-capture.js"), "utf8");
+const bundle = await readFile(path.join(repoRoot, "rtao/sandbox-dist/rta-sandbox-capture.js"), "utf8");
 const results = [];
 try {
   await mkdir(output, { recursive: true });
