@@ -1,6 +1,8 @@
-# Road Trip Adventure clean-room reimplementation
+# Road Trip Adventure Online (RTAO) — clean-room reimplementation
 
 Clean-room reimplementation experiments for the European PS2 release of **Road Trip Adventure / ChoroQ HG 2**.
+
+This GitLab repository is the live development source for **Road Trip Adventure Online (RTAO)**.
 
 This repository intentionally contains **no original game assets**. Supply your own PAL BIN/CUE, cooked ISO, or extracted disc directory at runtime.
 
