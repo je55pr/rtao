@@ -38,9 +38,10 @@ describe.skipIf(!binPath)("FLD Extra[1] dynamic field objects", () => {
       expect(asset!.texture!.width).toBe(128);
       expect(asset!.texture!.height).toBe(128);
 
+      // Mushroom Road has exactly 22 turbine towers; lock the count so a
+      // heuristic change that starts matching unrelated masts fails here.
       const anchors = findTurbineAnchors(readFieldRenderPrimitives(bytes));
-      expect(anchors.length).toBeGreaterThanOrEqual(18);
-      expect(anchors.length).toBeLessThanOrEqual(26);
+      expect(anchors.length).toBe(22);
       for (const anchor of anchors) expect(anchor.y).toBeGreaterThan(100);
     } finally {
       close();
@@ -50,7 +51,11 @@ describe.skipIf(!binPath)("FLD Extra[1] dynamic field objects", () => {
   test("FLD/220 and FLD/221 carry the coastal palm-crown object", async () => {
     const { disc, close } = await openDisc();
     try {
-      for (const [fieldNumber, minCrowns] of [[220, 40], [221, 4]] as const) {
+      // Exact counts, matching the C# reference's disc-backed regression
+      // (FieldPalmTreeReader): 106 dominant trunk caps in FLD/220, 6 in FLD/221.
+      // Locking them keeps the broader TS cap heuristic from silently spreading
+      // crowns onto unrelated geometry.
+      for (const [fieldNumber, expectedCrowns] of [[220, 106], [221, 6]] as const) {
         const bytes = await disc.readFile(`FLD/${String(fieldNumber).padStart(3, "0")}.BIN`);
         const asset = readFieldObjectAsset(bytes);
         expect(asset?.kind, `FLD/${fieldNumber}`).toBe("palm-crown");
@@ -58,7 +63,7 @@ describe.skipIf(!binPath)("FLD Extra[1] dynamic field objects", () => {
         expect(asset!.texture).not.toBeNull();
 
         const anchors = findPalmCrownAnchors(readFieldRenderPrimitives(bytes));
-        expect(anchors.length, `FLD/${fieldNumber}`).toBeGreaterThanOrEqual(minCrowns);
+        expect(anchors.length, `FLD/${fieldNumber}`).toBe(expectedCrowns);
         for (const anchor of anchors) expect(anchor.y).toBeLessThan(30);
       }
     } finally {

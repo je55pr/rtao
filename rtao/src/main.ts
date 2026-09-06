@@ -239,11 +239,15 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).has("devdisc")) 
       (manifest?.compiledFields ?? []).filter((f) => f.cacheVersion === compiledFieldCacheVersion).map((f) => f.fieldNumber),
     );
     const expectedFields = devOnlyFields ?? [...manifest?.fields.map((f) => f.fieldNumber) ?? []];
+    // With `?onlyfield` any current install whose compiled cache already holds
+    // every requested field is reusable — a full 64-field install counts, not
+    // just a matching dev-partial one. Without it, require a complete full install.
     const installUsable = !!manifest
+      && expectedFields.length > 0
+      && expectedFields.every((n) => currentMeshes.has(n))
       && (devOnlyFields
-        ? (manifest.devPartialFields ?? []).length > 0 && devOnlyFields.every((n) => currentMeshes.has(n))
-        : manifest.devPartialFields === undefined && manifest.fields.length === 64 && currentMeshes.size === 64)
-      && expectedFields.every((n) => currentMeshes.has(n));
+        ? true
+        : manifest.devPartialFields === undefined && manifest.fields.length === 64 && currentMeshes.size === 64);
 
     if (installUsable && !force) {
       await importController.restore();
@@ -254,10 +258,15 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).has("devdisc")) 
       "Road Trip Adventure (Europe) (En,Fr,De).cue",
       "Road Trip Adventure (Europe) (En,Fr,De).bin",
     ];
-    // Fully drop any previous dev install first: `assertCacheHeadroom` runs
-    // before `importGame` would reclaim it, and the pane's storage quota is tiny.
-    if (manifest) await removeImportDirectory(manifest.importId).catch(() => undefined);
-    await clearCurrentPointer().catch(() => undefined);
+    // Only reclaim space from a disposable dev-partial install before importing:
+    // `assertCacheHeadroom` runs before `importGame` would reclaim it and the
+    // pane's storage quota is tiny. A healthy full install is left untouched so a
+    // failed disc fetch or import cannot destroy it — `importGame` then swaps it
+    // out transactionally (publish new, then remove old).
+    if (manifest && manifest.devPartialFields !== undefined) {
+      await removeImportDirectory(manifest.importId).catch(() => undefined);
+      await clearCurrentPointer().catch(() => undefined);
+    }
     const files = await Promise.all(names.map(async (name) => {
       const response = await fetch(`/__dev-disc?name=${encodeURIComponent(name)}`);
       if (!response.ok) throw new Error(`dev disc fetch failed for ${name}: ${response.status}`);

@@ -264,9 +264,21 @@ async function selectRuntimeFiles(
     }
   }
 
-  const fieldCount = [...selected.keys()].filter((path) => /^FLD\/\d{3}\.BIN$/i.test(path)).length;
-  if (!devFieldSet && fieldCount !== 64) {
-    throw new Error(`Expected 64 standard FLD sectors; found ${fieldCount}.`);
+  const selectedFieldNumbers = new Set<number>();
+  for (const path of selected.keys()) {
+    const match = /^FLD\/(\d{3})\.BIN$/i.exec(path);
+    if (match) selectedFieldNumbers.add(Number.parseInt(match[1]!, 10));
+  }
+  if (devFieldSet) {
+    // A partial import must still contain every field it was asked for, so a
+    // typo like `?onlyfield=999` fails here rather than publishing an empty
+    // manifest that only breaks once the viewer tries to build the world.
+    const missing = [...devFieldSet].filter((n) => !selectedFieldNumbers.has(n)).sort((a, b) => a - b);
+    if (missing.length > 0) {
+      throw new Error(`Requested dev FLD sector(s) not found on the disc: ${missing.join(", ")}.`);
+    }
+  } else if (selectedFieldNumbers.size !== 64) {
+    throw new Error(`Expected 64 standard FLD sectors; found ${selectedFieldNumbers.size}.`);
   }
   return [...selected.values()].sort((a, b) => a.path.localeCompare(b.path));
 }

@@ -832,10 +832,11 @@ export class WorldView {
       const deltaSeconds = this.lastFrameTimestamp > 0 ? Math.min(0.1, (now - this.lastFrameTimestamp) / 1000) : 0;
       this.animationSeconds += deltaSeconds;
       const t = this.animationSeconds;
-      const spinStep = approximateRotorSpinRadiansPerSecond * deltaSeconds;
       for (const entry of this.animatedDynamicObjects) {
         if (entry.motion === "rotor-spin") {
-          entry.object.rotation.z += spinStep;
+          // Constant angular velocity, derived from the frame clock plus the
+          // per-instance phase so the wind farm does not spin in lockstep.
+          entry.object.rotation.z = t * approximateRotorSpinRadiansPerSecond + entry.phaseSeed;
         } else {
           const phase = entry.phaseSeed + entry.groupIndex * crownSway.groupPhaseStep;
           entry.object.rotation.z = Math.sin(t * crownSway.swayHz + phase) * crownSway.swayAmplitude;
