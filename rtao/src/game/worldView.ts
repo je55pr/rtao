@@ -81,7 +81,7 @@ export class WorldView {
   private frameHandle = 0;
   private readonly animatedDynamicObjects: AnimatedDynamicObject[] = [];
   private lastFrameTimestamp = 0;
-  private firstFrameTimestamp = 0;
+  private animationSeconds = 0;
 
   constructor(private readonly host: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -771,7 +771,7 @@ export class WorldView {
     this.sectors.clear();
     this.animatedDynamicObjects.length = 0;
     this.lastFrameTimestamp = 0;
-    this.firstFrameTimestamp = 0;
+    this.animationSeconds = 0;
   }
 
   private readonly frame = (): void => {
@@ -781,18 +781,19 @@ export class WorldView {
     const now = performance.now();
     if (this.animatedDynamicObjects.length > 0) {
       // HOST APPROXIMATION: rotor spin and crown sway (see the constants above).
-      if (this.firstFrameTimestamp === 0) this.firstFrameTimestamp = now;
-      const spinStep = this.lastFrameTimestamp > 0
-        ? approximateRotorSpinRadiansPerSecond * Math.min(0.1, (now - this.lastFrameTimestamp) / 1000)
-        : 0;
-      const elapsed = (now - this.firstFrameTimestamp) / 1000;
+      // Drive both from a clock that only advances on rendered frames so a
+      // backgrounded pane does not jump the animation on return.
+      const deltaSeconds = this.lastFrameTimestamp > 0 ? Math.min(0.1, (now - this.lastFrameTimestamp) / 1000) : 0;
+      this.animationSeconds += deltaSeconds;
+      const t = this.animationSeconds;
+      const spinStep = approximateRotorSpinRadiansPerSecond * deltaSeconds;
       for (const entry of this.animatedDynamicObjects) {
         if (entry.motion === "rotor-spin") {
           entry.object.rotation.z += spinStep;
         } else {
           const phase = entry.phaseSeed + entry.groupIndex * crownSway.groupPhaseStep;
-          entry.object.rotation.z = Math.sin(elapsed * crownSway.swayHz + phase) * crownSway.swayAmplitude;
-          entry.object.rotation.x = Math.sin(elapsed * crownSway.crossHz + phase + 1.1) * crownSway.crossAmplitude;
+          entry.object.rotation.z = Math.sin(t * crownSway.swayHz + phase) * crownSway.swayAmplitude;
+          entry.object.rotation.x = Math.sin(t * crownSway.crossHz + phase + 1.1) * crownSway.crossAmplitude;
         }
       }
     }

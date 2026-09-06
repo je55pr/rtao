@@ -1,17 +1,36 @@
-# RTA field dynamic objects — Extra[1] container and the Mushroom Road wind turbines — 2026-09-06
+# RTA field dynamic objects — Extra[1] container, wind turbines and palm crowns — 2026-09-06
 
 ## Result
 
 `FLD/NNN.BIN` header sections at index ≥ 3 ("Extra") were previously parsed for
 bounds but never decoded. Extra[1], when present, is a standard `Hg2ObjectFile`
 container of one or more MSCALF-4 dynamic-object meshes. The Three.js runtime now
-decodes it and renders **FLD/213 (Mushroom Road)'s wind-turbine rotors** on the
-recovered tower tops, replacing the previous bare towers.
+decodes it and renders:
 
-Geometry, texture and the MSCALF-4 vertex format are evidence-backed. The rotor
-**spin rate, facing yaw and object scale are host approximations** — the original
-values are composed into a per-object matrix by EE object-update code that is not
-decoded (the same open gap as the coastal palm-crown sway).
+- **FLD/213 (Mushroom Road)** — 22 spinning wind-turbine rotors on the recovered
+  tower tops, replacing the previous bare towers;
+- **FLD/220 / FLD/221 (Peach–Fuji coast)** — ~106 / ~6 swaying coastal palm
+  crowns on the trunk tops, replacing the previous bare trunk poles.
+
+Geometry, texture and the MSCALF-4 vertex format are evidence-backed. The
+per-object animation, facing and scale are **host approximations** — the
+originals are composed into a per-object matrix by EE object-update code that is
+not decoded. The palm-crown sway is a direct port of the C# reference's
+`PalmCrownMesh`; the C# notes it is likewise unverified.
+
+## Extra[1] object survey (all 64 fields)
+
+| Fields | Object | Rendered |
+|---|---|---|
+| 213 | wind-turbine rotor (radius 42, ~36 tris, 128² tex) | yes — spin |
+| 220, 221 | palm crown: three 1/2/3-frond sections, radius ~4, 64×32 frond tex | yes — sway |
+| 011, 012, 111, 113, 202, 203, 210, 211 | small props (radius 1–6): a tall thin FLD/011 mesh, a ~348-tri FLD/113 object, White Mountain clutter, … | no — unidentified (`kind: "prop"`) |
+| 223 (Peach Town), 233 (Papaya) | ~1–5 unit detailed props, grey 128² tex, not crowns | no — `kind: "prop"` |
+| 023 ("My City") | 80 extra sections, not a simple container | no — needs own pass |
+
+`readFieldObjectAsset` classifies each container by structure: `turbine-rotor`
+(the lone large object), `palm-crown` (three sections, ≤ 24 tris total, radius
+< 10), or `prop`.
 
 ## Extra[1] container format
 
@@ -63,29 +82,41 @@ The loader that walks Extra[0]/Extra[1] and the per-object matrix composition
 (where rotor spin lives) were **not reached**. `tools/mips_probe.py` /
 `tools/disasm_elf_context.py` cover the integer/COP1 disassembly used here.
 
-## FLD/213 turbine placement
+## Placement (both structural, no field numbers baked in)
 
-Extra[0] is a ground-level 4-vec3 mesh near the bridge (a pad/decal), not a
-placement table; Extra[1] holds only the rotor model, not instances. The rotor
-mounts are therefore derived structurally from the **tower shafts** in the
-ordinary field mesh: 22 tall (~70), narrow (footprint ≈ 4), near-vertical
-primitives sharing one material family, tops at source Y ≈ 119–173. Each shaft's
-top centre (X reflected to render space) is a rotor mount. `findTurbineAnchors`
-picks the dominant tall-narrow family rather than a field number or GS address,
-and only runs where the Extra[1] object is rotor-sized, so bridge pylons and palm
-trunks do not attract rotors.
+Extra[0] is a ground-level 4-vec3 mesh (a pad/decal), not a placement table;
+Extra[1] holds only the object model, not instances. Mounts come from the
+ordinary field mesh:
 
-## Host approximations (explicit)
+- **Turbines** (`findTurbineAnchors`) — the dominant tall (> 40), narrow
+  (footprint ≤ 12 and ≤ 0.3 × height), near-vertical primitive family, top
+  Y ≥ 100. 22 shafts in FLD/213; top centre (X reflected) is a rotor mount. Only
+  runs when the Extra[1] object is rotor-sized, so bridge pylons and palm trunks
+  attract nothing.
+- **Palm crowns** (`findPalmCrownAnchors`, mirroring the C# `FindCrownAnchors`) —
+  the dominant small (0.1–1.2), near-horizontal (≤ 0.4 tall), a-few-metres-up
+  (Y 3–30) cap family, emitted while the shared frond material is current. Each
+  cap centroid is a crown mount.
 
-`src/game/worldView.ts`:
+## Host approximations (explicit — `src/game/worldView.ts`)
 
 - `approximateRotorSpinRadiansPerSecond = 1.15` — constant angular velocity.
 - `approximateRotorFacingYaw = 0` — all rotors face one world direction.
-- `approximateRotorScale = 0.42` — rotor sized to sit sensibly on the recovered
-  towers; the authored per-object scale is undecoded.
-- Shading: texture-only with alpha test, authored vertex colour is GS-neutral 128
-  and no MSCALF-4 diffuse is applied (matching the C# palm-crown path, which also
+- `approximateRotorScale = 0.42` — rotor sized to sit on the recovered towers;
+  the authored per-object scale is undecoded.
+- `crownSway` — `sin`-driven Z (±0.045 rad) + X (±0.022 rad) sway per frond
+  group, phase-offset by 0.42 rad per group and by instance position. Ported
+  verbatim from the C# `PalmCrownMesh`; the C# marks these constants unverified.
+- Shading: texture-only with alpha test; authored vertex colour is GS-neutral 128
+  and no MSCALF-4 diffuse is applied (matching the C# palm-crown path, which
   draws crowns unlit). Any daylight response is part of the undecoded matrix.
+
+## Dev harness note
+
+`?devdisc` + `?onlyfield=N` now imports **only those FLD sectors** (plus the
+always-required files, no race courses), which fits a ~260 MB browser-storage
+quota and loads in seconds. Such installs are marked `devPartialFields` in the
+manifest and are never treated as the full world.
 
 ## Next
 

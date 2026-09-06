@@ -220,20 +220,30 @@ fileInput.addEventListener("change", () => {
 });
 
 // DEV-ONLY: `?devdisc` brings up the world without a manual file picker, for
-// headless/browser-driven visual checks. It reuses an existing complete install
+// headless/browser-driven visual checks. It reuses an existing usable install
 // (fast restore from the OPFS mesh cache) and only re-imports the disc from the
-// rta-dev-disc vite middleware when there is no usable install, or when
-// `?devdisc=force` is given. Stripped from production builds.
+// rta-dev-disc vite middleware when there is none, or when `?devdisc=force` is
+// given. With `?onlyfield=N` it imports just those sectors (+ the always-required
+// files), which fits a small browser-storage quota. Stripped from production.
 if (import.meta.env.DEV && new URLSearchParams(location.search).has("devdisc")) {
   void (async () => {
-    const force = new URLSearchParams(location.search).get("devdisc") === "force";
+    const parameters = new URLSearchParams(location.search);
+    const force = parameters.get("devdisc") === "force";
+    const requestedFields = (parameters.get("onlyfield") ?? "")
+      .split(",").map((part) => Number.parseInt(part.trim(), 10)).filter((value) => Number.isInteger(value));
+    const devOnlyFields = requestedFields.length ? [...new Set(requestedFields)].sort((a, b) => a - b) : undefined;
+
     const { compiledFieldCacheVersion } = await import("./formats/fieldGeometry");
     const manifest = await readCurrentManifest().catch(() => undefined);
-    const currentMeshes = manifest?.compiledFields.filter((f) => f.cacheVersion === compiledFieldCacheVersion).length ?? 0;
+    const currentMeshes = new Set(
+      (manifest?.compiledFields ?? []).filter((f) => f.cacheVersion === compiledFieldCacheVersion).map((f) => f.fieldNumber),
+    );
+    const expectedFields = devOnlyFields ?? [...manifest?.fields.map((f) => f.fieldNumber) ?? []];
     const installUsable = !!manifest
-      && manifest.fields.length === 64
-      && currentMeshes === 64
-      && (manifest.collisionFields?.length ?? 0) === 64;
+      && (devOnlyFields
+        ? (manifest.devPartialFields ?? []).length > 0 && devOnlyFields.every((n) => currentMeshes.has(n))
+        : manifest.devPartialFields === undefined && manifest.fields.length === 64 && currentMeshes.size === 64)
+      && expectedFields.every((n) => currentMeshes.has(n));
 
     if (installUsable && !force) {
       await importController.restore();
@@ -244,15 +254,16 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).has("devdisc")) 
       "Road Trip Adventure (Europe) (En,Fr,De).cue",
       "Road Trip Adventure (Europe) (En,Fr,De).bin",
     ];
-    // Drop any half-written install from a previous interrupted dev import so
-    // the fresh import cannot race a broken restore.
+    // Fully drop any previous dev install first: `assertCacheHeadroom` runs
+    // before `importGame` would reclaim it, and the pane's storage quota is tiny.
+    if (manifest) await removeImportDirectory(manifest.importId).catch(() => undefined);
     await clearCurrentPointer().catch(() => undefined);
     const files = await Promise.all(names.map(async (name) => {
       const response = await fetch(`/__dev-disc?name=${encodeURIComponent(name)}`);
       if (!response.ok) throw new Error(`dev disc fetch failed for ${name}: ${response.status}`);
       return new File([await response.blob()], name);
     }));
-    await importController.start(files);
+    await importController.start(files, devOnlyFields);
   })().catch((error) => showError("The dev disc could not be auto-imported.", error));
 }
 
@@ -2350,7 +2361,7 @@ async function ensureWholeWorldCache(
   const existing = new Map(manifest.compiledFields.filter((field) => field.cacheVersion === compiledFieldCacheVersion).map((field) => [field.fieldNumber, field]));
   const collisions = new Map((manifest.collisionFields ?? []).map((field) => [field.fieldNumber, field]));
   const fields = [...manifest.fields].sort((a, b) => a.fieldNumber - b.fieldNumber);
-  if (fields.length !== 64) throw new Error(`Expected 64 cached FLDs; found ${fields.length}.`);
+  if (!manifest.devPartialFields && fields.length !== 64) throw new Error(`Expected 64 cached FLDs; found ${fields.length}.`);
   if (fields.every((field) => existing.has(field.fieldNumber) && collisions.has(field.fieldNumber))) return manifest;
 
   const directory = await currentImportDirectory(manifest);

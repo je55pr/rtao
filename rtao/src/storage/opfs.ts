@@ -72,6 +72,12 @@ export interface ImportManifest {
   readonly raceCourses?: RaceCourseSummaryRecord[];
   readonly compiledRaceCourses?: CompiledRaceCourseRecord[];
   readonly raceCourseCollisions?: CompiledRaceCourseCollisionRecord[];
+  /**
+   * DEV-ONLY: set when `?devdisc` imported a subset of fields to fit a small
+   * browser-storage quota. Such an install lists only those fields and must not
+   * be treated as the full world.
+   */
+  readonly devPartialFields?: readonly number[];
 }
 
 export async function getAppRoot(create = true): Promise<FileSystemDirectoryHandle> {
