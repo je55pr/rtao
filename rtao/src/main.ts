@@ -199,6 +199,12 @@ const importController = new ImportController({
   showInstalled,
   showError,
 });
+
+// DEV-ONLY: expose the world renderer for browser-driven inspection. Stripped
+// from production builds.
+if (import.meta.env.DEV) {
+  (window as unknown as { __rtaWorldView?: () => unknown }).__rtaWorldView = () => worldView;
+}
 const deterministicCaptureController = new DeterministicCaptureController(app, {
   ensureWorldRendererAvailable: () => {
     if (!worldView) throw new Error("The world renderer is unavailable for deterministic capture.");
@@ -456,6 +462,34 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   }
   stats = worldView.finishWorld();
   console.info(`Renderer-equivalent static triangles suppressed: ${suppressedStaticTriangles}${suppressedByField.length ? ` (${suppressedByField.join(", ")})` : ""}.`);
+
+  // Evidence-backed dynamic field props (FLD/213 wind-turbine rotors) live in the
+  // Extra[1] object container rather than the compiled MSCALF-8 mesh. Decode them
+  // from the cached raw FLD bytes for the fields that carry an Extra[1] section.
+  const dynamicObjectFields = upgradedManifest.fields.filter(
+    (field) => field.sectionCount >= 5 && (!onlyFieldSet || onlyFieldSet.has(field.fieldNumber)),
+  );
+  if (dynamicObjectFields.length > 0) {
+    const [{ readFieldObjectAsset, findTurbineAnchors }, { readFieldRenderPrimitives }] = await Promise.all([
+      import("./formats/fieldObjects"),
+      import("./formats/fieldGeometry"),
+    ]);
+    let dynamicInstances = 0;
+    for (const field of dynamicObjectFields) {
+      const raw = await readBytes(directory, `game/${field.path}`);
+      const asset = readFieldObjectAsset(raw);
+      // Only FLD/213's wind-turbine rotor is a large dynamic object; the coastal
+      // palm crowns and other Extra[1] props are an order of magnitude smaller
+      // and have no matching tower anchors.
+      if (!asset || asset.radius < 20) continue;
+      const anchors = findTurbineAnchors(readFieldRenderPrimitives(raw));
+      if (anchors.length === 0) continue;
+      worldView.addFieldDynamicObjects(field.fieldNumber, asset, anchors);
+      dynamicInstances += anchors.length;
+      await nextFrame();
+    }
+    if (dynamicInstances > 0) console.info(`Dynamic field objects: ${dynamicInstances} instances rendered (geometry/texture evidence-backed; spin & facing host-approximated).`);
+  }
   const collisionWorld = [...(upgradedManifest.collisionFields ?? [])]
     .filter((field) => !onlyFieldSet || onlyFieldSet.has(field.fieldNumber))
     .sort((a, b) => a.fieldNumber - b.fieldNumber);

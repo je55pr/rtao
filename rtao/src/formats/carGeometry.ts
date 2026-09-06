@@ -174,7 +174,7 @@ export function decodeQ62Assets(carBytes: Uint8Array, tireBytes: Uint8Array): Q6
   };
 }
 
-function decodeIndexedTexture(uploads: FieldTextureUpload[], bits: 4 | 8, paletteIndex = 0): DecodedTexture {
+export function decodeIndexedTexture(uploads: FieldTextureUpload[], bits: 4 | 8, paletteIndex = 0): DecodedTexture {
   const imageFormat = bits === 8 ? GsPixelStorageFormat.PsmT8 : GsPixelStorageFormat.PsmT4;
   const paletteFormat = bits === 8 ? GsPixelStorageFormat.PsmCt32 : GsPixelStorageFormat.PsmCt16;
   const image = uploads.find((upload) => upload.destinationPixelStorageFormat === imageFormat);

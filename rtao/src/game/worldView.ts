@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { deserializeCompiledField, type CompiledFieldBatch, type CompiledFieldMesh } from "../formats/fieldGeometry";
+import type { FieldObjectAsset } from "../formats/fieldObjects";
 import type { SkyTextureSet } from "../formats/skyTexture";
 import type { CaptureSize, CarVisualCaptureScene, FieldOverviewCaptureScene, WorldOverviewCaptureScene } from "./captureScenes";
 import { renderPng } from "./renderCapture";
@@ -19,7 +20,35 @@ interface SectorRenderResources {
   readonly materials: THREE.Material[];
   readonly triangles: number;
   readonly primitives: number;
+  dynamic?: SectorDynamicResources;
 }
+
+interface SectorDynamicResources {
+  readonly geometries: THREE.BufferGeometry[];
+  readonly material: THREE.Material;
+  readonly texture: THREE.Texture | undefined;
+  /** Inner meshes rotated about local Z each frame (host-approximated spin). */
+  readonly spinners: THREE.Object3D[];
+}
+
+/**
+ * HOST APPROXIMATION. FLD/213's wind-turbine rotors render from evidence-backed
+ * Extra[1] geometry/texture, but the original per-frame spin is composed by EE
+ * object-update code that is not yet decoded (the same gap as the palm-crown
+ * sway). This constant angular velocity is a placeholder tuned to read like the
+ * original footage, not recovered from `SLES_513.56`.
+ * See docs/archaeology/FIELD_DYNAMIC_OBJECTS_2026-09-06.md.
+ */
+const approximateRotorSpinRadiansPerSecond = 1.15;
+
+/**
+ * HOST APPROXIMATION. The rotor disc lies in its local XY plane; the authored
+ * facing yaw and any per-object scale are part of the undecoded per-object
+ * matrix. FLD/213's turbines are spread across the hills, so face them one
+ * consistent way and scale to sit sensibly on the recovered tower tops.
+ */
+const approximateRotorFacingYaw = 0;
+const approximateRotorScale = 0.42;
 
 interface WorldActorRenderState {
   readonly object: THREE.Object3D;
@@ -47,6 +76,8 @@ export class WorldView {
   private chaseReady = false;
   private originFieldNumber = 223;
   private frameHandle = 0;
+  private readonly rotorSpinners: THREE.Object3D[] = [];
+  private lastFrameTimestamp = 0;
 
   constructor(private readonly host: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -179,6 +210,55 @@ export class WorldView {
     if (this.sectors.size === 0) throw new Error("The compiled world contains no sectors.");
     this.showWorldOverview();
     return this.stats();
+  }
+
+  /**
+   * Attaches a field's Extra[1] dynamic-object instances (currently the FLD/213
+   * wind-turbine rotors). Geometry, texture and MSCALF-4 shading are
+   * evidence-backed; the spin and facing are host approximations (see the
+   * constants above).
+   */
+  addFieldDynamicObjects(fieldNumber: number, asset: FieldObjectAsset, anchors: readonly { x: number; y: number; z: number }[]): void {
+    const sector = this.sectors.get(fieldNumber);
+    if (!sector || sector.dynamic || asset.meshes.length === 0 || anchors.length === 0) return;
+
+    const geometries = asset.meshes.map((mesh) => {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(mesh.positions, 3));
+      geometry.setAttribute("normal", new THREE.BufferAttribute(mesh.normals, 3));
+      geometry.setAttribute("uv", new THREE.BufferAttribute(mesh.uvs, 2));
+      geometry.computeBoundingSphere();
+      return geometry;
+    });
+
+    let texture: THREE.Texture | undefined;
+    if (asset.texture) {
+      texture = new THREE.DataTexture(asset.texture.rgba, asset.texture.width, asset.texture.height, THREE.RGBAFormat, THREE.UnsignedByteType);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.magFilter = THREE.LinearFilter;
+      texture.minFilter = THREE.LinearFilter;
+      texture.generateMipmaps = false;
+      texture.needsUpdate = true;
+    }
+
+    const material = createDynamicObjectMaterial(texture);
+    const spinners: THREE.Object3D[] = [];
+    for (const anchor of anchors) {
+      const mount = new THREE.Group();
+      mount.position.set(anchor.x, anchor.y, anchor.z);
+      mount.rotation.y = approximateRotorFacingYaw;
+      mount.scale.setScalar(approximateRotorScale);
+      const rotor = new THREE.Group();
+      for (const geometry of geometries) rotor.add(new THREE.Mesh(geometry, material));
+      mount.add(rotor);
+      sector.group.add(mount);
+      spinners.push(rotor);
+      this.rotorSpinners.push(rotor);
+    }
+
+    sector.dynamic = { geometries, material, texture, spinners };
   }
 
   setSky(textures: SkyTextureSet): void {
@@ -659,15 +739,29 @@ export class WorldView {
       });
       for (const material of sector.materials) material.dispose();
       for (const texture of sector.textures) texture.dispose();
+      if (sector.dynamic) {
+        for (const geometry of sector.dynamic.geometries) geometry.dispose();
+        sector.dynamic.material.dispose();
+        sector.dynamic.texture?.dispose();
+      }
       this.worldGroup.remove(sector.group);
     }
     this.sectors.clear();
+    this.rotorSpinners.length = 0;
   }
 
   private readonly frame = (): void => {
     if (this.controls.enabled) this.controls.update();
     this.sky?.position.copy(this.camera.position);
     this.nightSky?.position.copy(this.camera.position);
+    const now = performance.now();
+    if (this.rotorSpinners.length > 0 && this.lastFrameTimestamp > 0) {
+      // HOST APPROXIMATION: constant rotor spin (see the constant's doc comment).
+      const deltaSeconds = Math.min(0.1, (now - this.lastFrameTimestamp) / 1000);
+      const step = approximateRotorSpinRadiansPerSecond * deltaSeconds;
+      for (const rotor of this.rotorSpinners) rotor.rotation.z += step;
+    }
+    this.lastFrameTimestamp = now;
     this.renderer.render(this.scene, this.camera);
     this.frameHandle = requestAnimationFrame(this.frame);
   };
@@ -686,6 +780,23 @@ function disposeSkyMaterial(material: THREE.Material | THREE.Material[]): void {
     if (item instanceof THREE.MeshBasicMaterial) item.map?.dispose();
     item.dispose();
   }
+}
+
+/**
+ * Field dynamic objects run VU program 4 but, like the palm crowns in the C#
+ * reference, without the car render path's lighting setup — the authored vertex
+ * colour is the GS-neutral 128 and the retained mesh is drawn texture-only with
+ * alpha test. Any daylight response is part of the undecoded object matrix.
+ */
+function createDynamicObjectMaterial(texture: THREE.Texture | undefined): THREE.Material {
+  return new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    map: texture ?? null,
+    transparent: texture !== undefined,
+    alphaTest: texture !== undefined ? 0.25 : 0,
+    side: THREE.DoubleSide,
+    fog: false,
+  });
 }
 
 type FieldRenderPath = "approximate" | "authentic-depth" | "authentic-rgb";
