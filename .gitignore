@@ -15,6 +15,10 @@ rtao/coverage/
 rtao/test-output/
 .dev-cache/
 
+# Build output / incremental TS build info.
+web/
+*.tsbuildinfo
+
 # Never commit original game data.
 *.iso
 *.cue
