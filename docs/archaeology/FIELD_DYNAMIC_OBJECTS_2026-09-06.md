@@ -42,6 +42,34 @@ source); they would need per-object anchor heuristics like the crown and rotor.
 `?showprops` (dev-only) drops a scaled static copy of every Extra[1] object at a
 debug anchor for eyeballing.
 
+### Why the giant peach / papaya are not placed (checked 2026-09-06)
+
+The `prop` landmarks stay unrendered. Placement was investigated and found not to
+be evidence-backed:
+
+- **FLD/223 Extra[1]** = exactly one object, three MSCALF-4 sections (body 160
+  tris + stem 200 + leaf 136), object-local, radius ≈ 2.0, 128² texture.
+  **FLD/233 Extra[1]** = one object, three sections (flat base 216 tris + two
+  lobes ≈ 5 tall), radius ≈ 5.0, 128² texture. Both are small origin-centred
+  models — world position, scale and facing are entirely in the per-object
+  matrix.
+- **Extra[0] is the minimap only** — a single VU-program-10 DMA chain at +0x50
+  (`readFieldMinimapPrimitives` already consumes it: road ribbons + tan building
+  quads + black POI squares + cyan water, all at y = 0). It is not a 3D
+  placement / instance table.
+- **No structural anchor in the field mesh.** The turbine and crown got a
+  *dominant family* of attachment primitives (22 tower shafts, N trunk caps); a
+  single landmark has none, and a scan for an isolated raised pedestal near the
+  town centre of either field turned up nothing distinctive.
+- The C# reference does not place these either — `FieldPalmTreeReader` rejects
+  both containers (section prim counts ≠ 1/2/3).
+
+Recovering real placement means tracing the field object-list loader that
+populates the runtime struct fn `0x00224510` reads (floats at +0x04/+0x14/+0x24/
++0x34 → matrix-build `0x002279a0`). `0x00224510` has no `jal` callers — it is
+dispatched through an actor vtable, several layers above the FLD Extra[1] read.
+Same wall as the rotor spin; deferred.
+
 ## Extra[1] container format
 
 Section table: a leading `u32` list of relative section offsets; the first entry
