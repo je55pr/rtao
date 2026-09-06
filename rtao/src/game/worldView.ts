@@ -27,28 +27,31 @@ interface SectorDynamicResources {
   readonly geometries: THREE.BufferGeometry[];
   readonly material: THREE.Material;
   readonly texture: THREE.Texture | undefined;
-  /** Inner meshes rotated about local Z each frame (host-approximated spin). */
-  readonly spinners: THREE.Object3D[];
+  /** Objects animated each frame (host approximations — see the constants). */
+  readonly animated: AnimatedDynamicObject[];
+}
+
+interface AnimatedDynamicObject {
+  readonly object: THREE.Object3D;
+  readonly motion: "rotor-spin" | "crown-sway";
+  /** Deterministic per-instance offset so identical objects animate out of step. */
+  readonly phaseSeed: number;
+  readonly groupIndex: number;
 }
 
 /**
- * HOST APPROXIMATION. FLD/213's wind-turbine rotors render from evidence-backed
- * Extra[1] geometry/texture, but the original per-frame spin is composed by EE
- * object-update code that is not yet decoded (the same gap as the palm-crown
- * sway). This constant angular velocity is a placeholder tuned to read like the
- * original footage, not recovered from `SLES_513.56`.
+ * HOST APPROXIMATIONS for FLD dynamic-object animation. The Extra[1] geometry and
+ * textures are evidence-backed, but the per-frame object matrix (spin, sway,
+ * facing, scale) is composed by EE object-update code that is not yet decoded —
+ * the same gap the C# reference notes for the palm-crown sway. These constants
+ * are tuned to read like the original, not recovered from `SLES_513.56`.
  * See docs/archaeology/FIELD_DYNAMIC_OBJECTS_2026-09-06.md.
  */
 const approximateRotorSpinRadiansPerSecond = 1.15;
-
-/**
- * HOST APPROXIMATION. The rotor disc lies in its local XY plane; the authored
- * facing yaw and any per-object scale are part of the undecoded per-object
- * matrix. FLD/213's turbines are spread across the hills, so face them one
- * consistent way and scale to sit sensibly on the recovered tower tops.
- */
 const approximateRotorFacingYaw = 0;
 const approximateRotorScale = 0.42;
+/** Palm-crown sway, ported from the C# reference's PalmCrownMesh. */
+const crownSway = { swayHz: 1.45, swayAmplitude: 0.045, crossHz: 1.07, crossAmplitude: 0.022, groupPhaseStep: 0.42 };
 
 interface WorldActorRenderState {
   readonly object: THREE.Object3D;
@@ -76,8 +79,9 @@ export class WorldView {
   private chaseReady = false;
   private originFieldNumber = 223;
   private frameHandle = 0;
-  private readonly rotorSpinners: THREE.Object3D[] = [];
+  private readonly animatedDynamicObjects: AnimatedDynamicObject[] = [];
   private lastFrameTimestamp = 0;
+  private firstFrameTimestamp = 0;
 
   constructor(private readonly host: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -213,14 +217,15 @@ export class WorldView {
   }
 
   /**
-   * Attaches a field's Extra[1] dynamic-object instances (currently the FLD/213
-   * wind-turbine rotors). Geometry, texture and MSCALF-4 shading are
-   * evidence-backed; the spin and facing are host approximations (see the
-   * constants above).
+   * Attaches a field's Extra[1] dynamic-object instances — FLD/213's spinning
+   * wind-turbine rotors, or FLD/220/221's swaying coastal palm crowns. Geometry,
+   * texture and the MSCALF-4 format are evidence-backed; the animation, facing and
+   * scale are host approximations (see the constants above).
    */
   addFieldDynamicObjects(fieldNumber: number, asset: FieldObjectAsset, anchors: readonly { x: number; y: number; z: number }[]): void {
     const sector = this.sectors.get(fieldNumber);
     if (!sector || sector.dynamic || asset.meshes.length === 0 || anchors.length === 0) return;
+    if (asset.kind !== "turbine-rotor" && asset.kind !== "palm-crown") return;
 
     const geometries = asset.meshes.map((mesh) => {
       const geometry = new THREE.BufferGeometry();
@@ -244,21 +249,38 @@ export class WorldView {
     }
 
     const material = createDynamicObjectMaterial(texture);
-    const spinners: THREE.Object3D[] = [];
-    for (const anchor of anchors) {
+    const animated: AnimatedDynamicObject[] = [];
+
+    anchors.forEach((anchor, instanceIndex) => {
       const mount = new THREE.Group();
       mount.position.set(anchor.x, anchor.y, anchor.z);
-      mount.rotation.y = approximateRotorFacingYaw;
-      mount.scale.setScalar(approximateRotorScale);
-      const rotor = new THREE.Group();
-      for (const geometry of geometries) rotor.add(new THREE.Mesh(geometry, material));
-      mount.add(rotor);
-      sector.group.add(mount);
-      spinners.push(rotor);
-      this.rotorSpinners.push(rotor);
-    }
+      // Deterministic per-instance phase from the C# palm-crown formula, reused
+      // for the rotors so a wind farm does not spin in perfect lockstep.
+      const phaseSeed = instanceIndex * 0.73 + anchor.x * 0.011 + anchor.z * 0.007;
 
-    sector.dynamic = { geometries, material, texture, spinners };
+      if (asset.kind === "turbine-rotor") {
+        mount.rotation.y = approximateRotorFacingYaw;
+        mount.scale.setScalar(approximateRotorScale);
+        const rotor = new THREE.Group();
+        for (const geometry of geometries) rotor.add(new THREE.Mesh(geometry, material));
+        mount.add(rotor);
+        animated.push({ object: rotor, motion: "rotor-spin", phaseSeed, groupIndex: 0 });
+      } else {
+        // Each authored frond group sways as a unit, trailing the previous group
+        // by a small phase.
+        geometries.forEach((geometry, groupIndex) => {
+          const frondGroup = new THREE.Group();
+          frondGroup.add(new THREE.Mesh(geometry, material));
+          mount.add(frondGroup);
+          animated.push({ object: frondGroup, motion: "crown-sway", phaseSeed, groupIndex });
+        });
+      }
+
+      sector.group.add(mount);
+    });
+
+    this.animatedDynamicObjects.push(...animated);
+    sector.dynamic = { geometries, material, texture, animated };
   }
 
   setSky(textures: SkyTextureSet): void {
@@ -747,7 +769,9 @@ export class WorldView {
       this.worldGroup.remove(sector.group);
     }
     this.sectors.clear();
-    this.rotorSpinners.length = 0;
+    this.animatedDynamicObjects.length = 0;
+    this.lastFrameTimestamp = 0;
+    this.firstFrameTimestamp = 0;
   }
 
   private readonly frame = (): void => {
@@ -755,11 +779,22 @@ export class WorldView {
     this.sky?.position.copy(this.camera.position);
     this.nightSky?.position.copy(this.camera.position);
     const now = performance.now();
-    if (this.rotorSpinners.length > 0 && this.lastFrameTimestamp > 0) {
-      // HOST APPROXIMATION: constant rotor spin (see the constant's doc comment).
-      const deltaSeconds = Math.min(0.1, (now - this.lastFrameTimestamp) / 1000);
-      const step = approximateRotorSpinRadiansPerSecond * deltaSeconds;
-      for (const rotor of this.rotorSpinners) rotor.rotation.z += step;
+    if (this.animatedDynamicObjects.length > 0) {
+      // HOST APPROXIMATION: rotor spin and crown sway (see the constants above).
+      if (this.firstFrameTimestamp === 0) this.firstFrameTimestamp = now;
+      const spinStep = this.lastFrameTimestamp > 0
+        ? approximateRotorSpinRadiansPerSecond * Math.min(0.1, (now - this.lastFrameTimestamp) / 1000)
+        : 0;
+      const elapsed = (now - this.firstFrameTimestamp) / 1000;
+      for (const entry of this.animatedDynamicObjects) {
+        if (entry.motion === "rotor-spin") {
+          entry.object.rotation.z += spinStep;
+        } else {
+          const phase = entry.phaseSeed + entry.groupIndex * crownSway.groupPhaseStep;
+          entry.object.rotation.z = Math.sin(elapsed * crownSway.swayHz + phase) * crownSway.swayAmplitude;
+          entry.object.rotation.x = Math.sin(elapsed * crownSway.crossHz + phase + 1.1) * crownSway.crossAmplitude;
+        }
+      }
     }
     this.lastFrameTimestamp = now;
     this.renderer.render(this.scene, this.camera);

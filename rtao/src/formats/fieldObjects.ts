@@ -24,10 +24,18 @@ export interface FieldObjectMesh {
   readonly uvs: Float32Array;
 }
 
+export type FieldObjectKind = "turbine-rotor" | "palm-crown" | "prop";
+
 export interface FieldObjectAsset {
+  /**
+   * Structural classification. `turbine-rotor` is the single large FLD/213
+   * object; `palm-crown` is the coastal 1+2+3-frond object in FLD/220/221; every
+   * other Extra[1] container is `prop` (not yet identified / rendered).
+   */
+  readonly kind: FieldObjectKind;
   readonly meshes: FieldObjectMesh[];
   readonly texture: DecodedTexture | null;
-  /** Local-space radius of the largest mesh, for culling and spin extent. */
+  /** Local-space radius of the largest mesh, for culling and animation extent. */
   readonly radius: number;
 }
 
@@ -85,7 +93,15 @@ export function readFieldObjectAsset(bytes: Uint8Array): FieldObjectAsset | null
   }
 
   if (meshes.length === 0) return null;
-  return { meshes, texture, radius: Math.sqrt(radiusSquared) };
+  const radius = Math.sqrt(radiusSquared);
+  const triangleCount = meshes.reduce((sum, mesh) => sum + mesh.positions.length / 9, 0);
+  // The coastal palm crown is the proven 1+2+3-frond object: three low-poly
+  // sections, tiny. The rotor is the lone large object. Anything else is an
+  // unidentified prop.
+  const kind: FieldObjectKind = radius > 20
+    ? "turbine-rotor"
+    : (meshes.length === 3 && triangleCount <= 24 && radius < 10 ? "palm-crown" : "prop");
+  return { kind, meshes, texture, radius };
 }
 
 function buildTriangleSoup(primitives: CarPrimitive[]): { mesh: FieldObjectMesh; radiusSquared: number } {
@@ -171,6 +187,45 @@ export function findTurbineAnchors(primitives: readonly FieldRenderPrimitive[]):
   const dominant = [...families.values()].sort((a, b) => b.length - a.length)[0];
   if (!dominant || dominant.length < 4) return [];
   return dominant.map((entry) => entry.top);
+}
+
+/**
+ * Structural detection of coastal palm-tree crown mounts, mirroring the C#
+ * reference (`FieldPalmTreeReader.FindCrownAnchors`): each palm trunk ends in a
+ * small, near-horizontal cap primitive a few metres above the terrain, emitted
+ * while the shared frond material is current. Take the dominant such family and
+ * return each cap centroid (render space) as a crown mount.
+ */
+export function findPalmCrownAnchors(primitives: readonly FieldRenderPrimitive[]): AnchorPoint[] {
+  const families = new Map<string, AnchorPoint[]>();
+  for (const primitive of primitives) {
+    if (primitive.vertices.length < 3 || primitive.placementOffset !== undefined) continue;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    let sumX = 0, sumY = 0, sumZ = 0;
+    for (const vertex of primitive.vertices) {
+      minX = Math.min(minX, vertex.position.x); maxX = Math.max(maxX, vertex.position.x);
+      minY = Math.min(minY, vertex.position.y); maxY = Math.max(maxY, vertex.position.y);
+      minZ = Math.min(minZ, vertex.position.z); maxZ = Math.max(maxZ, vertex.position.z);
+      sumX += vertex.position.x; sumY += vertex.position.y; sumZ += vertex.position.z;
+    }
+    const width = maxX - minX;
+    const depth = maxZ - minZ;
+    // Near-horizontal (some caps carry a shallow ~5 cm bevel), small, a few
+    // metres up. Slightly wider than the C# 0.5 ceiling to admit bevel variants.
+    if (maxY - minY > 0.4 || minY < 3 || maxY > 30 || width < 0.1 || width > 1.2 || depth < 0.1 || depth > 1.2) continue;
+    const key = materialKey(primitive);
+    let family = families.get(key);
+    if (!family) {
+      family = [];
+      families.set(key, family);
+    }
+    const count = primitive.vertices.length;
+    family.push({ x: 1600 - sumX / count, y: sumY / count, z: sumZ / count });
+  }
+
+  const dominant = [...families.values()].sort((a, b) => b.length - a.length)[0];
+  if (!dominant || dominant.length < 4) return [];
+  return dominant;
 }
 
 function materialKey(primitive: FieldRenderPrimitive): string {

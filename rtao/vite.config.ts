@@ -29,6 +29,8 @@ function devDiscPlugin() {
           const size = statSync(path).size;
           response.setHeader("content-type", "application/octet-stream");
           response.setHeader("content-length", String(size));
+          // The PAL BIN is ~590 MB; never let the browser disk-cache it.
+          response.setHeader("cache-control", "no-store");
           createReadStream(path).pipe(response);
         } catch (error) {
           response.statusCode = 404;

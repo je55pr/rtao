@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findTurbineAnchors } from "./fieldObjects";
+import { findPalmCrownAnchors, findTurbineAnchors } from "./fieldObjects";
 import type { FieldRenderPrimitive } from "./fieldGeometry";
 
 interface FakeSpec {
@@ -67,5 +67,34 @@ describe("findTurbineAnchors", () => {
     const billboards = Array.from({ length: 6 }, (_, i) =>
       primitive({ center: [400 + i * 40, 700], base: 90, top: 160, footprint: 4, tex: 13787, billboard: true }));
     expect(findTurbineAnchors(billboards)).toHaveLength(0);
+  });
+});
+
+describe("findPalmCrownAnchors", () => {
+  it("returns the dominant small near-horizontal cap family, X reflected", () => {
+    const caps: FieldRenderPrimitive[] = [];
+    for (let i = 0; i < 8; i += 1) {
+      caps.push(primitive({ center: [200 + i * 15, 550], base: 10, top: 10.05, footprint: 0.35, tex: 10737 }));
+    }
+    const decoys = [
+      // a tall shaft, a big roof, a ground quad, a different cap material
+      primitive({ center: [300, 400], base: 10, top: 90, footprint: 0.4, tex: 10737 }),
+      primitive({ center: [320, 400], base: 10, top: 10.1, footprint: 6, tex: 10737 }),
+      primitive({ center: [340, 400], base: 0, top: 0.1, footprint: 0.3, tex: 10737 }),
+      primitive({ center: [360, 400], base: 10, top: 10.05, footprint: 0.35, tex: 42424 }),
+    ];
+    const anchors = findPalmCrownAnchors([...decoys, ...caps]);
+    expect(anchors).toHaveLength(8);
+    for (const anchor of anchors) {
+      expect(anchor.y).toBeCloseTo(10.025);
+      expect(anchor.z).toBeCloseTo(550);
+    }
+    expect(Math.min(...anchors.map((a) => a.x))).toBeCloseTo(1600 - (200 + 7 * 15));
+  });
+
+  it("returns nothing when there is no cap family", () => {
+    expect(findPalmCrownAnchors([
+      primitive({ center: [200, 550], base: 10, top: 90, footprint: 4, tex: 13787 }),
+    ])).toHaveLength(0);
   });
 });
