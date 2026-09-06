@@ -32,7 +32,7 @@ export class ImportController {
     }
   }
 
-  async start(files: File[]): Promise<void> {
+  async start(files: File[], devOnlyFields?: readonly number[]): Promise<void> {
     this.activeWorker?.terminate();
     if (this.activeImportId) await removeImportDirectory(this.activeImportId).catch(() => undefined);
     this.activeImportId = undefined;
@@ -71,7 +71,7 @@ export class ImportController {
       this.callbacks.showError("The local import worker stopped unexpectedly.", new Error(event.message));
     });
 
-    worker.postMessage({ type: "import", importId, files });
+    worker.postMessage({ type: "import", importId, files, devOnlyFields });
   }
 
   async cancel(): Promise<void> {

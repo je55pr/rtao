@@ -71,6 +71,16 @@ const appShellHtml = `
             <option value="113">Fuji City · FLD/113</option>
             <option value="203">White Mountain · FLD/203</option>
             <option value="233">Papaya Island · FLD/233</option>
+            <option value="213">Mushroom Road · FLD/213</option>
+            <option value="220">Peach–Fuji bridge · FLD/220</option>
+            <option value="221">FLD/221</option>
+            <option value="210">FLD/210</option>
+            <option value="211">FLD/211</option>
+            <option value="202">FLD/202</option>
+            <option value="111">FLD/111</option>
+            <option value="011">FLD/011</option>
+            <option value="012">FLD/012</option>
+            <option value="023">FLD/023</option>
           </select>
         </label>
         <div class="world-render-controls">

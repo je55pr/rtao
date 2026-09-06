@@ -7,14 +7,14 @@ const worker = self as DedicatedWorkerGlobalScope;
 
 worker.addEventListener("message", (event: MessageEvent<ImportWorkerRequest>) => {
   if (event.data.type !== "import") return;
-  void runImport(event.data.files, event.data.importId);
+  void runImport(event.data.files, event.data.importId, event.data.devOnlyFields);
 });
 
-async function runImport(files: File[], importId: string): Promise<void> {
+async function runImport(files: File[], importId: string, devOnlyFields?: readonly number[]): Promise<void> {
   try {
     const manifest = await importGame(files, (phase, detail, completed, total) => {
       post({ type: "progress", phase, detail, completed, total });
-    }, importId);
+    }, importId, devOnlyFields);
     post({ type: "complete", manifest });
   } catch (error) {
     post({

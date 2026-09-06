@@ -4,6 +4,8 @@ export type ImportWorkerRequest = {
   readonly type: "import";
   readonly importId: string;
   readonly files: File[];
+  /** DEV-ONLY: import only these FLD sectors (plus the always-required files). */
+  readonly devOnlyFields?: readonly number[];
 };
 
 export type ImportWorkerResponse =

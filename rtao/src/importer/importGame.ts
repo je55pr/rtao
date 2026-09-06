@@ -37,7 +37,12 @@ const explicitlyRequired = [
   "SHOP/T00.BIN",
 ] as const;
 
-export async function importGame(files: File[], progress: Progress, importId: string = crypto.randomUUID()): Promise<ImportManifest> {
+export async function importGame(
+  files: File[],
+  progress: Progress,
+  importId: string = crypto.randomUUID(),
+  devOnlyFields?: readonly number[],
+): Promise<ImportManifest> {
   const previousImport = await readCurrentManifest();
   const importDirectory = await createImportDirectory(importId);
   let source: Awaited<ReturnType<typeof openImportSource>> | undefined;
@@ -71,7 +76,16 @@ export async function importGame(files: File[], progress: Progress, importId: st
       // expose the current PAL tables. Retain the safe full-bank fallback.
       runtimeCarBodyIds = undefined;
     }
-    const selected = await selectRuntimeFiles(source.disc, identity.bootExecutable, runtimeCarBodyIds, ordinaryRaceCourseIds);
+    // DEV-ONLY: a subset import skips the other FLDs and every race course so the
+    // cache fits a small browser-storage quota during visual iteration.
+    const devFieldSet = devOnlyFields && devOnlyFields.length > 0 ? new Set(devOnlyFields) : undefined;
+    const selected = await selectRuntimeFiles(
+      source.disc,
+      identity.bootExecutable,
+      runtimeCarBodyIds,
+      devFieldSet ? undefined : ordinaryRaceCourseIds,
+      devFieldSet,
+    );
     const totalBytes = selected.reduce((sum, entry) => sum + entry.size, 0);
     await assertCacheHeadroom(totalBytes);
     const cachedFiles: CachedFileRecord[] = [];
@@ -175,6 +189,7 @@ export async function importGame(files: File[], progress: Progress, importId: st
       raceCourses: raceCourses.sort((a, b) => a.courseId - b.courseId),
       compiledRaceCourses: compiledRaceCourses.sort((a, b) => a.courseId - b.courseId),
       raceCourseCollisions: raceCourseCollisions.sort((a, b) => a.courseId - b.courseId),
+      ...(devFieldSet ? { devPartialFields: [...devFieldSet].sort((a, b) => a - b) } : {}),
     };
     await writeJson(importDirectory, "manifest.json", manifest);
     await publishImport(manifest);
@@ -212,6 +227,7 @@ async function selectRuntimeFiles(
   executable: string,
   runtimeCarBodyIds?: readonly number[],
   ordinaryRaceCourseIds?: readonly number[],
+  devFieldSet?: ReadonlySet<number>,
 ): Promise<DiscEntry[]> {
   const selected = new Map<string, DiscEntry>();
   const add = async (path: string, required: boolean): Promise<void> => {
@@ -226,7 +242,13 @@ async function selectRuntimeFiles(
   await add("SYSTEM.CNF", true);
   await add(executable, true);
   for (const path of explicitlyRequired) await add(path, true);
-  for (const path of await listMatching(disc, "FLD", /^\d{3}\.BIN$/i)) await add(path, false);
+  for (const path of await listMatching(disc, "FLD", /^\d{3}\.BIN$/i)) {
+    if (devFieldSet) {
+      const match = /(\d{3})\.BIN$/i.exec(path);
+      if (!match || !devFieldSet.has(Number.parseInt(match[1]!, 10))) continue;
+    }
+    await add(path, false);
+  }
   if (runtimeCarBodyIds) {
     for (const bodyId of runtimeCarBodyIds) await add(carAssetPath(bodyId), false);
   } else {
@@ -242,9 +264,21 @@ async function selectRuntimeFiles(
     }
   }
 
-  const fieldCount = [...selected.keys()].filter((path) => /^FLD\/\d{3}\.BIN$/i.test(path)).length;
-  if (fieldCount !== 64) {
-    throw new Error(`Expected 64 standard FLD sectors; found ${fieldCount}.`);
+  const selectedFieldNumbers = new Set<number>();
+  for (const path of selected.keys()) {
+    const match = /^FLD\/(\d{3})\.BIN$/i.exec(path);
+    if (match) selectedFieldNumbers.add(Number.parseInt(match[1]!, 10));
+  }
+  if (devFieldSet) {
+    // A partial import must still contain every field it was asked for, so a
+    // typo like `?onlyfield=999` fails here rather than publishing an empty
+    // manifest that only breaks once the viewer tries to build the world.
+    const missing = [...devFieldSet].filter((n) => !selectedFieldNumbers.has(n)).sort((a, b) => a - b);
+    if (missing.length > 0) {
+      throw new Error(`Requested dev FLD sector(s) not found on the disc: ${missing.join(", ")}.`);
+    }
+  } else if (selectedFieldNumbers.size !== 64) {
+    throw new Error(`Expected 64 standard FLD sectors; found ${selectedFieldNumbers.size}.`);
   }
   return [...selected.values()].sort((a, b) => a.path.localeCompare(b.path));
 }

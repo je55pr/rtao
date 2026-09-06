@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { deserializeCompiledField, type CompiledFieldBatch, type CompiledFieldMesh } from "../formats/fieldGeometry";
+import type { FieldObjectAsset } from "../formats/fieldObjects";
 import type { SkyTextureSet } from "../formats/skyTexture";
 import type { CaptureSize, CarVisualCaptureScene, FieldOverviewCaptureScene, WorldOverviewCaptureScene } from "./captureScenes";
 import { renderPng } from "./renderCapture";
@@ -19,7 +20,38 @@ interface SectorRenderResources {
   readonly materials: THREE.Material[];
   readonly triangles: number;
   readonly primitives: number;
+  dynamic?: SectorDynamicResources;
 }
+
+interface SectorDynamicResources {
+  readonly geometries: THREE.BufferGeometry[];
+  readonly material: THREE.Material;
+  readonly texture: THREE.Texture | undefined;
+  /** Objects animated each frame (host approximations — see the constants). */
+  readonly animated: AnimatedDynamicObject[];
+}
+
+interface AnimatedDynamicObject {
+  readonly object: THREE.Object3D;
+  readonly motion: "rotor-spin" | "crown-sway";
+  /** Deterministic per-instance offset so identical objects animate out of step. */
+  readonly phaseSeed: number;
+  readonly groupIndex: number;
+}
+
+/**
+ * HOST APPROXIMATIONS for FLD dynamic-object animation. The Extra[1] geometry and
+ * textures are evidence-backed, but the per-frame object matrix (spin, sway,
+ * facing, scale) is composed by EE object-update code that is not yet decoded —
+ * the same gap the C# reference notes for the palm-crown sway. These constants
+ * are tuned to read like the original, not recovered from `SLES_513.56`.
+ * See docs/archaeology/FIELD_DYNAMIC_OBJECTS_2026-09-06.md.
+ */
+const approximateRotorSpinRadiansPerSecond = 1.15;
+const approximateRotorFacingYaw = 0;
+const approximateRotorScale = 0.42;
+/** Palm-crown sway, ported from the C# reference's PalmCrownMesh. */
+const crownSway = { swayHz: 1.45, swayAmplitude: 0.045, crossHz: 1.07, crossAmplitude: 0.022, groupPhaseStep: 0.42 };
 
 interface WorldActorRenderState {
   readonly object: THREE.Object3D;
@@ -47,6 +79,9 @@ export class WorldView {
   private chaseReady = false;
   private originFieldNumber = 223;
   private frameHandle = 0;
+  private readonly animatedDynamicObjects: AnimatedDynamicObject[] = [];
+  private lastFrameTimestamp = 0;
+  private animationSeconds = 0;
 
   constructor(private readonly host: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -179,6 +214,119 @@ export class WorldView {
     if (this.sectors.size === 0) throw new Error("The compiled world contains no sectors.");
     this.showWorldOverview();
     return this.stats();
+  }
+
+  /**
+   * Attaches a field's Extra[1] dynamic-object instances — FLD/213's spinning
+   * wind-turbine rotors, or FLD/220/221's swaying coastal palm crowns. Geometry,
+   * texture and the MSCALF-4 format are evidence-backed; the animation, facing and
+   * scale are host approximations (see the constants above).
+   */
+  addFieldDynamicObjects(fieldNumber: number, asset: FieldObjectAsset, anchors: readonly { x: number; y: number; z: number }[]): void {
+    const sector = this.sectors.get(fieldNumber);
+    if (!sector || sector.dynamic || asset.meshes.length === 0 || anchors.length === 0) return;
+    if (asset.kind !== "turbine-rotor" && asset.kind !== "palm-crown") return;
+
+    const geometries = asset.meshes.map((mesh) => {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(mesh.positions, 3));
+      geometry.setAttribute("normal", new THREE.BufferAttribute(mesh.normals, 3));
+      geometry.setAttribute("uv", new THREE.BufferAttribute(mesh.uvs, 2));
+      geometry.computeBoundingSphere();
+      return geometry;
+    });
+
+    let texture: THREE.Texture | undefined;
+    if (asset.texture) {
+      texture = new THREE.DataTexture(asset.texture.rgba, asset.texture.width, asset.texture.height, THREE.RGBAFormat, THREE.UnsignedByteType);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.magFilter = THREE.LinearFilter;
+      texture.minFilter = THREE.LinearFilter;
+      texture.generateMipmaps = false;
+      texture.needsUpdate = true;
+    }
+
+    const material = createDynamicObjectMaterial(texture);
+    const animated: AnimatedDynamicObject[] = [];
+
+    anchors.forEach((anchor, instanceIndex) => {
+      const mount = new THREE.Group();
+      mount.position.set(anchor.x, anchor.y, anchor.z);
+      // Deterministic per-instance phase from the C# palm-crown formula, reused
+      // for the rotors so a wind farm does not spin in perfect lockstep.
+      const phaseSeed = instanceIndex * 0.73 + anchor.x * 0.011 + anchor.z * 0.007;
+
+      if (asset.kind === "turbine-rotor") {
+        mount.rotation.y = approximateRotorFacingYaw;
+        mount.scale.setScalar(approximateRotorScale);
+        const rotor = new THREE.Group();
+        for (const geometry of geometries) rotor.add(new THREE.Mesh(geometry, material));
+        mount.add(rotor);
+        animated.push({ object: rotor, motion: "rotor-spin", phaseSeed, groupIndex: 0 });
+      } else {
+        // Each authored frond group sways as a unit, trailing the previous group
+        // by a small phase.
+        geometries.forEach((geometry, groupIndex) => {
+          const frondGroup = new THREE.Group();
+          frondGroup.add(new THREE.Mesh(geometry, material));
+          mount.add(frondGroup);
+          animated.push({ object: frondGroup, motion: "crown-sway", phaseSeed, groupIndex });
+        });
+      }
+
+      sector.group.add(mount);
+    });
+
+    this.animatedDynamicObjects.push(...animated);
+    sector.dynamic = { geometries, material, texture, animated };
+  }
+
+  /**
+   * DEV-ONLY inspection: place one static copy of every Extra[1] mesh at a debug
+   * anchor, scaled up, so an unidentified `prop` object can be eyeballed. Not an
+   * evidence-backed render — used only via `?showprops`.
+   */
+  addDebugDynamicObject(fieldNumber: number, asset: FieldObjectAsset, anchor: { x: number; y: number; z: number }, scale = 4): void {
+    const sector = this.sectors.get(fieldNumber);
+    if (!sector || sector.dynamic || asset.meshes.length === 0) return;
+
+    const geometries = asset.meshes.map((mesh) => {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(mesh.positions, 3));
+      geometry.setAttribute("normal", new THREE.BufferAttribute(mesh.normals, 3));
+      geometry.setAttribute("uv", new THREE.BufferAttribute(mesh.uvs, 2));
+      geometry.computeBoundingSphere();
+      return geometry;
+    });
+    let texture: THREE.Texture | undefined;
+    if (asset.texture) {
+      texture = new THREE.DataTexture(asset.texture.rgba, asset.texture.width, asset.texture.height, THREE.RGBAFormat, THREE.UnsignedByteType);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.magFilter = THREE.NearestFilter;
+      texture.minFilter = THREE.NearestFilter;
+      texture.generateMipmaps = false;
+      texture.needsUpdate = true;
+    }
+    const material = new THREE.MeshLambertMaterial({
+      map: texture ?? null,
+      color: texture ? 0xffffff : 0xd9d2c4,
+      side: THREE.DoubleSide,
+      transparent: !!texture,
+      alphaTest: texture ? 0.2 : 0,
+    });
+    const mount = new THREE.Group();
+    mount.position.set(anchor.x, anchor.y, anchor.z);
+    mount.scale.setScalar(scale);
+    // Two lights so a flat texture-only material still shows form for eyeballing.
+    const key = new THREE.DirectionalLight(0xffffff, 2.2);
+    key.position.set(1, 2, 1);
+    for (const geometry of geometries) mount.add(new THREE.Mesh(geometry, material));
+    mount.add(key);
+    mount.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.4));
+    sector.group.add(mount);
+    sector.dynamic = { geometries, material, texture, animated: [] };
   }
 
   setSky(textures: SkyTextureSet): void {
@@ -659,15 +807,44 @@ export class WorldView {
       });
       for (const material of sector.materials) material.dispose();
       for (const texture of sector.textures) texture.dispose();
+      if (sector.dynamic) {
+        for (const geometry of sector.dynamic.geometries) geometry.dispose();
+        sector.dynamic.material.dispose();
+        sector.dynamic.texture?.dispose();
+      }
       this.worldGroup.remove(sector.group);
     }
     this.sectors.clear();
+    this.animatedDynamicObjects.length = 0;
+    this.lastFrameTimestamp = 0;
+    this.animationSeconds = 0;
   }
 
   private readonly frame = (): void => {
     if (this.controls.enabled) this.controls.update();
     this.sky?.position.copy(this.camera.position);
     this.nightSky?.position.copy(this.camera.position);
+    const now = performance.now();
+    if (this.animatedDynamicObjects.length > 0) {
+      // HOST APPROXIMATION: rotor spin and crown sway (see the constants above).
+      // Drive both from a clock that only advances on rendered frames so a
+      // backgrounded pane does not jump the animation on return.
+      const deltaSeconds = this.lastFrameTimestamp > 0 ? Math.min(0.1, (now - this.lastFrameTimestamp) / 1000) : 0;
+      this.animationSeconds += deltaSeconds;
+      const t = this.animationSeconds;
+      for (const entry of this.animatedDynamicObjects) {
+        if (entry.motion === "rotor-spin") {
+          // Constant angular velocity, derived from the frame clock plus the
+          // per-instance phase so the wind farm does not spin in lockstep.
+          entry.object.rotation.z = t * approximateRotorSpinRadiansPerSecond + entry.phaseSeed;
+        } else {
+          const phase = entry.phaseSeed + entry.groupIndex * crownSway.groupPhaseStep;
+          entry.object.rotation.z = Math.sin(t * crownSway.swayHz + phase) * crownSway.swayAmplitude;
+          entry.object.rotation.x = Math.sin(t * crownSway.crossHz + phase + 1.1) * crownSway.crossAmplitude;
+        }
+      }
+    }
+    this.lastFrameTimestamp = now;
     this.renderer.render(this.scene, this.camera);
     this.frameHandle = requestAnimationFrame(this.frame);
   };
@@ -686,6 +863,23 @@ function disposeSkyMaterial(material: THREE.Material | THREE.Material[]): void {
     if (item instanceof THREE.MeshBasicMaterial) item.map?.dispose();
     item.dispose();
   }
+}
+
+/**
+ * Field dynamic objects run VU program 4 but, like the palm crowns in the C#
+ * reference, without the car render path's lighting setup — the authored vertex
+ * colour is the GS-neutral 128 and the retained mesh is drawn texture-only with
+ * alpha test. Any daylight response is part of the undecoded object matrix.
+ */
+function createDynamicObjectMaterial(texture: THREE.Texture | undefined): THREE.Material {
+  return new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    map: texture ?? null,
+    transparent: texture !== undefined,
+    alphaTest: texture !== undefined ? 0.25 : 0,
+    side: THREE.DoubleSide,
+    fog: false,
+  });
 }
 
 type FieldRenderPath = "approximate" | "authentic-depth" | "authentic-rgb";
