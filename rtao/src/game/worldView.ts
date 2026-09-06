@@ -283,6 +283,52 @@ export class WorldView {
     sector.dynamic = { geometries, material, texture, animated };
   }
 
+  /**
+   * DEV-ONLY inspection: place one static copy of every Extra[1] mesh at a debug
+   * anchor, scaled up, so an unidentified `prop` object can be eyeballed. Not an
+   * evidence-backed render — used only via `?showprops`.
+   */
+  addDebugDynamicObject(fieldNumber: number, asset: FieldObjectAsset, anchor: { x: number; y: number; z: number }, scale = 4): void {
+    const sector = this.sectors.get(fieldNumber);
+    if (!sector || sector.dynamic || asset.meshes.length === 0) return;
+
+    const geometries = asset.meshes.map((mesh) => {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(mesh.positions, 3));
+      geometry.setAttribute("normal", new THREE.BufferAttribute(mesh.normals, 3));
+      geometry.setAttribute("uv", new THREE.BufferAttribute(mesh.uvs, 2));
+      geometry.computeBoundingSphere();
+      return geometry;
+    });
+    let texture: THREE.Texture | undefined;
+    if (asset.texture) {
+      texture = new THREE.DataTexture(asset.texture.rgba, asset.texture.width, asset.texture.height, THREE.RGBAFormat, THREE.UnsignedByteType);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.magFilter = THREE.NearestFilter;
+      texture.minFilter = THREE.NearestFilter;
+      texture.generateMipmaps = false;
+      texture.needsUpdate = true;
+    }
+    const material = new THREE.MeshLambertMaterial({
+      map: texture ?? null,
+      color: texture ? 0xffffff : 0xd9d2c4,
+      side: THREE.DoubleSide,
+      transparent: !!texture,
+      alphaTest: texture ? 0.2 : 0,
+    });
+    const mount = new THREE.Group();
+    mount.position.set(anchor.x, anchor.y, anchor.z);
+    mount.scale.setScalar(scale);
+    // Two lights so a flat texture-only material still shows form for eyeballing.
+    const key = new THREE.DirectionalLight(0xffffff, 2.2);
+    key.position.set(1, 2, 1);
+    for (const geometry of geometries) mount.add(new THREE.Mesh(geometry, material));
+    mount.add(key);
+    mount.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.4));
+    sector.group.add(mount);
+    sector.dynamic = { geometries, material, texture, animated: [] };
+  }
+
   setSky(textures: SkyTextureSet): void {
     if (this.sky) {
       this.sky.geometry.dispose();

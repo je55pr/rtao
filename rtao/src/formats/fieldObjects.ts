@@ -95,10 +95,10 @@ export function readFieldObjectAsset(bytes: Uint8Array): FieldObjectAsset | null
   if (meshes.length === 0) return null;
   const radius = Math.sqrt(radiusSquared);
   const triangleCount = meshes.reduce((sum, mesh) => sum + mesh.positions.length / 9, 0);
-  // The coastal palm crown is the proven 1+2+3-frond object: three low-poly
-  // sections, tiny. The rotor is the lone large object. Anything else is an
-  // unidentified prop.
-  const kind: FieldObjectKind = radius > 20
+  // The rotor is the lone large single-section object (FLD/213). The coastal
+  // palm crown is the proven 1+2+3-frond object: three tiny low-poly sections.
+  // Everything else — giant fruit landmarks, trees, signs, bridges — is a prop.
+  const kind: FieldObjectKind = meshes.length === 1 && radius > 20
     ? "turbine-rotor"
     : (meshes.length === 3 && triangleCount <= 24 && radius < 10 ? "palm-crown" : "prop");
   return { kind, meshes, texture, radius };

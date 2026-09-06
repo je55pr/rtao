@@ -51,7 +51,7 @@ describe.skipIf(!binPath)("FLD Extra[1] dynamic field objects", () => {
     const { disc, close } = await openDisc();
     try {
       for (const [fieldNumber, minCrowns] of [[220, 40], [221, 4]] as const) {
-        const bytes = await disc.readFile(`FLD/${fieldNumber}.BIN`);
+        const bytes = await disc.readFile(`FLD/${String(fieldNumber).padStart(3, "0")}.BIN`);
         const asset = readFieldObjectAsset(bytes);
         expect(asset?.kind, `FLD/${fieldNumber}`).toBe("palm-crown");
         expect(asset!.meshes).toHaveLength(3);
@@ -66,11 +66,14 @@ describe.skipIf(!binPath)("FLD Extra[1] dynamic field objects", () => {
     }
   });
 
-  test("Peach Town / Papaya Extra[1] props are not classified as crowns or rotors", async () => {
+  test("other Extra[1] objects classify as props, not crowns or rotors", async () => {
     const { disc, close } = await openDisc();
     try {
-      for (const fieldNumber of [113, 202, 203, 210, 211, 223, 233]) {
-        const bytes = await disc.readFile(`FLD/${fieldNumber}.BIN`);
+      // 011 has a 180-unit flat mesh (radius > 20) but two sections, so it must
+      // not be mistaken for the single-section rotor. 223 is the giant peach,
+      // 233 the giant papaya, 113 a Fuji moat bridge, 202/203/211 ski markers.
+      for (const fieldNumber of [11, 12, 113, 202, 203, 210, 211, 223, 233]) {
+        const bytes = await disc.readFile(`FLD/${String(fieldNumber).padStart(3, "0")}.BIN`);
         const asset = readFieldObjectAsset(bytes);
         if (asset) expect(asset.kind, `FLD/${fieldNumber}`).toBe("prop");
       }

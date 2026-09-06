@@ -20,17 +20,27 @@ not decoded. The palm-crown sway is a direct port of the C# reference's
 
 ## Extra[1] object survey (all 64 fields)
 
-| Fields | Object | Rendered |
+| Field(s) | Object | Rendered |
 |---|---|---|
-| 213 | wind-turbine rotor (radius 42, ~36 tris, 128² tex) | yes — spin |
-| 220, 221 | palm crown: three 1/2/3-frond sections, radius ~4, 64×32 frond tex | yes — sway |
-| 011, 012, 111, 113, 202, 203, 210, 211 | small props (radius 1–6): a tall thin FLD/011 mesh, a ~348-tri FLD/113 object, White Mountain clutter, … | no — unidentified (`kind: "prop"`) |
-| 223 (Peach Town), 233 (Papaya) | ~1–5 unit detailed props, grey 128² tex, not crowns | no — `kind: "prop"` |
+| 213 Mushroom Road | wind-turbine rotor (1 section, radius 42, ~36 tris, 128² tex) | **yes — spin** |
+| 220, 221 Peach–Fuji coast | palm crown: three 1/2/3-frond sections, radius ~4, 64×32 frond tex | **yes — sway** |
+| 223 Peach Town | **the giant peach landmark** (rounded fruit + stem + leaf; orange/red/green, radius ~2) | no — `prop` |
+| 233 Papaya Island | **the giant papaya landmark** (two rounded fruit lobes ~5 tall + leaves) | no — `prop` |
+| 113 Fuji City | a **moat bridge** (grey, 4×2.3×9, a railed profile extruded across the moat; textured from the field) | no — `prop` |
+| 210 (forest/lake) | a **decorative potted tree** — heart-motif purple planter + trunk + yellow-green canopy | no — `prop` |
+| 012 (desert canyon) | a **crossed-billboard shrub / small tree** (olive/brown, panel + base box) | no — `prop` |
+| 011 (desert) | a **180-unit flat scenery band** (white, striped 128² tex) + a small prop; a distant backdrop / boundary flat | no — `prop` |
+| 202, 203, 211 (ski area) | small posts / **trail signs / slalom-gate markers** (white + colour, 3–6 units) | no — `prop` |
+| 111 | Extra[1] section 0 does not decode as a mesh (+ a 128² tex) — needs a closer look | no |
 | 023 ("My City") | 80 extra sections, not a simple container | no — needs own pass |
 
 `readFieldObjectAsset` classifies each container by structure: `turbine-rotor`
-(the lone large object), `palm-crown` (three sections, ≤ 24 tris total, radius
-< 10), or `prop`.
+(one section, radius > 20), `palm-crown` (three sections, ≤ 24 tris total,
+radius < 10), or `prop`. The giant-fruit landmarks and the bridge are `prop`
+because they lack recovered placement markers (and, for the bridge, a texture
+source); they would need per-object anchor heuristics like the crown and rotor.
+`?showprops` (dev-only) drops a scaled static copy of every Extra[1] object at a
+debug anchor for eyeballing.
 
 ## Extra[1] container format
 

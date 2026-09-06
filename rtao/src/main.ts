@@ -486,11 +486,23 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
       import("./formats/fieldObjects"),
       import("./formats/fieldGeometry"),
     ]);
+    // DEV-ONLY: `?showprops` places one scaled static copy of every Extra[1]
+    // object (including unidentified `prop` kinds) at a debug anchor for
+    // eyeballing.
+    const showProps = import.meta.env.DEV && new URLSearchParams(location.search).has("showprops");
     let dynamicInstances = 0;
     for (const field of dynamicObjectFields) {
       const raw = await readBytes(directory, `game/${field.path}`);
       const asset = readFieldObjectAsset(raw);
-      if (asset?.kind !== "turbine-rotor" && asset?.kind !== "palm-crown") continue;
+      if (!asset) continue;
+      if (showProps) {
+        worldView.addDebugDynamicObject(field.fieldNumber, asset, { x: 800, y: 160, z: 800 });
+        console.info(`[showprops] FLD/${field.fieldNumber}: ${asset.kind}, ${asset.meshes.length} meshes, radius ${asset.radius.toFixed(1)}, texture ${asset.texture ? `${asset.texture.width}x${asset.texture.height}` : "none"}`);
+        dynamicInstances += 1;
+        await nextFrame();
+        continue;
+      }
+      if (asset.kind !== "turbine-rotor" && asset.kind !== "palm-crown") continue;
       const primitives = readFieldRenderPrimitives(raw);
       const anchors = asset.kind === "turbine-rotor"
         ? findTurbineAnchors(primitives)
