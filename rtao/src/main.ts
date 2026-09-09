@@ -4,6 +4,7 @@ import { DeterministicCaptureController } from "./app/deterministicCaptureContro
 import { requiredElement } from "./app/dom";
 import { bindAppDom } from "./app/domBindings";
 import { ImportController } from "./app/importController";
+import { RecoveredProgressStore } from "./app/recoveredProgressStore";
 import {
   captureSceneById,
   captureScenes,
@@ -26,13 +27,12 @@ import {
   advertisingSponsorCount,
   advertisingSponsorIndexFromOptionSelector,
   purchaseIndexedItem,
-  RecoveredCommerceState,
+  type RecoveredCommerceState,
   sellIndexedPart,
-  seedInitialEquipmentOwnership,
   type AdvertisingRedemptionResult,
 } from "./game/commerceProgress";
-import { applyRecoveredEquipmentHostAction, fitOwnedNativeEquipmentPart, RecoveredEquipmentState } from "./game/equipmentProgress";
-import { RecoveredRaceState } from "./game/raceProgress";
+import { applyRecoveredEquipmentHostAction, fitOwnedNativeEquipmentPart, type RecoveredEquipmentState } from "./game/equipmentProgress";
+import type { RecoveredRaceState } from "./game/raceProgress";
 import {
   browserCompatibilityPaintWord,
   decodeNativeBodyPaint,
@@ -46,11 +46,7 @@ import {
   type NativePaintTone,
 } from "./game/paintShop";
 import type { Q62CarModel } from "./game/carView";
-import {
-  applyRecoveredDialogueHostAction,
-  createRecoveredDialogueStateSave,
-  restoreRecoveredDialogueStateSave,
-} from "./game/dialogueProgress";
+import { applyRecoveredDialogueHostAction } from "./game/dialogueProgress";
 import type { BrowserDrivingGame, CarState } from "./game/drivingGame";
 import { nativeTyreGripMultiplier } from "./game/nativeTyrePerformance";
 import {
@@ -143,11 +139,7 @@ let playerDialogueState: DialogueRuntimeState | undefined;
 let playerCommerceState: RecoveredCommerceState | undefined;
 let playerEquipmentState: RecoveredEquipmentState | undefined;
 let playerRaceState: RecoveredRaceState | undefined;
-let lastQueuedDialogueStateRevision = 0;
-let lastQueuedCommerceStateRevision = 0;
-let lastQueuedEquipmentStateRevision = 0;
-let lastQueuedRaceStateRevision = 0;
-let dialogueStateSaveQueue = Promise.resolve();
+let recoveredProgressStore: RecoveredProgressStore | undefined;
 let qFactoryInteriorView: QFactoryInteriorView | undefined;
 let shopInteriorPreviewView: ShopInteriorRoomView | undefined;
 let shopInteriorPreviewInteraction: FixedInteractionDefinition | undefined;
@@ -432,17 +424,12 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   activeDirectory = directory;
   activeManifest = upgradedManifest;
   equippedParts = await loadDevelopmentParts(directory);
-  const recoveredProgress = await loadRecoveredProgressState(directory);
-  playerDialogueState = recoveredProgress.dialogueState;
-  playerCommerceState = recoveredProgress.commerceState;
-  playerEquipmentState = recoveredProgress.equipmentState;
-  playerRaceState = recoveredProgress.raceState;
+  recoveredProgressStore = await RecoveredProgressStore.restore(directory);
+  playerDialogueState = recoveredProgressStore.dialogueState;
+  playerCommerceState = recoveredProgressStore.commerceState;
+  playerEquipmentState = recoveredProgressStore.equipmentState;
+  playerRaceState = recoveredProgressStore.raceState;
   equippedParts = applyKnownNativeEquipmentSelectors(equippedParts, playerEquipmentState.selectorEntries()[0] ?? []);
-  lastQueuedDialogueStateRevision = playerDialogueState.revision;
-  lastQueuedCommerceStateRevision = playerCommerceState.revision;
-  lastQueuedEquipmentStateRevision = playerEquipmentState.revision;
-  lastQueuedRaceStateRevision = playerRaceState.revision;
-  dialogueStateSaveQueue = Promise.resolve();
   if (!worldView) {
     const { WorldView: WorldViewClass } = await import("./game/worldView");
     worldView = new WorldViewClass(viewerHost);
@@ -682,14 +669,14 @@ function accumulateAdvertisingDistance(state: CarState): void {
   unsavedAdvertisingDistanceUnits += distanceUnits;
   if (unsavedAdvertisingDistanceUnits >= 100) {
     unsavedAdvertisingDistanceUnits = 0;
-    queueRecoveredDialogueStateSave();
+    queueRecoveredProgressSave();
   }
 }
 
 function stopDrivingSession(): void {
   endActiveInterior();
   endResidentDialogue();
-  queueRecoveredDialogueStateSave();
+  queueRecoveredProgressSave();
   drivingGame?.stop();
   drivingGame = undefined;
   fujiProbeIndex = -1;
@@ -1060,7 +1047,7 @@ async function startShopInteriorPreview(interaction: FixedInteractionDefinition)
         : undefined;
       const flow = new DialogueFlowClass(entity, state, probeSlot ?? fixedInteriorStartSlot(entity));
       shopInteriorSession = { flow, choiceIndex: defaultChoiceIndex(flow.currentChoices), interaction, entity };
-      queueRecoveredDialogueStateSave();
+      queueRecoveredProgressSave();
       requiredElement<HTMLElement>("factory-speaker").textContent = entity.name;
       renderShopInteriorDialogue();
       console.info(`${interaction.name} fixed interior start: ${packagePath} slot ${interaction.localIndex}, dialogue '${entity.name}' entity ${entity.entityIndex}${probeSlot ? ` probe slot 0x${probeSlot.toString(16).padStart(2, "0")}` : ""}, ${backdrop.width}x${backdrop.height}, ${backdrop.dmaPacketCount} DMA packets; outdoor state paused.`);
@@ -1141,7 +1128,7 @@ function chooseShopInteriorDialogue(index: number): void {
   if (!selected) return;
   console.info(`${session.entity.name} dialogue: slot 0x${session.flow.currentSlot.toString(16).padStart(2, "0")} '${selected.text}' -> 0x${selected.targetSlot.toString(16).padStart(2, "0")}.`);
   session.flow.choose(index);
-  queueRecoveredDialogueStateSave();
+  queueRecoveredProgressSave();
   if (session.flow.ended) { endShopInteriorPreview(); return; }
   session.choiceIndex = defaultChoiceIndex(session.flow.currentChoices);
   renderShopInteriorDialogue();
@@ -1155,7 +1142,7 @@ function returnFromShopInteriorHostAction(): void {
   if (!presentation.returnSlot) { endShopInteriorPreview(); return; }
   console.info(`${session.entity.name} host action ${presentation.title} returned to slot 0x${presentation.returnSlot.toString(16).padStart(2, "0")}.`);
   session.flow.returnFromExternalAction(presentation.returnSlot);
-  queueRecoveredDialogueStateSave();
+  queueRecoveredProgressSave();
   if (session.flow.ended) { endShopInteriorPreview(); return; }
   session.choiceIndex = defaultChoiceIndex(session.flow.currentChoices);
   renderShopInteriorDialogue();
@@ -1226,7 +1213,7 @@ function keepQuickPicPhoto(): void {
   if (!photo || !session || session.flow.currentExternalAction !== photo.action || !playerDialogueState) return;
   const changed = applyRecoveredDialogueHostAction(playerDialogueState, photo.action);
   if (changed) {
-    queueRecoveredDialogueStateSave();
+    queueRecoveredProgressSave();
     console.info(`${session.entity.name} original Quick-Pic completion bit ${photo.photoNumber} stored in the browser install.`);
   }
   closeQuickPicPhoto();
@@ -1264,7 +1251,7 @@ function finishShopNumericChoice(): void {
     return;
   }
   interior.flow.returnFromExternalAction(target);
-  queueRecoveredDialogueStateSave();
+  queueRecoveredProgressSave();
   if (interior.flow.ended) { endShopInteriorPreview(); return; }
   interior.choiceIndex = defaultChoiceIndex(interior.flow.currentChoices);
   renderShopInteriorDialogue();
@@ -1398,7 +1385,7 @@ function purchaseSelectedPart(): void {
     const limitation = requiredElement<HTMLElement>("shop-limitation");
     if (result.status === "sold") {
       limitation.textContent = `${selected.name} was sold for ${result.saleValueCake.toLocaleString("en-US")} Cake. ${result.ownedAfter}/5 copies remain; balance ${result.cakeAfter.toLocaleString("en-US")} Cake. The fitted selector was not changed.`;
-      queueRecoveredDialogueStateSave();
+      queueRecoveredProgressSave();
       console.info(`Second-hand shop: sold category ${selected.nativeCategory}, item ${selected.nativeItemIndex} for ${result.saleValueCake} Cake; ${result.cakeAfter} Cake remains.`);
     } else {
       limitation.textContent = `${selected.name} is no longer owned. No Cake was credited.`;
@@ -1417,7 +1404,7 @@ function purchaseSelectedPart(): void {
   if (result.status === "purchased") {
     const count = ownership.indexedFlagCount(selected.nativeCategory, selected.nativeItemIndex);
     limitation.textContent = `${selected.name} was added (${count}/5 owned). ${selected.priceCake.toLocaleString("en-US")} Cake was debited; ${result.cakeAfter.toLocaleString("en-US")} Cake remains. The part was not auto-equipped.`;
-    queueRecoveredDialogueStateSave();
+    queueRecoveredProgressSave();
     console.info(`Parts Shop: bought category ${selected.nativeCategory}, item ${selected.nativeItemIndex} for ${selected.priceCake} Cake; ${result.cakeAfter} Cake remains.`);
   } else if (result.status === "insufficient-funds") {
     limitation.textContent = `${selected.name} costs ${selected.priceCake.toLocaleString("en-US")} Cake; the current balance is ${result.cakeBefore.toLocaleString("en-US")} Cake. Nothing was changed.`;
@@ -1513,7 +1500,7 @@ function purchaseSelectedBody(): void {
   const limitation = requiredElement<HTMLElement>("shop-limitation");
   if (result.status === "purchased") {
     limitation.textContent = `${selected.name} is now owned. ${selected.priceCake} Cake was debited; ${result.cakeAfter.toLocaleString("en-US")} Cake remains. The preview is intentionally not auto-equipped.`;
-    queueRecoveredDialogueStateSave();
+    queueRecoveredProgressSave();
     console.info(`Body Shop: bought body ${selected.bodyId} for ${selected.priceCake} Cake; ${result.cakeAfter} Cake remains.`);
   } else if (result.status === "insufficient-funds") {
     limitation.textContent = `${selected.name} costs ${selected.priceCake} Cake; the current balance is ${result.cakeBefore.toLocaleString("en-US")} Cake. Nothing was changed.`;
@@ -1689,7 +1676,7 @@ function purchaseSelectedPaint(): void {
     const paints = decodeNativeBodyPaint(session.draftWord);
     playerCar?.setPaints(paints.primary, paints.secondary);
     playerCar?.setNativeWheelColor(nativeWheelPaintColor(session.draftWord), nativeWheelPaintIndex(session.draftWord));
-    queueRecoveredDialogueStateSave();
+    queueRecoveredProgressSave();
     console.info(`Paint Shop: stored packed paint word 0x${session.draftWord.toString(16).padStart(8, "0")} (wheel index ${nativeWheelPaintIndex(session.draftWord)}) and debited ${result.priceCake} Cake; ${result.cakeAfter} remains.`);
   } else {
     console.info("Paint Shop: confirmed unchanged body/wheel colours; no Cake was debited.");
@@ -1777,7 +1764,7 @@ function renderShopInteriorDialogue(): void {
       }
     }
     if (dialogueChanged || equipmentChanged) {
-      queueRecoveredDialogueStateSave();
+      queueRecoveredProgressSave();
       if (external.opcode === 0x07) {
         console.info(`${session.entity.name} original indexed progress [${external.operands[0] ?? 0},${external.operands[1] ?? 0}] stored in the browser install.`);
       } else if (external.opcode === 0x0d) {
@@ -1835,7 +1822,7 @@ function applyAdvertisingRewardAction(action: DialogueActionToken): AdvertisingR
   const result = playerCommerceState.redeemAdvertisingCake(sponsorIndex);
   shopAdvertisingRewardSession = { action, result };
   if (result.status === "credited") {
-    queueRecoveredDialogueStateSave();
+    queueRecoveredProgressSave();
     console.info(`${shopInteriorSession?.entity.name ?? "Advertising sponsor"} redeemed ${result.redeemedBlocks} distance block${result.redeemedBlocks === 1 ? "" : "s"} for ${result.cakeAwarded} Cake; ${result.distanceAfter} distance units retained.`);
   }
   return result;
@@ -2126,7 +2113,7 @@ function finishChangeParts(apply: boolean): void {
 
     equippedParts = createPartLoadout(session.draft);
     applyEquippedParts();
-    if (fittedCount > 0) queueRecoveredDialogueStateSave();
+    if (fittedCount > 0) queueRecoveredProgressSave();
     if (activeDirectory) {
       // Compatibility mirror for the older descriptive appearance layer. Native
       // selectors above are the authoritative recovered fitting state.
@@ -2367,11 +2354,7 @@ function stopWorldSimulation(): void {
   playerEquipmentState = undefined;
   playerCommerceState = undefined;
   playerRaceState = undefined;
-  lastQueuedDialogueStateRevision = 0;
-  lastQueuedCommerceStateRevision = 0;
-  lastQueuedEquipmentStateRevision = 0;
-  lastQueuedRaceStateRevision = 0;
-  dialogueStateSaveQueue = Promise.resolve();
+  recoveredProgressStore = undefined;
 }
 
 async function ensureWholeWorldCache(
@@ -2442,70 +2425,8 @@ async function loadDevelopmentParts(directory: FileSystemDirectoryHandle): Promi
   }
 }
 
-async function loadRecoveredProgressState(directory: FileSystemDirectoryHandle): Promise<{
-  dialogueState: DialogueRuntimeState;
-  commerceState: RecoveredCommerceState;
-  equipmentState: RecoveredEquipmentState;
-  raceState: RecoveredRaceState;
-}> {
-  const { DialogueRuntimeState: DialogueRuntimeStateClass } = await import("./formats/dialogue");
-  const dialogueState = new DialogueRuntimeStateClass();
-  const commerceState = new RecoveredCommerceState();
-  const equipmentState = new RecoveredEquipmentState();
-  const raceState = new RecoveredRaceState();
-  try {
-    const saved = await readJson<unknown>(directory, "save/recovered-dialogue-state.json");
-    const schemaVersion = saved && typeof saved === "object"
-      ? (saved as { schemaVersion?: unknown }).schemaVersion
-      : undefined;
-    if (!Number.isInteger(schemaVersion) || (schemaVersion as number) < 4 || (schemaVersion as number) > 10) seedInitialEquipmentOwnership(dialogueState);
-    restoreRecoveredDialogueStateSave(
-      saved,
-      dialogueState,
-      commerceState,
-      equipmentState,
-      raceState,
-    );
-    const indexedCount = dialogueState.indexedFlagEntries().length;
-    const stampCount = dialogueState.stampEntries().length;
-    console.info(`Recovered persistent state restored: ${commerceState.cake} Cake, licence class ${raceState.licenseClass}, ${indexedCount} indexed progress flag${indexedCount === 1 ? "" : "s"}, ${stampCount} stamp${stampCount === 1 ? "" : "s"}.`);
-  } catch (error) {
-    seedInitialEquipmentOwnership(dialogueState);
-    if (!(error instanceof DOMException && error.name === "NotFoundError")) {
-      console.warn("The recovered persistent state was invalid or unreadable; an empty state will be used.", error);
-    }
-  }
-  return { dialogueState, commerceState, equipmentState, raceState };
-}
-
-function queueRecoveredDialogueStateSave(): void {
-  const directory = activeDirectory;
-  const state = playerDialogueState;
-  const commerce = playerCommerceState;
-  const equipment = playerEquipmentState;
-  const races = playerRaceState;
-  if (!directory || !state || !commerce || !equipment || !races) return;
-  if (state.revision === lastQueuedDialogueStateRevision && commerce.revision === lastQueuedCommerceStateRevision && equipment.revision === lastQueuedEquipmentStateRevision && races.revision === lastQueuedRaceStateRevision) return;
-  const dialogueRevision = state.revision;
-  const commerceRevision = commerce.revision;
-  const equipmentRevision = equipment.revision;
-  const raceRevision = races.revision;
-  const snapshot = createRecoveredDialogueStateSave(state, new Date().toISOString(), commerce, equipment, races);
-  lastQueuedDialogueStateRevision = dialogueRevision;
-  lastQueuedCommerceStateRevision = commerceRevision;
-  lastQueuedEquipmentStateRevision = equipmentRevision;
-  lastQueuedRaceStateRevision = raceRevision;
-  dialogueStateSaveQueue = dialogueStateSaveQueue
-    .catch(() => undefined)
-    .then(() => writeJson(directory, "save/recovered-dialogue-state.json", snapshot))
-    .then(() => console.info(`Recovered persistent state revisions dialogue=${dialogueRevision}, commerce=${commerceRevision}, equipment=${equipmentRevision}, races=${raceRevision} saved.`))
-    .catch((error) => {
-      if (lastQueuedDialogueStateRevision === dialogueRevision) lastQueuedDialogueStateRevision = -1;
-      if (lastQueuedCommerceStateRevision === commerceRevision) lastQueuedCommerceStateRevision = -1;
-      if (lastQueuedEquipmentStateRevision === equipmentRevision) lastQueuedEquipmentStateRevision = -1;
-      if (lastQueuedRaceStateRevision === raceRevision) lastQueuedRaceStateRevision = -1;
-      console.error("Recovered persistent state could not be saved.", error);
-    });
+function queueRecoveredProgressSave(): void {
+  recoveredProgressStore?.queueSave();
 }
 
 function selectedPartIndex(loadout: PartLoadout, category: PartCategory): number {
