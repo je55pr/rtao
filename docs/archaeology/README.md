@@ -4,7 +4,7 @@ These dated notes record subsystem reverse-engineering and evidence interpretati
 
 ## Repository-path note
 
-Many notes were written before the 2026-09-05 GitLab layout cleanup and therefore cite active TypeScript files under `web/...`. The active app was moved without content changes:
+Many notes were written before the 2026-09-05 repository layout cleanup and therefore cite active TypeScript files under `web/...`. The active app was moved without content changes:
 
 `web/...` **→** `rtao/...`
 

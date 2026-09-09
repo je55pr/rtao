@@ -26,4 +26,4 @@ Useful entry points include:
 - `shop_census.py`, `shop_readiness.py`, `shop_room_capture.py`, `shop_regression.py` — fixed-interior archaeology and regression helpers;
 - `mips_probe.py`, `disasm_elf_context.py` — executable/disassembly helpers.
 
-One-off sandbox scripts from the pre-GitLab workflow are retained under `docs/archive/one-off-tools/` and should not be treated as supported utilities.
+One-off sandbox scripts from the pre-repository workflow are retained under `docs/archive/one-off-tools/` and should not be treated as supported utilities.

@@ -1,3 +1,11 @@
+---
+name: Parity bug
+about: Report a deterministic PAL/RTAO behavior difference
+title: ''
+labels: ''
+assignees: ''
+---
+
 ## PAL observation
 
 <!-- What does the PAL game/executable demonstrably do? -->
