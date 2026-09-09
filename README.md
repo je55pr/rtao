@@ -2,7 +2,9 @@
 
 Clean-room browser reimplementation of the European PS2 release of **Road Trip Adventure / ChoroQ HG 2**.
 
-The GitHub repository is the canonical development source. The project intentionally contains **no original game assets**; supply your own PAL BIN/CUE, cooked ISO, or extracted disc data at runtime.
+**Play the latest public build:** https://je55pr.github.io/rtao/
+
+The GitHub repository is the canonical development source. The project intentionally contains **no original game assets**; the hosted game shell likewise contains none. Supply your own PAL BIN/CUE, cooked ISO, or extracted disc data at runtime.
 
 ## Repository map
 
