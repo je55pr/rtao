@@ -2,68 +2,49 @@
 
 **Active implementation:** `rtao/` — Three.js / TypeScript browser game  
 **Authority:** European PAL executable/data supplied locally by the developer  
-**Current priority:** supported playable Peach Raceway session
+**Current priority:** first playable Peach Raceway session (#6)
 
-GitHub issues are the actionable project backlog. This page records only the concise current evidence boundary and points at the active work items rather than maintaining a second detailed todo list.
+GitHub issues are the actionable backlog. This page is only the concise implementation/evidence boundary; do not grow it into a second task tracker.
 
-## Current race boundary
+## Race boundary
 
-Native course collision queries are implemented and verified against PAL behavior:
+The ordinary native vehicle path required for the first race slice is merged on `main` (commit `9f8836b` and descendants). Verified foundations include:
 
-- underlying course-cell/strip query: `0x00207748`;
-- wrapper: `0x00208C50`;
-- 8,192 seeded PAL instruction cases;
-- 363 wrapper boundary cases;
-- 2,040 original-course queries across all 15 courses, including all 360 grid positions;
-- latest local gates: **45 CI-safe files / 230 tests** and **14 PAL files / 33 tests**,
-  with production and capture builds passing.
+- ordinary-race catalogue, entrant/grid construction, finish strips, lap state, rewards and licence progression;
+- native ordinary AI/navigation and scheduling/order behavior;
+- native controls, drive force, traction and scalar vehicle composition;
+- seven-probe ground support and course collision queries;
+- scalar contact producer plus orientation/VU helper composition;
+- standard collision response and original-course obstacle iteration;
+- the enclosing ordinary frame through body orientation/distance across 1,800 retained PAL updates on C00/C03/C07.
 
-Primary write-up: [`PAL_NATIVE_RACE_COLLISION_2026-09-05.md`](PAL_NATIVE_RACE_COLLISION_2026-09-05.md).
+The retained 2026-09-05 PAL gate recorded **14 PAL files / 33 tests** passing for this race evidence boundary. Current copyright-safe validation is enforced by GitHub Actions rather than duplicated here as a rolling test count.
 
-The scalar contact producer at `0x0021C280` now matches 8,192 prescribed-transform
-PAL cases, 600 retained-history updates and 360 grid-position cases / 2,520
-original-course queries. This earlier isolated regression remains intact. See
-[`PAL_NATIVE_RACE_CONTACT_2026-09-05.md`](PAL_NATIVE_RACE_CONTACT_2026-09-05.md).
+Primary write-ups: `PAL_NATIVE_RACE_FRAME_2026-09-05.md`, `PAL_NATIVE_RACE_MATH_2026-09-05.md`, `PAL_NATIVE_RACE_CONTACT_2026-09-05.md`, and `PAL_NATIVE_RACE_COLLISION_2026-09-05.md`.
+## Immediate work
 
-The VU/orientation helpers now compose with contact, course queries and support:
-2,048 complete caller cases, all 360 grids and 600 retained contact updates /
-6,720 queries. All 65,536 signed yaw values and 4,096 seeded math cases match
-the bounded host-float32 PAL instruction oracle. The command consumer's native
-world-velocity transform also passes 2,048 composed cases. Hardware rounding,
-VU timing/flags and extended exponents remain outside this oracle. See
-[`PAL_NATIVE_RACE_MATH_2026-09-05.md`](PAL_NATIVE_RACE_MATH_2026-09-05.md).
+1. **#6** — build the supported playable Peach Raceway vertical slice using the merged native movement path: entrant ownership/commands, rendering, ordered laps/finish, results and persistent Cake rewards.
+2. **#7** — connect Q's Factory race selection/launch to that validated playable course.
 
-The enclosing ordinary frame now matches 1,024 composed cases and 1,800 moving
-PAL updates across C00/C03/C07. Standard collision response and original-course
-obstacle buffers are verified. Commands are supplied; reset/debug, scene-28,
-outdoor, equipment `0x300C`, wheel animation and the later UI callback remain
-outside this gate. See [`PAL_NATIVE_RACE_FRAME_2026-09-05.md`](PAL_NATIVE_RACE_FRAME_2026-09-05.md).
+Issues **#3, #4 and #5** describe foundations that are already merged and should remain closed historical milestones, not active prerequisites.
 
-## Active work items
+## Explicitly outside the current race gate
 
-The current race path is deliberately ordered:
+- complete native scene initialization and reset/debug paths;
+- outdoor/scene-28 behavior;
+- equipment path `0x300C`;
+- wheel animation and the later UI callback;
+- hardware-exact VU timing/flags, rounding and extended-exponent behavior beyond the bounded host-float32 oracle.
 
-1. **#3** — scalar contact producer implemented and locally verified on
-   `codex/pal-race-contact-producer`; awaiting review, not merged.
-2. **#4** — probe transforms, normal/adjustment, orientation and inverse implemented
-   and locally verified on the same branch; awaiting review, not merged.
-3. **#5** — representative moving trajectories and the supported enclosing
-   frame implemented and locally verified; awaiting review, not merged.
-4. **#6** — connect the validated native movement path to the first playable Peach Raceway vertical slice.
-5. **#7** — connect Q's Factory race selection/launch to the validated playable course.
+The first playable race is not complete, and there is not yet a valid rendered moving-race capture.
 
-Architecture cleanup is tracked separately in **#2**, which decomposes `rtao/src/main.ts` through behavior-neutral extraction PRs.
+## Validation and evidence
 
-The scalar ground-support solver at `0x0021BDD8` is already verified. The first playable race is **not** complete, and there is no new valid moving-race capture yet.
-
-## Where to look
-
-- Current human-readable evidence boundary: [`../RTA_CURRENT_STATE.md`](../RTA_CURRENT_STATE.md)
-- Current machine-readable state: [`../RTA_STATE.json`](../RTA_STATE.json)
+- CI-safe gate: `cd rtao && npm run check`
+- PAL-only gate: `npm run test:pal` with locally supplied original-game inputs
 - Race evidence: [`evidence/races/2026-09-05/`](evidence/races/2026-09-05/)
 - Subsystem archaeology: [`archaeology/`](archaeology/)
-- Architecture overview: [`ARCHITECTURE.md`](ARCHITECTURE.md)
-- Architecture decisions: [`adr/`](adr/)
-- Shared contributor/agent rules: [`../AGENTS.md`](../AGENTS.md)
+- Architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md)
+- Completion rules: [`development/DEFINITION_OF_DONE.md`](development/DEFINITION_OF_DONE.md)
 
-Do not infer missing native behavior from the C# reference or from convenience. PAL evidence remains the implementation boundary.
+Original game data must remain local. Do not infer missing native behavior from the C# reference or convenience; PAL evidence remains authoritative.

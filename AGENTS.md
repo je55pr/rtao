@@ -7,8 +7,8 @@ This repository is a shared development surface for human contributors and codin
 - GitHub `main` is the canonical project state.
 - The active game is **`rtao/`** (Three.js / TypeScript).
 - **`reference/csharp/`** is the earlier C#/MonoGame implementation retained for archaeology and comparison. Do not treat it as the active product unless a task explicitly targets it.
-- `RTA_CURRENT_STATE.md` is the concise human-readable current evidence boundary.
-- `RTA_STATE.json` is the concise machine-readable current state.
+- `docs/STATUS.md` is the concise current implementation/evidence boundary.
+- GitHub issues are the actionable backlog and task status.
 - The final pre-GitLab state blobs are preserved verbatim under `docs/archive/state/` for historical lookup; do not use them as current instructions.
 - `docs/development/DEFINITION_OF_DONE.md` defines the minimum completion bar for maintenance and PAL-backed behavior work.
 
@@ -55,7 +55,7 @@ If two agents may appear under the same GitHub account, record the actual author
 
 ## Before changing behavior
 
-1. Read `docs/STATUS.md`, `RTA_CURRENT_STATE.md` and `RTA_STATE.json`.
+1. Read `docs/STATUS.md` and the relevant open GitHub issue(s).
 2. Read the relevant archaeology/evidence under `docs/archaeology/` and `docs/evidence/`.
 3. Inspect the current implementation/tests in `rtao/` rather than relying on chat memory.
 4. Inspect open PRs/branches touching the same subsystem.
@@ -98,7 +98,7 @@ cd reference/csharp
 
 Use GitHub issues for new actionable work rather than creating new chat handoff/checkpoint documents. Prefer the archaeology/parity templates under `.github/ISSUE_TEMPLATE/` when they fit.
 
-Current-state documents remain useful for concise evidence boundaries, but they should not become a second detailed backlog competing with GitHub issues.
+`docs/STATUS.md` stays intentionally concise; do not recreate machine-readable or duplicate state ledgers alongside GitHub issues.
 
 ## Repository hygiene
 
