@@ -7,4 +7,4 @@
 - [`development/`](development/) — developer-environment notes and external-input requirements.
 - [`archive/`](archive/) — obsolete chat-era handoffs, previous state blobs and one-off development artifacts retained only for history.
 
-The canonical current state is [`../RTA_CURRENT_STATE.md`](../RTA_CURRENT_STATE.md) plus [`../RTA_STATE.json`](../RTA_STATE.json). Git history, pull requests and reviews now carry development continuity instead of ZIP/checkpoint handoffs.
+The concise current boundary is [`STATUS.md`](STATUS.md). GitHub issues track actionable work; Git history, pull requests and reviews carry development continuity instead of ZIP/checkpoint handoffs.

@@ -63,7 +63,7 @@ or a general R5900 emulator. Audio calls are hooks.
 Traction, yaw, drift, native equipment loading and composed scalar vehicle
 updates are now implemented. Later checkpoints reached 48 files / 232 tests.
 See `docs/evidence/races/2026-09-05/LATEST.md` for the retained checkpoint scope
-and `RTA_CURRENT_STATE.md` for the current remaining contact/transform boundary.
+and `docs/STATUS.md` for the current supported race boundary.
 
 ## Earlier next boundary
 

@@ -96,5 +96,5 @@ game assets are bundled with the source.
 The later race checkpoints have already closed scheduling/order, control,
 drive-force, traction, vehicle scalar composition, ground-support solving and
 course-collision queries beyond the boundary originally recorded in this note.
-See `RTA_CURRENT_STATE.md` and `docs/STATUS.md` for the current contact/orientation
+See `docs/STATUS.md` for the current contact/orientation
 boundary before starting further race work.

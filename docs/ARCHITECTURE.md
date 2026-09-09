@@ -22,8 +22,8 @@ PAL executable/data is the behavioral authority. Native translations should rema
 
 Primary supporting material:
 
-- `RTA_CURRENT_STATE.md` — current boundary;
-- `RTA_STATE.json` — machine-readable current focus;
+- `docs/STATUS.md` — concise current implementation/evidence boundary;
+- GitHub issues — actionable work and task status;
 - `docs/archaeology/` — interpreted subsystem notes;
 - `docs/evidence/` — retained traces, oracles, deterministic captures and logs.
 

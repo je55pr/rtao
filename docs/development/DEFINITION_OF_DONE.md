@@ -10,7 +10,7 @@ A maintenance/refactor change is done when:
 2. It does not intentionally change gameplay/native behavior.
 3. `cd rtao && npm run check` passes.
 4. Any moved/renamed paths have their live references updated.
-5. The MR explains any residual risk and identifies the area a reviewer should inspect.
+5. The PR explains any residual risk and identifies the area a reviewer should inspect.
 
 Large structural refactors should be split from behavior work so regressions can be attributed cleanly.
 
@@ -23,10 +23,10 @@ A native/gameplay behavior change is done when:
 3. **Implementation added** — active TypeScript behavior lives under `rtao/`; C# remains reference/archaeology unless explicitly targeted.
 4. **Deterministic regression added** — a unit/oracle/capture test covers the recovered behavior where practical.
 5. **CI-safe gate passes** — `cd rtao && npm run check` passes without requiring copyrighted original inputs.
-6. **PAL validation passes when required** — `npm run test:pal` (with the required local environment variables) or an equivalent documented PAL oracle run succeeds. If the environment was unavailable, the MR must say so explicitly and must not claim parity was validated.
+6. **PAL validation passes when required** — `npm run test:pal` (with the required local environment variables) or an equivalent documented PAL oracle run succeeds. If the environment was unavailable, the PR must say so explicitly and must not claim parity was validated.
 7. **Visual validation performed when relevant** — deterministic captures are compared for rendering/scene changes.
 8. **Evidence/state documentation updated** — only when the evidence boundary or current implementation status materially changed.
-9. **Independent review is possible** — the MR points reviewers to the evidence, tests, unknowns, and highest-risk code.
+9. **Independent review is possible** — the PR points reviewers to the evidence, tests, unknowns, and highest-risk code.
 
 ## Validation commands
 

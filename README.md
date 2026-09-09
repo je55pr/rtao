@@ -14,8 +14,7 @@ The GitHub repository is the canonical development source. The project intention
 | [`tools/`](tools/) | Maintained archaeology, deterministic capture and evidence-generation utilities |
 | [`docs/`](docs/) | Architecture, archaeology notes, evidence and archived historical material |
 | [`reference/csharp/`](reference/csharp/) | Earlier C#/MonoGame implementation retained as reference/archaeology, not the active product |
-| [`RTA_CURRENT_STATE.md`](RTA_CURRENT_STATE.md) | Concise human-readable current evidence boundary |
-| [`RTA_STATE.json`](RTA_STATE.json) | Concise machine-readable current state |
+| [`docs/STATUS.md`](docs/STATUS.md) | Concise current implementation/evidence boundary |
 | [`AGENTS.md`](AGENTS.md) | Shared working conventions for ChatGPT, Claude and future contributors |
 
 ## Quick start
@@ -39,7 +38,7 @@ PAL-backed tests additionally use locally supplied original-game inputs through 
 
 Races are the current priority. The ordinary vehicle frame now composes movement, ground/obstacle contact, orientation and collision response, matching 1,800 retained PAL updates across three original courses. The next milestone is the supported playable Peach Raceway session, followed by Q's Factory launch and finish-to-Cake integration. Reset/debug and special equipment paths remain gated; see [`docs/PAL_NATIVE_RACE_FRAME_2026-09-05.md`](docs/PAL_NATIVE_RACE_FRAME_2026-09-05.md).
 
-For the concise current status, see [`docs/STATUS.md`](docs/STATUS.md). For architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). For the full current task/evidence boundary, see [`RTA_CURRENT_STATE.md`](RTA_CURRENT_STATE.md).
+For the concise current boundary, see [`docs/STATUS.md`](docs/STATUS.md). For architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Actionable work is tracked in GitHub issues.
 
 ## Clean-room boundary
 
