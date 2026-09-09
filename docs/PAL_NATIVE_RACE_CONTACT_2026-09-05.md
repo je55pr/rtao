@@ -1,7 +1,7 @@
 # Native seven-probe contact producer
 
 Author: Codex, local Windows checkout, branch `codex/pal-race-contact-producer`.
-Scope: GitLab #3. This document retains the isolated scalar evidence boundary.
+Scope: GitHub #3. This document retains the isolated scalar evidence boundary.
 The subsequent #4 composition is recorded in
 [`PAL_NATIVE_RACE_MATH_2026-09-05.md`](PAL_NATIVE_RACE_MATH_2026-09-05.md).
 

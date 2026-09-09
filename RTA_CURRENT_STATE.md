@@ -1,7 +1,7 @@
 # RTAO current state
 
 **Updated:** 2026-09-05  
-**Canonical source:** GitLab `main`  
+**Canonical source:** GitHub `main`
 **Active implementation:** `rtao/` — Three.js / TypeScript  
 **Behavioral authority:** European PAL executable/data supplied locally by the developer
 
@@ -136,4 +136,4 @@ Do not commit original game data. Do not invent native behavior to close a featu
 
 ## Repository transition note
 
-The repository now uses Git history, branches, merge requests and review instead of ZIP checkpoints and chat handoff manifests. Historical recovery material is retained under `docs/archive/` only for reference.
+The repository now uses Git history, branches, pull requests and review instead of ZIP checkpoints and chat handoff manifests. Historical recovery material is retained under `docs/archive/` only for reference.

@@ -4,7 +4,7 @@
 **Authority:** European PAL executable/data supplied locally by the developer  
 **Current priority:** supported playable Peach Raceway session
 
-GitLab issues are the actionable project backlog. This page records only the concise current evidence boundary and points at the active work items rather than maintaining a second detailed todo list.
+GitHub issues are the actionable project backlog. This page records only the concise current evidence boundary and points at the active work items rather than maintaining a second detailed todo list.
 
 ## Current race boundary
 
@@ -52,7 +52,7 @@ The current race path is deliberately ordered:
 4. **#6** — connect the validated native movement path to the first playable Peach Raceway vertical slice.
 5. **#7** — connect Q's Factory race selection/launch to the validated playable course.
 
-Architecture cleanup is tracked separately in **#2**, which decomposes `rtao/src/main.ts` through behavior-neutral extraction MRs.
+Architecture cleanup is tracked separately in **#2**, which decomposes `rtao/src/main.ts` through behavior-neutral extraction PRs.
 
 The scalar ground-support solver at `0x0021BDD8` is already verified. The first playable race is **not** complete, and there is no new valid moving-race capture yet.
 

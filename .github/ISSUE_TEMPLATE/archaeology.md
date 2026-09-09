@@ -1,3 +1,11 @@
+---
+name: Archaeology
+about: Recover evidence-backed native behavior
+title: ''
+labels: 'type::archaeology'
+assignees: ''
+---
+
 ## Question to resolve
 
 <!-- State the native behavior we need to recover. -->

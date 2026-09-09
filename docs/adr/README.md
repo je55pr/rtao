@@ -2,7 +2,7 @@
 
 ADRs capture project decisions that future contributors and agents should not need to rediscover from chat history or archaeology notes.
 
-They are intentionally short. An ADR records a durable project decision and its rationale; it is not a substitute for PAL evidence, subsystem research, tests, or GitLab issues.
+They are intentionally short. An ADR records a durable project decision and its rationale; it is not a substitute for PAL evidence, subsystem research, tests, or GitHub issues.
 
 Status values:
 

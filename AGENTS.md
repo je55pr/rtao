@@ -4,7 +4,7 @@ This repository is a shared development surface for human contributors and codin
 
 ## Canonical source and ownership
 
-- GitLab `main` is the canonical project state.
+- GitHub `main` is the canonical project state.
 - The active game is **`rtao/`** (Three.js / TypeScript).
 - **`reference/csharp/`** is the earlier C#/MonoGame implementation retained for archaeology and comparison. Do not treat it as the active product unless a task explicitly targets it.
 - `RTA_CURRENT_STATE.md` is the concise human-readable current evidence boundary.
@@ -34,31 +34,31 @@ Do not create generic agent branches such as `feature/...`, `fix/...`, `work/...
 
 Keep a branch's original ownership prefix for its lifetime. If another agent needs to make substantial changes rather than merely review it, that agent should normally branch from the relevant commit using its own prefix instead of silently taking ownership of the existing branch.
 
-Before starting work, inspect open branches/MRs relevant to the same subsystem. One branch should have one primary owner. Do not independently modify the same subsystem on multiple active branches unless the overlap is deliberate and communicated.
+Before starting work, inspect open branches/PRs relevant to the same subsystem. One branch should have one primary owner. Do not independently modify the same subsystem on multiple active branches unless the overlap is deliberate and communicated.
 
-Normal development targets a task branch and merge request rather than direct commits to `main`. Keep commits small and coherent enough to review and revert independently.
+Normal development targets a task branch and pull request rather than direct commits to `main`. Keep commits small and coherent enough to review and revert independently.
 
-## Reviews and merge requests
+## Reviews and pull requests
 
-Use `.gitlab/merge_request_templates/Default.md` for normal MRs.
+Use `.github/pull_request_template.md` for normal PRs.
 
 For cross-agent review:
 
 - the author owns the source branch;
-- the reviewer inspects the actual diff, tests and evidence independently rather than trusting the MR summary;
+- the reviewer inspects the actual diff, tests and evidence independently rather than trusting the PR summary;
 - reviewers should leave comments/suggestions rather than silently rewriting the author's branch unless explicitly asked;
 - a reviewer must not claim a test or PAL comparison passed unless they ran or independently verified it;
-- resolve disagreements in the MR so the reasoning remains visible in project history;
-- behavior work and structural refactors should normally be separate MRs.
+- resolve disagreements in the PR so the reasoning remains visible in project history;
+- behavior work and structural refactors should normally be separate PRs.
 
-If two agents may appear under the same GitLab account, record the actual author/reviewer environment in the MR description or review comment. Branch prefixes are provenance, not access-control boundaries.
+If two agents may appear under the same GitHub account, record the actual author/reviewer environment in the PR description or review comment. Branch prefixes are provenance, not access-control boundaries.
 
 ## Before changing behavior
 
 1. Read `docs/STATUS.md`, `RTA_CURRENT_STATE.md` and `RTA_STATE.json`.
 2. Read the relevant archaeology/evidence under `docs/archaeology/` and `docs/evidence/`.
 3. Inspect the current implementation/tests in `rtao/` rather than relying on chat memory.
-4. Inspect open MRs/branches touching the same subsystem.
+4. Inspect open PRs/branches touching the same subsystem.
 5. Identify the exact evidence boundary before adding behavior.
 6. Read `docs/development/DEFINITION_OF_DONE.md` before declaring the work complete.
 
@@ -96,9 +96,9 @@ cd reference/csharp
 
 ## Project tracking
 
-Use GitLab issues for new actionable work rather than creating new chat handoff/checkpoint documents. Prefer the archaeology/parity templates under `.gitlab/issue_templates/` when they fit.
+Use GitHub issues for new actionable work rather than creating new chat handoff/checkpoint documents. Prefer the archaeology/parity templates under `.github/ISSUE_TEMPLATE/` when they fit.
 
-Current-state documents remain useful for concise evidence boundaries, but they should not become a second detailed backlog competing with GitLab issues.
+Current-state documents remain useful for concise evidence boundaries, but they should not become a second detailed backlog competing with GitHub issues.
 
 ## Repository hygiene
 
@@ -106,6 +106,6 @@ Current-state documents remain useful for concise evidence boundaries, but they 
 - `docs/evidence/` contains retained primary evidence such as traces, deterministic reports and captures.
 - `docs/archaeology/` contains interpreted subsystem research notes.
 - Generated output belongs in ignored `artifacts/`, `.dev-cache/`, build or coverage directories unless it is deliberately retained as evidence.
-- Do not create ZIP checkpoints, chat handoff manifests or restoration files for normal GitLab development. Git history, branches, MRs and tags replace that workflow.
+- Do not create ZIP checkpoints, chat handoff manifests or restoration files for normal GitHub development. Git history, branches, PRs and tags replace that workflow.
 - Update path references when moving files. Historical files under `docs/archive/` may retain old paths when they describe the historical environment.
 - Keep line endings and editor behavior consistent with `.gitattributes` and `.editorconfig`.

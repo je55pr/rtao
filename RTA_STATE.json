@@ -3,13 +3,13 @@
   "updated": "2026-09-05",
   "project": "Road Trip Adventure Online",
   "short_name": "RTAO",
-  "canonical_source": "GitLab main",
+  "canonical_source": "GitHub main",
   "active_implementation": "rtao",
   "reference_implementation": "reference/csharp",
   "authority": "European PAL executable/data supplied locally by the developer",
   "current_focus": "Connect the supported native movement path to the first playable Peach Raceway session, including ownership/commands, rendering, laps/results and persistent Cake rewards.",
   "tracking": {
-    "actionable_backlog": "GitLab issues",
+    "actionable_backlog": "GitHub issues",
     "main_ts_refactor_issue": 2,
     "race_issue_chain": [
       3,
