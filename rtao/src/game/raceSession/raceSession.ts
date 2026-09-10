@@ -10,8 +10,8 @@ import {
   type NativeRaceFrameData,
   type NativeRaceFrameState,
 } from "../nativeRaceFrame";
-import type { NativeRaceVector } from "../nativeRaceMath";
-import type { NativeRaceEquipment } from "../nativeRaceVehicle";
+import { type NativeRaceVector, nativeRaceIdentity } from "../nativeRaceMath";
+import { createNativeRaceVehicleState, type NativeRaceEquipment } from "../nativeRaceVehicle";
 import { nativeRacePositions } from "../racePositions";
 import {
   advanceNativeRaceFinishGate,
@@ -116,7 +116,60 @@ interface RuntimeEntrant extends OrdinaryRaceSessionEntrantInput {
   speedLimit: number;
   navigationOutput: number | undefined;
   navigationDistance: number | undefined;
-}export class OrdinaryRaceSession {
+}
+
+export interface OrdinaryRaceInitialFrameInput {
+  readonly entrant: OrdinaryRaceEntrant;
+  /** Native course-space Y returned by the selected ordinary-course collision helper. */
+  readonly groundedNativeY: number;
+  /** PAL GP-32492 position scale, exposed by readNativeRaceFrameData. */
+  readonly positionDivisor: number;
+}
+
+/**
+ * Narrow ordinary-car snapshot after the evidenced 0x219308 initializer.
+ * This is not a scene/reset initializer: callers must collision-ground the PAL
+ * start seed first, and unrecovered reset/debug paths remain rejected later.
+ */
+export function createOrdinaryRaceInitialFrameState(input: OrdinaryRaceInitialFrameInput): NativeRaceFrameState {
+  const { entrant, groundedNativeY, positionDivisor } = input;
+  if (!Number.isFinite(groundedNativeY) || !Number.isFinite(positionDivisor) || positionDivisor <= 0) {
+    throw new RangeError("Ordinary race initial frame requires finite grounded Y and a positive PAL position divisor.");
+  }
+  const fixed = (value: number): number => mipsCvtWs(Math.fround(Math.fround(value) * Math.fround(positionDivisor)));
+  const position = [fixed(entrant.seed.nativeX), fixed(groundedNativeY), fixed(entrant.seed.nativeZ)] as const;
+  const identity = nativeRaceIdentity();
+  return {
+    vehicle: createNativeRaceVehicleState(entrant.seed.nativeYaw),
+    contact: {
+      position,
+      referenceY: Math.fround(groundedNativeY),
+      support: [4096, 4096, 4096],
+      supportDelta: [0, 0, 0],
+      impulses: [0, 0, 0],
+      unsupportedTicks: 0,
+      runtimeFlags: 0,
+      specialState: 0,
+      yaw: entrant.seed.nativeYaw,
+    },
+    velocity: [0, 0, 0, 0],
+    previousVelocity: [0, 0, 0, 0],
+    matrix: identity,
+    inverse: [...identity],
+    bodyMatrix: [...identity],
+    coordinates: [Math.fround(entrant.seed.nativeX), Math.fround(groundedNativeY), Math.fround(entrant.seed.nativeZ), 1],
+    surfaces: [0, 0, 0, 0, 0, 0, 0],
+    carFlags: entrant.packedCreationFlags >>> 16,
+    positionIndex: entrant.carIndex,
+    distance: 0,
+    countdownByte: 0,
+    countdownHalf: 0,
+    verticalControl: 0,
+    shiftScheduleFlag: 0,
+  };
+}
+
+export class OrdinaryRaceSession {
   private readonly activity: RaceActivityDescriptor;
   private readonly finishGates: RaceFinishGateSet;
   private readonly frameData: NativeRaceFrameData;
@@ -396,4 +449,17 @@ function validateCommand(command: OrdinaryRaceSessionCommand): void {
   if (distance !== undefined && !Number.isFinite(distance)) {
     throw new RangeError("Race navigation distance must be finite.");
   }
+}
+
+function mipsCvtWs(value: number): number {
+  const single = Math.fround(value);
+  const floor = Math.floor(single);
+  const fraction = single - floor;
+  const rounded = fraction < 0.5 ? floor
+    : fraction > 0.5 ? floor + 1
+      : (floor & 1) === 0 ? floor : floor + 1;
+  if (rounded < -0x80000000 || rounded > 0x7fffffff) {
+    throw new RangeError("Ordinary race initial fixed-point position exceeds signed 32-bit range.");
+  }
+  return rounded | 0;
 }

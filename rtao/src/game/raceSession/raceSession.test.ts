@@ -14,7 +14,11 @@ import {
 import { nativeRaceIdentity } from "../nativeRaceMath";
 import { createNativeRaceVehicleState } from "../nativeRaceVehicle";
 import { RecoveredRaceState } from "../raceProgress";
-import { OrdinaryRaceSession, type OrdinaryRaceSessionConfig } from "./raceSession";
+import {
+  createOrdinaryRaceInitialFrameState,
+  OrdinaryRaceSession,
+  type OrdinaryRaceSessionConfig,
+} from "./raceSession";
 
 const finishGates: RaceFinishGateSet = {
   courseId: 0,
@@ -152,6 +156,29 @@ function entrant(carIndex: number): OrdinaryRaceEntrant {
 function session(carCount: number, elapsedUpdates = 200): OrdinaryRaceSession {
   return new OrdinaryRaceSession(config(carCount, elapsedUpdates), { advanceFrame: frameAdvance });
 }describe("ordinary race session", () => {
+  test("builds the evidenced post-grid ordinary-car snapshot without entering reset paths", () => {
+    const player: OrdinaryRaceEntrant = {
+      ...entrant(0),
+      packedCreationFlags: 0x00025c00,
+      startIndex: 23,
+      seed: { courseId: 0, startIndex: 23, nativeX: 457.2, nativeY: 1.1, nativeZ: 568.8, nativeYaw: 0x4000 },
+    };
+    const state = createOrdinaryRaceInitialFrameState({
+      entrant: player,
+      groundedNativeY: 1.1,
+      positionDivisor: 20971.51953125,
+    });
+    expect(state.contact.position).toEqual([9_588_179, 23_069, 11_928_600]);
+    expect(state.contact.support).toEqual([4096, 4096, 4096]);
+    expect(state.vehicle).toMatchObject({ gear: 1, fuel: 0x40000, yaw: 0x4000, nativeSpeed: 0 });
+    expect(state.carFlags).toBe(2);
+    expect(state.positionIndex).toBe(0);
+    expect(state.matrix).toEqual(nativeRaceIdentity());
+    expect(state.inverse).toEqual(nativeRaceIdentity());
+    expect(state.bodyMatrix).toEqual(nativeRaceIdentity());
+    expect(state.surfaces).toEqual([0, 0, 0, 0, 0, 0, 0]);
+  });
+
   test("owns the evidenced countdown-to-drive boundary deterministically", () => {
     const race = session(2, 199);
     const idle = () => ({ commands: 20, navigationOutput: 1, navigationDistance: 1 });
