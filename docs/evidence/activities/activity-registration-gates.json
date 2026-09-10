@@ -1,0 +1,225 @@
+{
+  "scope": "PAL-derived fixed SHOP dialogue links for activity IDs 24..38; no game payload",
+  "activityCensusSha256": "57f6275c4703882e6c2f2b1c93416d98a0a598d1d9b632b43a94411f1dc9074a",
+  "shopCensusSha256": "bf6c5c96f8cc6a23a8818fbc16a3240cc4afbc5a64638608a18b40907189352c",
+  "semantics": {
+    "action03": "host-action parameter; do not equate with activity ID without a traced consumer",
+    "action0D": "GrantStamps: each nonzero operand is appended by PAL helper 0x0023E408"
+  },
+  "matches": [
+    {
+      "activityId": 24,
+      "name": "Roulette",
+      "owners": [
+        {
+          "areaIndex": 3,
+          "fieldNumber": 13,
+          "slotIndex": 8,
+          "entityName": "Roulette Registration",
+          "packagePath": "SHOP/T02.BIN",
+          "hostAction03Parameters": [
+            44
+          ],
+          "grantStampIds": [
+            29
+          ]
+        }
+      ]
+    },
+    {
+      "activityId": 25,
+      "name": "Figure 8",
+      "owners": [
+        {
+          "areaIndex": 3,
+          "fieldNumber": 13,
+          "slotIndex": 6,
+          "entityName": "Figure 8 Registration",
+          "packagePath": "SHOP/T02.BIN",
+          "hostAction03Parameters": [
+            45
+          ],
+          "grantStampIds": []
+        }
+      ]
+    },
+    {
+      "activityId": 26,
+      "name": "Football",
+      "owners": [
+        {
+          "areaIndex": 3,
+          "fieldNumber": 13,
+          "slotIndex": 7,
+          "entityName": "Football Registration,",
+          "packagePath": "SHOP/T02.BIN",
+          "hostAction03Parameters": [
+            46
+          ],
+          "grantStampIds": [
+            37,
+            38
+          ]
+        }
+      ]
+    },
+    {
+      "activityId": 28,
+      "name": "Tunnel Race",
+      "owners": [
+        {
+          "areaIndex": 9,
+          "fieldNumber": 23,
+          "slotIndex": 18,
+          "entityName": "Akiban",
+          "packagePath": "SHOP/T08.BIN",
+          "hostAction03Parameters": [
+            38
+          ],
+          "grantStampIds": [
+            43,
+            44
+          ]
+        }
+      ]
+    },
+    {
+      "activityId": 29,
+      "name": "Obstacle Course",
+      "owners": [
+        {
+          "areaIndex": 7,
+          "fieldNumber": 233,
+          "slotIndex": 5,
+          "entityName": "Obstacle Course registration",
+          "packagePath": "SHOP/T06.BIN",
+          "hostAction03Parameters": [
+            48
+          ],
+          "grantStampIds": [
+            75,
+            76
+          ]
+        }
+      ]
+    },
+    {
+      "activityId": 30,
+      "name": "Which-way? Race",
+      "owners": [
+        {
+          "areaIndex": 9,
+          "fieldNumber": 23,
+          "slotIndex": 10,
+          "entityName": "Dayan",
+          "packagePath": "SHOP/T08.BIN",
+          "hostAction03Parameters": [
+            49
+          ],
+          "grantStampIds": [
+            47
+          ]
+        }
+      ]
+    },
+    {
+      "activityId": 32,
+      "name": "Curling",
+      "owners": [
+        {
+          "areaIndex": 6,
+          "fieldNumber": 203,
+          "slotIndex": 18,
+          "entityName": "Curling Registration",
+          "packagePath": "SHOP/T05.BIN",
+          "hostAction03Parameters": [
+            51
+          ],
+          "grantStampIds": [
+            69,
+            70
+          ]
+        }
+      ]
+    },
+    {
+      "activityId": 35,
+      "name": "Ski Jumping",
+      "owners": [
+        {
+          "areaIndex": 6,
+          "fieldNumber": 203,
+          "slotIndex": 7,
+          "entityName": "Ski Jumping Registration",
+          "packagePath": "SHOP/T05.BIN",
+          "hostAction03Parameters": [
+            53
+          ],
+          "grantStampIds": [
+            66
+          ]
+        }
+      ]
+    },
+    {
+      "activityId": 36,
+      "name": "Fishing",
+      "owners": [
+        {
+          "areaIndex": 7,
+          "fieldNumber": 233,
+          "slotIndex": 15,
+          "entityName": "Shimisa",
+          "packagePath": "SHOP/T06.BIN",
+          "hostAction03Parameters": [
+            54
+          ],
+          "grantStampIds": [
+            82
+          ]
+        }
+      ]
+    },
+    {
+      "activityId": 37,
+      "name": "Beach Flag",
+      "owners": [
+        {
+          "areaIndex": 7,
+          "fieldNumber": 233,
+          "slotIndex": 13,
+          "entityName": "Micky",
+          "packagePath": "SHOP/T06.BIN",
+          "hostAction03Parameters": [
+            39
+          ],
+          "grantStampIds": [
+            78
+          ]
+        }
+      ]
+    }
+  ],
+  "unmatched": [
+    {
+      "activityId": 27,
+      "name": "Rainbow Jump"
+    },
+    {
+      "activityId": 31,
+      "name": "Volcano Course"
+    },
+    {
+      "activityId": 33,
+      "name": "Barrel Dodging"
+    },
+    {
+      "activityId": 34,
+      "name": "Cloud Hill"
+    },
+    {
+      "activityId": 38,
+      "name": "Single Lap Race"
+    }
+  ]
+}
