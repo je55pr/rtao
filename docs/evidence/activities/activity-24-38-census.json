@@ -1,0 +1,421 @@
+{
+  "sourceSha256": "2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9",
+  "scope": "PAL activity IDs 24..38; derived metadata only, no executable payload",
+  "dispatchEvidence": {
+    "descriptorSplitAtId": 35,
+    "handlerBInstallRead": "0x00210730",
+    "modeEightSetupBranch": "0x00210AD0",
+    "handlerAScheduleRead": "0x00210D80",
+    "ordinaryProgressionUpperExclusive": 24,
+    "ordinaryProgressionBoundInstruction": "0x00238D54"
+  },
+  "activities": [
+    {
+      "activityId": 24,
+      "name": "Roulette",
+      "descriptorAddress": "0x002BFFC8",
+      "descriptorBytes0To3": [
+        17,
+        24,
+        10,
+        4
+      ],
+      "settingsAddress": "0x002BFC80",
+      "settingsWordsRaw": [
+        "0x002BF998",
+        "0x040A0450",
+        "0x00030305",
+        "0x00000000",
+        "0x00000000",
+        "0x00000000"
+      ],
+      "handlerA": "0x0022F3F8",
+      "handlerB": "0x00252BA0",
+      "genericSelectorAreaIndex": 9
+    },
+    {
+      "activityId": 25,
+      "name": "Figure 8",
+      "descriptorAddress": "0x002BFFD8",
+      "descriptorBytes0To3": [
+        15,
+        24,
+        3,
+        4
+      ],
+      "settingsAddress": "0x002BFC68",
+      "settingsWordsRaw": [
+        "0x002BF968",
+        "0x040A0450",
+        "0x00030305",
+        "0x00000000",
+        "0x30000000",
+        "0x00000000"
+      ],
+      "handlerA": "0x0022F3F8",
+      "handlerB": "0x00252BA0",
+      "genericSelectorAreaIndex": 8
+    },
+    {
+      "activityId": 26,
+      "name": "Football",
+      "descriptorAddress": "0x002BFFE8",
+      "descriptorBytes0To3": [
+        17,
+        2,
+        3,
+        4
+      ],
+      "settingsAddress": "0x002BFCA0",
+      "settingsWordsRaw": [
+        "0x002BFC98",
+        "0x04090400",
+        "0x00030305",
+        "0x00000000",
+        "0x30000000",
+        "0x00000000"
+      ],
+      "handlerA": "0x0022F3F8",
+      "handlerB": "0x00252BA0",
+      "genericSelectorAreaIndex": null
+    },
+    {
+      "activityId": 27,
+      "name": "Rainbow Jump",
+      "descriptorAddress": "0x002BFFF8",
+      "descriptorBytes0To3": [
+        16,
+        24,
+        3,
+        4
+      ],
+      "settingsAddress": "0x002BFC68",
+      "settingsWordsRaw": [
+        "0x002BF968",
+        "0x040A0450",
+        "0x00030305",
+        "0x00000000",
+        "0x30000000",
+        "0x00000000"
+      ],
+      "handlerA": "0x0022F3F8",
+      "handlerB": "0x00252BA0",
+      "genericSelectorAreaIndex": null
+    },
+    {
+      "activityId": 28,
+      "name": "Tunnel Race",
+      "descriptorAddress": "0x002C0008",
+      "descriptorBytes0To3": [
+        1,
+        24,
+        3,
+        3
+      ],
+      "settingsAddress": "0x002BFCB8",
+      "settingsWordsRaw": [
+        "0x002BF9C8",
+        "0x03070446",
+        "0x00030303",
+        "0x00000000",
+        "0x30000000",
+        "0x00000000"
+      ],
+      "handlerA": "0x0022F3F8",
+      "handlerB": "0x00252BA0",
+      "genericSelectorAreaIndex": null
+    },
+    {
+      "activityId": 29,
+      "name": "Obstacle Course",
+      "descriptorAddress": "0x002C0018",
+      "descriptorBytes0To3": [
+        2,
+        24,
+        3,
+        3
+      ],
+      "settingsAddress": "0x002BFCD0",
+      "settingsWordsRaw": [
+        "0x002BF9C8",
+        "0x03090864",
+        "0x00030304",
+        "0x00000000",
+        "0x00000000",
+        "0x00000000"
+      ],
+      "handlerA": "0x0022F3F8",
+      "handlerB": "0x00252BA0",
+      "genericSelectorAreaIndex": null
+    },
+    {
+      "activityId": 30,
+      "name": "Which-way? Race",
+      "descriptorAddress": "0x002C0028",
+      "descriptorBytes0To3": [
+        5,
+        24,
+        3,
+        3
+      ],
+      "settingsAddress": "0x002BFCE8",
+      "settingsWordsRaw": [
+        "0x002BF9C8",
+        "0x0409084B",
+        "0x00030305",
+        "0x00000000",
+        "0x30000000",
+        "0x00000000"
+      ],
+      "handlerA": "0x0022F3F8",
+      "handlerB": "0x00252BA0",
+      "genericSelectorAreaIndex": null
+    },
+    {
+      "activityId": 31,
+      "name": "Volcano Course",
+      "descriptorAddress": "0x002C0038",
+      "descriptorBytes0To3": [
+        11,
+        24,
+        3,
+        3
+      ],
+      "settingsAddress": "0x002BFD00",
+      "settingsWordsRaw": [
+        "0x002BF9C8",
+        "0x04090A50",
+        "0x00030305",
+        "0x00000000",
+        "0x20000000",
+        "0x00000000"
+      ],
+      "handlerA": "0x0022F3F8",
+      "handlerB": "0x00252BA0",
+      "genericSelectorAreaIndex": null
+    },
+    {
+      "activityId": 32,
+      "name": "Curling",
+      "descriptorAddress": "0x002C0048",
+      "descriptorBytes0To3": [
+        12,
+        24,
+        3,
+        3
+      ],
+      "settingsAddress": "0x002BFD18",
+      "settingsWordsRaw": [
+        "0x002BF9C8",
+        "0x0409084B",
+        "0x00030204",
+        "0x00000000",
+        "0x00000000",
+        "0x00000000"
+      ],
+      "handlerA": "0x0022F3F8",
+      "handlerB": "0x00252BA0",
+      "genericSelectorAreaIndex": null
+    },
+    {
+      "activityId": 33,
+      "name": "Barrel Dodging",
+      "descriptorAddress": "0x002C0058",
+      "descriptorBytes0To3": [
+        14,
+        24,
+        3,
+        3
+      ],
+      "settingsAddress": "0x002BFD30",
+      "settingsWordsRaw": [
+        "0x002BF9C8",
+        "0x0409084B",
+        "0x00030305",
+        "0x00000000",
+        "0x10400000",
+        "0x00000000"
+      ],
+      "handlerA": "0x0022F3F8",
+      "handlerB": "0x00252BA0",
+      "genericSelectorAreaIndex": null
+    },
+    {
+      "activityId": 34,
+      "name": "Cloud Hill",
+      "descriptorAddress": "0x002C0068",
+      "descriptorBytes0To3": [
+        8,
+        24,
+        3,
+        3
+      ],
+      "settingsAddress": "0x002BFD48",
+      "settingsWordsRaw": [
+        "0x002BF9C8",
+        "0x04090650",
+        "0x00030305",
+        "0x00000000",
+        "0x20000000",
+        "0x00000000"
+      ],
+      "handlerA": "0x0022F3F8",
+      "handlerB": "0x00252BA0",
+      "genericSelectorAreaIndex": null
+    },
+    {
+      "activityId": 35,
+      "name": "Ski Jumping",
+      "descriptorAddress": "0x002C0090",
+      "descriptorBytes0To3": [
+        19,
+        2,
+        1,
+        0
+      ],
+      "settingsAddress": "0x002BFD68",
+      "settingsWordsRaw": [
+        "0x002BFD60",
+        "0x01040300",
+        "0x00020001",
+        "0x00000000",
+        "0x00000000",
+        "0x00000000"
+      ],
+      "handlerA": "0x0025BB00",
+      "handlerB": "0x00252BA0",
+      "genericSelectorAreaIndex": null
+    },
+    {
+      "activityId": 36,
+      "name": "Fishing",
+      "descriptorAddress": "0x002C00A0",
+      "descriptorBytes0To3": [
+        20,
+        2,
+        1,
+        0
+      ],
+      "settingsAddress": "0x002BFD88",
+      "settingsWordsRaw": [
+        "0x002BFD80",
+        "0x01040300",
+        "0x00010101",
+        "0x00000000",
+        "0x00000000",
+        "0x00000000"
+      ],
+      "handlerA": "0x002628E8",
+      "handlerB": "0x00252BA0",
+      "genericSelectorAreaIndex": null
+    },
+    {
+      "activityId": 37,
+      "name": "Beach Flag",
+      "descriptorAddress": "0x002C00B0",
+      "descriptorBytes0To3": [
+        22,
+        2,
+        1,
+        0
+      ],
+      "settingsAddress": "0x002BFDA8",
+      "settingsWordsRaw": [
+        "0x002BFDA0",
+        "0x02070300",
+        "0x00010103",
+        "0x00000000",
+        "0x00000000",
+        "0x00000000"
+      ],
+      "handlerA": "0x00263040",
+      "handlerB": "0x00252BA0",
+      "genericSelectorAreaIndex": null
+    },
+    {
+      "activityId": 38,
+      "name": "Single Lap Race",
+      "descriptorAddress": "0x002C00C0",
+      "descriptorBytes0To3": [
+        28,
+        2,
+        1,
+        0
+      ],
+      "settingsAddress": "0x002BFDF0",
+      "settingsWordsRaw": [
+        "0x002BFDE8",
+        "0x04090300",
+        "0x00000305",
+        "0x00000000",
+        "0x00000000",
+        "0x00000000"
+      ],
+      "handlerA": "0x0022F3F8",
+      "handlerB": "0x00252BA0",
+      "genericSelectorAreaIndex": null
+    }
+  ],
+  "selectors": [
+    {
+      "areaIndex": 0,
+      "firstActivityId": 0,
+      "count": 0
+    },
+    {
+      "areaIndex": 1,
+      "firstActivityId": 0,
+      "count": 3
+    },
+    {
+      "areaIndex": 2,
+      "firstActivityId": 3,
+      "count": 3
+    },
+    {
+      "areaIndex": 3,
+      "firstActivityId": 6,
+      "count": 4
+    },
+    {
+      "areaIndex": 4,
+      "firstActivityId": 10,
+      "count": 4
+    },
+    {
+      "areaIndex": 5,
+      "firstActivityId": 14,
+      "count": 4
+    },
+    {
+      "areaIndex": 6,
+      "firstActivityId": 18,
+      "count": 2
+    },
+    {
+      "areaIndex": 7,
+      "firstActivityId": 20,
+      "count": 4
+    },
+    {
+      "areaIndex": 8,
+      "firstActivityId": 25,
+      "count": 1
+    },
+    {
+      "areaIndex": 9,
+      "firstActivityId": 24,
+      "count": 1
+    },
+    {
+      "areaIndex": 10,
+      "firstActivityId": 0,
+      "count": 0
+    },
+    {
+      "areaIndex": 11,
+      "firstActivityId": 0,
+      "count": 0
+    }
+  ]
+}
