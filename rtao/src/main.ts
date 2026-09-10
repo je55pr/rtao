@@ -31,6 +31,8 @@ import {
   sellIndexedPart,
   type AdvertisingRedemptionResult,
 } from "./game/commerceProgress";
+import { AdvertisingDistanceTracker } from "./game/advertisingDistanceTracker";
+import { findNearestFixedInteraction } from "./game/fixedInteractionProximity";
 import { applyRecoveredEquipmentHostAction, fitOwnedNativeEquipmentPart, type RecoveredEquipmentState } from "./game/equipmentProgress";
 import type { RecoveredRaceState } from "./game/raceProgress";
 import {
@@ -162,9 +164,7 @@ let secondHandShopActive = false;
 let bodyShopSession: BodyShopCatalogueSession | undefined;
 let paintShopSession: PaintShopSession | undefined;
 let quickPicPhotoSession: { action: DialogueActionToken; photoNumber: number; objectUrl: string } | undefined;
-let lastDriveDistanceTravelled = 0;
-const advertisingDistanceFractions = Array<number>(advertisingSponsorCount).fill(0);
-let unsavedAdvertisingDistanceUnits = 0;
+const advertisingDistanceTracker = new AdvertisingDistanceTracker();
 type PaintShopCursor = { kind: "body"; tone: NativePaintTone; channel: NativePaintChannel } | { kind: "wheel" };
 let paintShopCursor: PaintShopCursor = { kind: "body", tone: 0, channel: 0 };
 let shopInteriorPlayerBytes: Uint8Array | undefined;
@@ -608,9 +608,7 @@ async function toggleDriving(): Promise<void> {
   drivingGame.setPartPerformance(aggregatePartPerformance(equippedParts));
   drivingGame.setNativeTyreSelector(playerEquipmentState?.selectedItem(0, 1) ?? 0);
   drivingGame.setNativeBrakeSelector(playerEquipmentState?.selectedItem(0, 6) ?? 0);
-  lastDriveDistanceTravelled = 0;
-  advertisingDistanceFractions.fill(0);
-  unsavedAdvertisingDistanceUnits = 0;
+  advertisingDistanceTracker.reset();
   drivingGame.start();
   const spawn = drivingGame.controller.state;
   console.info(`Q62 spawn: FLD/${spawn.fieldNumber.toString().padStart(3, "0")} (${spawn.position.x.toFixed(2)}, ${spawn.position.y.toFixed(2)}, ${spawn.position.z.toFixed(2)}).`);
@@ -655,22 +653,11 @@ function handleDriveState(state: CarState): void {
 }
 
 function accumulateAdvertisingDistance(state: CarState): void {
-  const distance = state.distanceTravelled;
-  const delta = distance - lastDriveDistanceTravelled;
-  lastDriveDistanceTravelled = distance;
-  if (!(delta > 0) || !playerCommerceState || !playerEquipmentState) return;
-  const sponsorIndex = advertisingSponsorIndexFromOptionSelector(playerEquipmentState.selectedItem(0, 11));
-  if (sponsorIndex === undefined) return;
-  advertisingDistanceFractions[sponsorIndex] = advertisingDistanceFractions[sponsorIndex]! + delta;
-  const distanceUnits = Math.floor(advertisingDistanceFractions[sponsorIndex]!);
-  if (distanceUnits <= 0) return;
-  advertisingDistanceFractions[sponsorIndex] = advertisingDistanceFractions[sponsorIndex]! - distanceUnits;
-  playerCommerceState.addAdvertisingDistanceUnits(sponsorIndex, distanceUnits);
-  unsavedAdvertisingDistanceUnits += distanceUnits;
-  if (unsavedAdvertisingDistanceUnits >= 100) {
-    unsavedAdvertisingDistanceUnits = 0;
-    queueRecoveredProgressSave();
-  }
+  const sponsorIndex = playerEquipmentState
+    ? advertisingSponsorIndexFromOptionSelector(playerEquipmentState.selectedItem(0, 11))
+    : undefined;
+  const result = advertisingDistanceTracker.record(state.distanceTravelled, sponsorIndex, playerCommerceState);
+  if (result.saveRecommended) queueRecoveredProgressSave();
 }
 
 function stopDrivingSession(): void {
@@ -709,7 +696,7 @@ function updateDriveHud(state: CarState): void {
   } as const)[state.surfaceKind];
   const nearby = requiredElement<HTMLElement>("nearby-note");
   const resident = worldSimulation?.nearest(state.fieldNumber, state.position, 5);
-  const interaction = nearestFixedInteraction(state);
+  const interaction = findNearestFixedInteraction(overworldCatalogue?.interactions ?? [], state.fieldNumber, state.position);
   const label = resident?.definition.name ?? interaction?.interaction.name;
   nearby.hidden = !label;
   nearby.textContent = label ? `Nearby · ${label} · E ${resident ? "talk" : "enter"}` : "";
@@ -917,7 +904,7 @@ function handleDialogueKey(event: KeyboardEvent): void {
     startResidentDialogue(resident.definition.name, greeting.pages);
     return;
   }
-  const interaction = nearestFixedInteraction(state)?.interaction;
+  const interaction = findNearestFixedInteraction(overworldCatalogue?.interactions ?? [], state.fieldNumber, state.position)?.interaction;
   if (!interaction) return;
   event.preventDefault();
   if (interaction.areaIndex === 1 && interaction.localIndex === 0) {
@@ -2312,33 +2299,6 @@ async function loadResidentModels(
   }
   requiredElement<HTMLElement>("resident-count").textContent = loaded === residents.length ? String(loaded) : `${loaded}/${residents.length}`;
   console.info(`Persistent residents: ${residents.length} executable definitions, ${residents.filter((resident) => resident.state.speed > 0).length} moving routes, ${loaded} original car bodies available in this install.`);
-}
-
-function nearestFixedInteraction(state: CarState): { interaction: FixedInteractionDefinition; distance: number } | undefined {
-  let best: { interaction: FixedInteractionDefinition; distance: number } | undefined;
-  const sourcePoint: readonly [number, number] = [1600 - state.position.x, state.position.z];
-  for (const interaction of overworldCatalogue?.interactions ?? []) {
-    if (interaction.fieldNumber !== state.fieldNumber || interaction.corners.some(([x, z]) => x === -1 && z === -1)) continue;
-    const distance = distanceToPolygon(sourcePoint, interaction.corners);
-    if (distance <= 3 && (!best || distance < best.distance)) best = { interaction, distance };
-  }
-  return best;
-}
-
-function distanceToPolygon(point: readonly [number, number], corners: ReadonlyArray<readonly [number, number]>): number {
-  let insideSign = 0, inside = true, bestSquared = Number.POSITIVE_INFINITY;
-  for (let index = 0; index < corners.length; index += 1) {
-    const a = corners[index], b = corners[(index + 1) % corners.length];
-    if (!a || !b) continue;
-    const cross = (b[0] - a[0]) * (point[1] - a[1]) - (b[1] - a[1]) * (point[0] - a[0]);
-    const sign = Math.sign(cross);
-    if (sign !== 0) { if (insideSign === 0) insideSign = sign; else if (sign !== insideSign) inside = false; }
-    const dx = b[0] - a[0], dz = b[1] - a[1], lengthSquared = dx * dx + dz * dz;
-    const t = lengthSquared < 0.000001 ? 0 : Math.max(0, Math.min(1, ((point[0] - a[0]) * dx + (point[1] - a[1]) * dz) / lengthSquared));
-    const ex = point[0] - (a[0] + dx * t), ez = point[1] - (a[1] + dz * t);
-    bestSquared = Math.min(bestSquared, ex * ex + ez * ez);
-  }
-  return inside ? 0 : Math.sqrt(bestSquared);
 }
 
 function stopWorldSimulation(): void {
