@@ -1112,7 +1112,10 @@ function buildNightSkyBand(): THREE.BufferGeometry {
 }
 
 function buildSkyHemisphere(): THREE.BufferGeometry {
-  const azimuthSegments = 64, elevationSegments = 12, radius = 8000, lowerElevation = -0.1;
+  // Keep the authored sky texture above the horizon, then extend its bottom
+  // texel all the way under the camera. The previous -0.1 rad lower edge left
+  // a visible hole in the dome from a low chase camera, exposing scene.background.
+  const azimuthSegments = 64, elevationSegments = 18, radius = 8000, lowerElevation = -Math.PI / 2;
   const positions: number[] = [], uvs: number[] = [], indices: number[] = [];
   for (let elevationIndex = 0; elevationIndex <= elevationSegments; elevationIndex += 1) {
     const t = elevationIndex / elevationSegments;
