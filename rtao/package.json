@@ -15,14 +15,18 @@
     "build:web": "vite build",
     "build": "npm run typecheck && npm run build:web",
     "build:capture": "node scripts/build-sandbox-capture.mjs",
-    "check": "npm run test:unit && npm run typecheck && npm run build:web && npm run build:capture"
+    "check": "npm run lint && npm run test:unit && npm run typecheck && npm run build:web && npm run test:smoke && npm run build:capture",
+    "lint": "biome lint --error-on-warnings src scripts",
+    "test:smoke": "node scripts/production-smoke.mjs"
   },
   "dependencies": {
     "@zip.js/zip.js": "2.8.57",
     "three": "0.185.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.12",
     "@types/three": "0.185.4",
+    "playwright-core": "1.63.0",
     "typescript": "7.0.2",
     "vite": "8.2.2",
     "vitest": "4.1.11"
