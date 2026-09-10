@@ -4,7 +4,8 @@ This repository is a shared development surface for human contributors and codin
 
 ## Canonical source and ownership
 
-- GitHub `main` is the canonical project state.
+- GitHub `main` is the public stable release branch.
+- GitHub `dev` is the active integration branch for ongoing development and the source for the DEV player.
 - The active game is **`rtao/`** (Three.js / TypeScript).
 - **`reference/csharp/`** is the earlier C#/MonoGame implementation retained for archaeology and comparison. Do not treat it as the active product unless a task explicitly targets it.
 - `docs/STATUS.md` is the concise current implementation/evidence boundary.
@@ -36,7 +37,9 @@ Keep a branch's original ownership prefix for its lifetime. If another agent nee
 
 Before starting work, inspect open branches/PRs relevant to the same subsystem. One branch should have one primary owner. Do not independently modify the same subsystem on multiple active branches unless the overlap is deliberate and communicated.
 
-Normal development targets a task branch and pull request rather than direct commits to `main`. Keep commits small and coherent enough to review and revert independently.
+Normal development targets isolated task branches based on `dev`; SelfBridge workers commit locally and never push. The manager reviews and integrates accepted work into the clean `dev` integration checkout, then pushes `dev`. External agent PRs should normally target `dev` while this policy is active. Keep commits small and coherent enough to review and revert independently.
+
+Promotion from `dev` to `main` is a deliberate release operation, not normal task integration. Require the complete browser gate, relevant PAL-backed validation, and a human DEV play/visual check before updating the public stable branch.
 
 ## Reviews and pull requests
 
