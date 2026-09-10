@@ -1,0 +1,280 @@
+{
+  "activeGeometryCount": 246,
+  "allDialogueCountsMatchFixedPlusOutdoor": true,
+  "allShopSlotCountsMatch": true,
+  "areaCoverage": [
+    {
+      "areaIndex": 1,
+      "areaName": "Peach Town",
+      "classification": "standard-world",
+      "dialogueEntities": 39,
+      "fieldNumber": 223,
+      "fixedInteractions": 28,
+      "outdoorResidents": 11,
+      "sentinelInteractions": 1,
+      "shopSlots": 28
+    },
+    {
+      "areaIndex": 2,
+      "areaName": "Fuji City",
+      "classification": "standard-world",
+      "dialogueEntities": 40,
+      "fieldNumber": 113,
+      "fixedInteractions": 29,
+      "outdoorResidents": 11,
+      "sentinelInteractions": 0,
+      "shopSlots": 29
+    },
+    {
+      "areaIndex": 3,
+      "areaName": "Sandpolis",
+      "classification": "standard-world",
+      "dialogueEntities": 42,
+      "fieldNumber": 13,
+      "fixedInteractions": 33,
+      "outdoorResidents": 9,
+      "sentinelInteractions": 0,
+      "shopSlots": 33
+    },
+    {
+      "areaIndex": 4,
+      "areaName": "Chestnut Canyon",
+      "classification": "standard-world",
+      "dialogueEntities": 28,
+      "fieldNumber": 103,
+      "fixedInteractions": 17,
+      "outdoorResidents": 11,
+      "sentinelInteractions": 1,
+      "shopSlots": 17
+    },
+    {
+      "areaIndex": 5,
+      "areaName": "Mushroom Road",
+      "classification": "standard-world",
+      "dialogueEntities": 11,
+      "fieldNumber": 210,
+      "fixedInteractions": 11,
+      "outdoorResidents": 0,
+      "sentinelInteractions": 0,
+      "shopSlots": 11
+    },
+    {
+      "areaIndex": 6,
+      "areaName": "White Mountain",
+      "classification": "standard-world",
+      "dialogueEntities": 37,
+      "fieldNumber": 203,
+      "fixedInteractions": 27,
+      "outdoorResidents": 10,
+      "sentinelInteractions": 0,
+      "shopSlots": 27
+    },
+    {
+      "areaIndex": 7,
+      "areaName": "Papaya Island",
+      "classification": "standard-world",
+      "dialogueEntities": 38,
+      "fieldNumber": 233,
+      "fixedInteractions": 28,
+      "outdoorResidents": 10,
+      "sentinelInteractions": 0,
+      "shopSlots": 28
+    },
+    {
+      "areaIndex": 8,
+      "areaName": "Cloud Hill",
+      "classification": "special-outdoor",
+      "dialogueEntities": 25,
+      "fieldNumber": null,
+      "fixedInteractions": 14,
+      "outdoorResidents": 11,
+      "sentinelInteractions": 1,
+      "shopSlots": 14
+    },
+    {
+      "areaIndex": 9,
+      "areaName": "My City",
+      "classification": "standard-world",
+      "dialogueEntities": 29,
+      "fieldNumber": 23,
+      "fixedInteractions": 23,
+      "outdoorResidents": 6,
+      "sentinelInteractions": 0,
+      "shopSlots": 23
+    },
+    {
+      "areaIndex": 10,
+      "areaName": "???",
+      "classification": "standard-world",
+      "dialogueEntities": 4,
+      "fieldNumber": 213,
+      "fixedInteractions": 4,
+      "outdoorResidents": 0,
+      "sentinelInteractions": 0,
+      "shopSlots": 4
+    },
+    {
+      "areaIndex": 11,
+      "areaName": "Bridge",
+      "classification": "standard-world",
+      "dialogueEntities": 4,
+      "fieldNumber": 220,
+      "fixedInteractions": 4,
+      "outdoorResidents": 0,
+      "sentinelInteractions": 0,
+      "shopSlots": 4
+    },
+    {
+      "areaIndex": 12,
+      "areaName": "UFO",
+      "classification": "standard-world",
+      "dialogueEntities": 4,
+      "fieldNumber": 112,
+      "fixedInteractions": 4,
+      "outdoorResidents": 0,
+      "sentinelInteractions": 0,
+      "shopSlots": 4
+    },
+    {
+      "areaIndex": 13,
+      "areaName": "Ruins",
+      "classification": "standard-world",
+      "dialogueEntities": 6,
+      "fieldNumber": 11,
+      "fixedInteractions": 5,
+      "outdoorResidents": 1,
+      "sentinelInteractions": 0,
+      "shopSlots": 5
+    },
+    {
+      "areaIndex": 14,
+      "areaName": "LightHouse",
+      "classification": "standard-world",
+      "dialogueEntities": 4,
+      "fieldNumber": 12,
+      "fixedInteractions": 4,
+      "outdoorResidents": 0,
+      "sentinelInteractions": 0,
+      "shopSlots": 4
+    },
+    {
+      "areaIndex": 15,
+      "areaName": "022",
+      "classification": "standard-world",
+      "dialogueEntities": 6,
+      "fieldNumber": 22,
+      "fixedInteractions": 6,
+      "outdoorResidents": 0,
+      "sentinelInteractions": 0,
+      "shopSlots": 6
+    },
+    {
+      "areaIndex": 16,
+      "areaName": "110",
+      "classification": "standard-world",
+      "dialogueEntities": 2,
+      "fieldNumber": 110,
+      "fixedInteractions": 2,
+      "outdoorResidents": 0,
+      "sentinelInteractions": 0,
+      "shopSlots": 2
+    },
+    {
+      "areaIndex": 17,
+      "areaName": "120",
+      "classification": "standard-world",
+      "dialogueEntities": 1,
+      "fieldNumber": 120,
+      "fixedInteractions": 1,
+      "outdoorResidents": 0,
+      "sentinelInteractions": 0,
+      "shopSlots": 1
+    },
+    {
+      "areaIndex": 18,
+      "areaName": "202",
+      "classification": "standard-world",
+      "dialogueEntities": 4,
+      "fieldNumber": 202,
+      "fixedInteractions": 3,
+      "outdoorResidents": 1,
+      "sentinelInteractions": 0,
+      "shopSlots": 3
+    },
+    {
+      "areaIndex": 19,
+      "areaName": "212",
+      "classification": "standard-world",
+      "dialogueEntities": 4,
+      "fieldNumber": 212,
+      "fixedInteractions": 4,
+      "outdoorResidents": 0,
+      "sentinelInteractions": 0,
+      "shopSlots": 4
+    },
+    {
+      "areaIndex": 20,
+      "areaName": "221",
+      "classification": "standard-world",
+      "dialogueEntities": 1,
+      "fieldNumber": 221,
+      "fixedInteractions": 1,
+      "outdoorResidents": 0,
+      "sentinelInteractions": 0,
+      "shopSlots": 1
+    },
+    {
+      "areaIndex": 21,
+      "areaName": "232",
+      "classification": "standard-world",
+      "dialogueEntities": 1,
+      "fieldNumber": 232,
+      "fixedInteractions": 1,
+      "outdoorResidents": 0,
+      "sentinelInteractions": 0,
+      "shopSlots": 1
+    }
+  ],
+  "authoredAreaDescriptorCount": 22,
+  "backedFixedInteractionCount": 249,
+  "bootstrapDeclaredFixedCount": 1,
+  "descriptorDeclaredFixedCount": 250,
+  "sentinelInteractionCount": 3,
+  "sentinelInteractions": [
+    {
+      "areaIndex": 1,
+      "areaName": "Peach Town",
+      "localIndex": 13,
+      "residentName": "Grandpa Tal",
+      "sentinelCornerIndices": [
+        0,
+        1
+      ]
+    },
+    {
+      "areaIndex": 4,
+      "areaName": "Chestnut Canyon",
+      "localIndex": 6,
+      "residentName": "Mason",
+      "sentinelCornerIndices": [
+        0,
+        1
+      ]
+    },
+    {
+      "areaIndex": 8,
+      "areaName": "Cloud Hill",
+      "localIndex": 9,
+      "residentName": "Forest",
+      "sentinelCornerIndices": [
+        0,
+        1
+      ]
+    }
+  ],
+  "sourceExecutableSha256": "2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9",
+  "specialOutdoorAreaCount": 1,
+  "specialOutdoorInteractionCount": 14,
+  "standardWorldAreaCount": 20,
+  "standardWorldInteractionCount": 235
+}
