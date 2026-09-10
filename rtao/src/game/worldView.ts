@@ -351,7 +351,7 @@ export class WorldView {
     dayTexture.needsUpdate = true;
     this.sky = new THREE.Mesh(
       buildSkyHemisphere(),
-      new THREE.MeshBasicMaterial({ map: dayTexture, transparent: true, side: THREE.DoubleSide, depthWrite: false, depthTest: false, fog: false }),
+      new THREE.MeshBasicMaterial({ map: dayTexture, transparent: true, side: THREE.DoubleSide, depthWrite: false, depthTest: true, fog: false }),
     );
     this.sky.name = "SYS/SORA.GSL daytime sky";
     this.sky.renderOrder = -10_000;
@@ -367,7 +367,7 @@ export class WorldView {
     nightTexture.needsUpdate = true;
     this.nightSky = new THREE.Mesh(
       buildNightSkyBand(),
-      new THREE.MeshBasicMaterial({ map: nightTexture, transparent: true, alphaTest: 0.25, side: THREE.DoubleSide, depthWrite: false, depthTest: false, fog: false }),
+      new THREE.MeshBasicMaterial({ map: nightTexture, transparent: true, alphaTest: 0.25, side: THREE.DoubleSide, depthWrite: false, depthTest: true, fog: false }),
     );
     this.nightSky.name = "SYS/SORA.GSL star/moon strip";
     this.nightSky.renderOrder = -9_999;
@@ -1112,10 +1112,7 @@ function buildNightSkyBand(): THREE.BufferGeometry {
 }
 
 function buildSkyHemisphere(): THREE.BufferGeometry {
-  // Keep the authored sky texture above the horizon, then extend its bottom
-  // texel all the way under the camera. The previous -0.1 rad lower edge left
-  // a visible hole in the dome from a low chase camera, exposing scene.background.
-  const azimuthSegments = 64, elevationSegments = 18, radius = 8000, lowerElevation = -Math.PI / 2;
+  const azimuthSegments = 64, elevationSegments = 12, radius = 8000, lowerElevation = -0.1;
   const positions: number[] = [], uvs: number[] = [], indices: number[] = [];
   for (let elevationIndex = 0; elevationIndex <= elevationSegments; elevationIndex += 1) {
     const t = elevationIndex / elevationSegments;
