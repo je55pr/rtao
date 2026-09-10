@@ -105,6 +105,7 @@ const appShellHtml = `
           </label>
         </div>
         <button class="primary-button drive-button" id="drive-toggle" type="button" disabled>Start driving Q62</button>
+        <button class="quiet-button race-button" id="race-toggle" type="button" disabled>Peach Raceway loadingâ€¦</button>
         <p class="nearby-note" id="nearby-note" hidden></p>
         <p class="viewer-help" id="viewer-help">Drag to orbit · Scroll to zoom · Right-drag to pan</p>
         <button class="quiet-button" id="remove-install" type="button">Remove local install</button>

@@ -5,14 +5,34 @@ import { requiredElement } from "./app/dom";
 import { bindAppDom } from "./app/domBindings";
 import { ImportController } from "./app/importController";
 import { RecoveredProgressStore } from "./app/recoveredProgressStore";
+import { carAssetPath } from "./formats/carPath";
+import type { DialogueActionToken, DialogueEntity, DialogueFlow, DialogueRuntimeState, DialogueVariant } from "./formats/dialogue";
+import type { FixedInteractionDefinition, OverworldCatalogue } from "./formats/overworld";
+import { isQuickPicPhotoNumber } from "./formats/quickPic";
+import { readRaceCatalogue } from "./formats/raceCatalogue";
+import { AdvertisingDistanceTracker } from "./game/advertisingDistanceTracker";
+import { BodyShopCatalogueSession, reconstructedBodyShopStock } from "./game/bodyCatalog";
 import {
+  type CarVisualCaptureScene,
   captureSceneById,
   captureScenes,
-  type CarVisualCaptureScene,
   type FieldOverviewCaptureScene,
   type QFactoryCaptureScene,
   type WorldOverviewCaptureScene,
 } from "./game/captureScenes";
+import type { Q62CarModel } from "./game/carView";
+import {
+  type AdvertisingRedemptionResult,
+  advertisingSponsorCount,
+  advertisingSponsorIndexFromOptionSelector,
+  purchaseIndexedItem,
+  type RecoveredCommerceState,
+  sellIndexedPart,
+} from "./game/commerceProgress";
+import { applyRecoveredDialogueHostAction } from "./game/dialogueProgress";
+import type { BrowserDrivingGame, CarState } from "./game/drivingGame";
+import { applyRecoveredEquipmentHostAction, fitOwnedNativeEquipmentPart, type RecoveredEquipmentState } from "./game/equipmentProgress";
+import { findNearestFixedInteraction } from "./game/fixedInteractionProximity";
 import {
   defaultChoiceIndex,
   describeFixedInteriorHostAction,
@@ -22,35 +42,20 @@ import {
   nativeNumericChoiceTarget,
   stepNativeNumericChoice,
 } from "./game/interiorFlow";
-import { BodyShopCatalogueSession, reconstructedBodyShopStock } from "./game/bodyCatalog";
-import {
-  advertisingSponsorCount,
-  advertisingSponsorIndexFromOptionSelector,
-  purchaseIndexedItem,
-  type RecoveredCommerceState,
-  sellIndexedPart,
-  type AdvertisingRedemptionResult,
-} from "./game/commerceProgress";
-import { AdvertisingDistanceTracker } from "./game/advertisingDistanceTracker";
-import { findNearestFixedInteraction } from "./game/fixedInteractionProximity";
-import { applyRecoveredEquipmentHostAction, fitOwnedNativeEquipmentPart, type RecoveredEquipmentState } from "./game/equipmentProgress";
-import type { RecoveredRaceState } from "./game/raceProgress";
+import type { QFactoryInteriorView, ShopInteriorRoomView } from "./game/interiorView";
+import { nativeTyreGripMultiplier } from "./game/nativeTyrePerformance";
 import {
   browserCompatibilityPaintWord,
   decodeNativeBodyPaint,
-  nativePaintChannel,
-  nativeWheelPaintColor,
-  nativeWheelPaintIndex,
-  nativeWheelPaintCount,
-  PaintShopSession,
-  purchasePaint,
   type NativePaintChannel,
   type NativePaintTone,
+  nativePaintChannel,
+  nativeWheelPaintColor,
+  nativeWheelPaintCount,
+  nativeWheelPaintIndex,
+  PaintShopSession,
+  purchasePaint,
 } from "./game/paintShop";
-import type { Q62CarModel } from "./game/carView";
-import { applyRecoveredDialogueHostAction } from "./game/dialogueProgress";
-import type { BrowserDrivingGame, CarState } from "./game/drivingGame";
-import { nativeTyreGripMultiplier } from "./game/nativeTyrePerformance";
 import {
   aggregatePartPerformance,
   aggregatePartsAppearance,
@@ -61,39 +66,37 @@ import {
   developmentPartCatalogue,
   equipPart,
   knownNativePart,
+  type NativeFittingCategory,
   nativeFittingCatalogue,
+  type PartCategory,
+  type PartLoadout,
   partCategoryLabels,
   partCategoryOrder,
   readDevelopmentPartsSave,
   selectedPart,
-  type NativeFittingCategory,
-  type PartCategory,
-  type PartLoadout,
 } from "./game/parts";
-import type { DrivingWorld } from "./game/worldCollision";
-import type { BrowserWorldSimulation } from "./game/worldSimulation";
-import type { WorldView } from "./game/worldView";
-import type { QFactoryInteriorView, ShopInteriorRoomView } from "./game/interiorView";
+import type { RecoveredRaceState } from "./game/raceProgress";
+import type { PeachRaceCoordinator } from "./game/raceSession/peachRaceCoordinator";
+import type { RaceView } from "./game/raceView";
 import {
   PartsShopCatalogueSession,
   reconstructedPartsShopStock,
   reconstructedSecondHandInventory,
   shopPartCategoryLabels,
 } from "./game/shopCatalog";
-import type { FixedInteractionDefinition, OverworldCatalogue } from "./formats/overworld";
-import { carAssetPath } from "./formats/carPath";
-import type { DialogueActionToken, DialogueEntity, DialogueFlow, DialogueRuntimeState, DialogueVariant } from "./formats/dialogue";
-import { isQuickPicPhotoNumber } from "./formats/quickPic";
+import type { DrivingWorld } from "./game/worldCollision";
+import type { BrowserWorldSimulation } from "./game/worldSimulation";
+import type { WorldView } from "./game/worldView";
 import {
   clearCurrentPointer,
   currentImportDirectory,
+  type ImportManifest,
   readBytes,
-  readJson,
   readCurrentManifest,
+  readJson,
   removeImportDirectory,
   writeBytes,
   writeJson,
-  type ImportManifest,
 } from "./storage/opfs";
 
 const app = requiredElement<HTMLElement>("app");
@@ -124,10 +127,20 @@ const {
   worldVisibility,
   driveToggle,
 } = bindAppDom();
+const raceToggle = requiredElement<HTMLButtonElement>("race-toggle");
 let worldView: WorldView | undefined;
 let drivingWorld: DrivingWorld | undefined;
 let drivingGame: BrowserDrivingGame | undefined;
 let playerCar: Q62CarModel | undefined;
+let peachRaceView: RaceView | undefined;
+let peachRaceCoordinator: PeachRaceCoordinator | undefined;
+let peachRaceModels: Q62CarModel[] = [];
+let peachRaceFrame = 0;
+let peachRaceLastTimestamp = 0;
+let peachRaceAccumulatorMs = 0;
+let peachRaceSceneTime = 0;
+let peachRaceRewardApplied = false;
+const peachRaceKeys = new Set<string>();
 let activeDirectory: FileSystemDirectoryHandle | undefined;
 let activeManifest: ImportManifest | undefined;
 const loadedWorldFieldNumbers = new Set<number>();
@@ -218,6 +231,12 @@ const deterministicCaptureController = new DeterministicCaptureController(app, {
 fileInput.addEventListener("change", () => {
   if (fileInput.files?.length) void importController.start([...fileInput.files]);
 });
+raceToggle.addEventListener("click", () => {
+  if (peachRaceCoordinator) stopPeachRace();
+  else void startPeachRace().catch((error) => { stopPeachRace(); showError("Peach Raceway could not start.", error); });
+});
+window.addEventListener("keydown", handlePeachRaceKeyDown);
+window.addEventListener("keyup", handlePeachRaceKeyUp);
 
 // DEV-ONLY: `?devdisc` brings up the world without a manual file picker, for
 // headless/browser-driven visual checks. It reuses an existing usable install
@@ -407,6 +426,7 @@ if (!(import.meta.env.DEV && new URLSearchParams(location.search).has("devdisc")
 }
 
 async function showInstalled(manifest: ImportManifest): Promise<void> {
+  stopPeachRace();
   stopDrivingSession();
   stopWorldSimulation();
   playerCar?.dispose();
@@ -429,6 +449,8 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   requiredElement<HTMLElement>("resident-count").textContent = "—";
   worldLocation.disabled = true;
   driveToggle.disabled = true;
+  raceToggle.disabled = true;
+  raceToggle.textContent = "Peach Raceway loadingâ€¦";
 
   const bootstrapInstall = manifest.installStage === "bootstrap";
   const upgradedManifest = await ensureWholeWorldCache(manifest, (completed, total) => {
@@ -559,6 +581,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
     readBytes(directory, `game/${upgradedManifest.identity.bootExecutable}`),
   ]);
   activeExecutableBytes = executableBytes;
+  updatePeachRaceAvailability();
   overworldCatalogue = readOverworldCatalogue(executableBytes);
   console.info(`Persistent fixed interactions: ${overworldCatalogue.interactions.length} authored zones mapped into ${new Set(overworldCatalogue.interactions.map((zone) => zone.fieldNumber)).size} standard world sectors.`);
   await loadDialogueCatalogue(executableBytes);
@@ -712,12 +735,217 @@ async function hydrateCompletedInstall(manifest: ImportManifest): Promise<void> 
   if (activeManifest?.importId !== manifest.importId || activeManifest.installStage !== "bootstrap") return;
   if (!activeDirectory || !worldView || !drivingWorld) return;
   activeManifest = manifest;
+  updatePeachRaceAvailability();
   const centre = drivingGame?.controller.state.fieldNumber ?? 223;
   const startedAt = performance.now();
   lastPrefetchedWorldField = centre;
   await ensureNearbyWorldFields(centre);
   if (!isDriving) worldLocation.disabled = false;
   console.info(`Background install complete: ${manifest.fields.length} world sectors and ${manifest.raceCourses?.length ?? 0} race courses cached; nearby live ring reached ${loadedWorldFieldNumbers.size} sectors in ${Math.round(performance.now() - startedAt)} ms.`);
+}
+
+function updatePeachRaceAvailability(): void {
+  if (peachRaceCoordinator) {
+    raceToggle.disabled = false;
+    raceToggle.textContent = "Leave Peach Raceway";
+    return;
+  }
+  const ready = !!activeDirectory && !!activeExecutableBytes
+    && !!activeManifest?.compiledRaceCourses?.some((record) => record.courseId === 0)
+    && !!activeManifest?.raceCourseCollisions?.some((record) => record.courseId === 0)
+    && !!activeManifest?.raceCourses?.some((record) => record.courseId === 0);
+  raceToggle.disabled = !ready;
+  raceToggle.textContent = ready ? "Race Peach Raceway" : "Peach Raceway loadingâ€¦";
+}
+
+async function startPeachRace(): Promise<void> {
+  if (!activeDirectory || !activeManifest || !activeExecutableBytes) throw new Error("The installed PAL data is not ready.");
+  const compiled = activeManifest.compiledRaceCourses?.find((record) => record.courseId === 0);
+  const collision = activeManifest.raceCourseCollisions?.find((record) => record.courseId === 0);
+  const source = activeManifest.raceCourses?.find((record) => record.courseId === 0);
+  if (!compiled || !collision || !source) throw new Error("COURSE/C00 is not present in the completed local race cache.");
+
+  stopDrivingSession();
+  stopPeachRace();
+  raceToggle.disabled = true;
+  raceToggle.textContent = "Loading Peach Racewayâ€¦";
+  worldLocation.disabled = true;
+  driveToggle.disabled = true;
+  worldSimulation?.setPaused(true);
+
+  const [{ RaceView: RaceViewClass }, { PeachRaceCoordinator: Coordinator, peachRaceEntrantId },
+    { createPeachRaceRuntime }, { deserializeCompiledCollision }, { Q62CarModel: CarModel }] = await Promise.all([
+    import("./game/raceView"),
+    import("./game/raceSession/peachRaceCoordinator"),
+    import("./game/raceSession/peachRaceRuntime"),
+    import("./formats/fieldCollision"),
+    import("./game/carView"),
+  ]);
+  const [compiledBytes, collisionBytes, courseBytes, tireBytes, wheelBytes] = await Promise.all([
+    readBytes(activeDirectory, compiled.path),
+    readBytes(activeDirectory, collision.path),
+    readBytes(activeDirectory, `game/${source.path}`),
+    readBytes(activeDirectory, "game/CARS/TIRE.BIN"),
+    readOptionalInstalledWheelBytes(activeDirectory),
+  ]);
+  const runtime = createPeachRaceRuntime({
+    executable: activeExecutableBytes,
+    courseBytes,
+    compiledCollision: deserializeCompiledCollision(collisionBytes),
+    // Deterministic standalone boundary: the PAL frame oracle validates the all-standard selector/flag path.
+    playerEquipmentSelectors: Array(15).fill(0),
+    playerEquipmentFlags: 0,
+    globalEquipmentFlags: 0,
+    countdown: { elapsedUpdates: 0, fadeUpdates: 64, sceneFlags: 0, updatesPerSecond: 50 },
+    sceneKind: 0,
+    sceneByte0B: 0,
+    raceModeByte: 0,
+  });
+  const coordinator = new Coordinator(runtime);
+  const view = new RaceViewClass(viewerHost);
+  view.loadCourse(0, compiledBytes);
+
+  const bodyBytes = new Map<number, Uint8Array>();
+  const models: Q62CarModel[] = [];
+  try {
+    for (const initial of runtime.initialCommands) {
+      const entrant = initial.entrant;
+      const bodyId = entrant.kind === "opponent" ? entrant.participant.bodyId : 62;
+      let bytes = bodyBytes.get(bodyId);
+      if (!bytes) {
+        bytes = await readBytes(activeDirectory, `game/${carAssetPath(bodyId)}`);
+        bodyBytes.set(bodyId, bytes);
+      }
+      const paintWord = entrant.kind === "opponent"
+        ? entrant.participant.packedPaint
+        : playerEquipmentState?.paintWord ?? browserCompatibilityPaintWord;
+      const paint = decodeNativeBodyPaint(paintWord);
+      models.push(new CarModel(bytes, tireBytes, {
+        name: entrant.kind === "opponent" ? entrant.participant.name : "Player Q62",
+        primaryPaint: paint.primary,
+        secondaryPaint: paint.secondary,
+        ...(wheelBytes ? { wheelBytes } : {}),
+        nativeTyreSelector: 0,
+        nativeWheelSelector: 0,
+        wheelColor: nativeWheelPaintColor(paintWord),
+        wheelColorIndex: nativeWheelPaintIndex(paintWord),
+      }));
+    }
+    const poses = new Map(coordinator.poses().map((entry) => [entry.carIndex, entry.pose] as const));
+    view.setEntrants(runtime.initialCommands.map((initial, index) => ({
+      id: peachRaceEntrantId(initial.carIndex),
+      object: models[index]!,
+      pose: poses.get(initial.carIndex)!,
+    })));
+  } catch (error) {
+    models.forEach((model) => model.dispose());
+    view.dispose();
+    worldSimulation?.setPaused(false);
+    updatePeachRaceAvailability();
+    throw error;
+  }
+
+  peachRaceView = view;
+  peachRaceCoordinator = coordinator;
+  peachRaceModels = models;
+  peachRaceSceneTime = 0;
+  peachRaceLastTimestamp = 0;
+  peachRaceAccumulatorMs = 0;
+  peachRaceRewardApplied = false;
+  peachRaceKeys.clear();
+  viewerHost.querySelector<HTMLElement>(".world-canvas")?.style.setProperty("visibility", "hidden");
+  requiredElement<HTMLElement>("viewer-title").textContent = "Peach Raceway";
+  requiredElement<HTMLElement>("viewer-help").textContent = "WASD / arrows Â· native 50 Hz race controls Â· Esc to leave";
+  updatePeachRaceAvailability();
+  updatePeachRaceHud();
+  coordinator.syncView(view);
+  peachRaceFrame = requestAnimationFrame(runPeachRaceFrame);
+}
+
+function runPeachRaceFrame(timestamp: number): void {
+  if (!peachRaceCoordinator || !peachRaceView) return;
+  if (peachRaceLastTimestamp === 0) peachRaceLastTimestamp = timestamp;
+  peachRaceAccumulatorMs += Math.min(100, Math.max(0, timestamp - peachRaceLastTimestamp));
+  peachRaceLastTimestamp = timestamp;
+  while (peachRaceAccumulatorMs >= 20) {
+    peachRaceCoordinator.step({ sceneTime: peachRaceSceneTime++, playerCommands: peachRaceCommandMask() });
+    peachRaceAccumulatorMs -= 20;
+    applyPeachRaceResultIfReady();
+  }
+  peachRaceCoordinator.syncView(peachRaceView);
+  updatePeachRaceHud();
+  peachRaceFrame = requestAnimationFrame(runPeachRaceFrame);
+}
+
+function peachRaceCommandMask(): number {
+  let commands = 0;
+  if (peachRaceKeys.has("KeyW") || peachRaceKeys.has("ArrowUp")) commands |= 1;
+  if (peachRaceKeys.has("KeyS") || peachRaceKeys.has("ArrowDown")) commands |= 2;
+  if (peachRaceKeys.has("KeyA") || peachRaceKeys.has("ArrowLeft")) commands |= 0x8000;
+  if (peachRaceKeys.has("KeyD") || peachRaceKeys.has("ArrowRight")) commands |= 0x2000;
+  return commands;
+}
+
+function handlePeachRaceKeyDown(event: KeyboardEvent): void {
+  if (!peachRaceCoordinator) return;
+  if (event.code === "Escape") {
+    event.preventDefault();
+    stopPeachRace();
+    return;
+  }
+  if (["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight"].includes(event.code)) {
+    event.preventDefault();
+    peachRaceKeys.add(event.code);
+  }
+}
+
+function handlePeachRaceKeyUp(event: KeyboardEvent): void {
+  if (!peachRaceCoordinator) return;
+  peachRaceKeys.delete(event.code);
+}
+
+function applyPeachRaceResultIfReady(): void {
+  if (peachRaceRewardApplied || !peachRaceCoordinator || !activeExecutableBytes || !playerRaceState || !playerCommerceState) return;
+  if (peachRaceCoordinator.runtime.session.resultHandoff().status !== "ready") return;
+  const result = peachRaceCoordinator.runtime.session.applyResult(
+    readRaceCatalogue(activeExecutableBytes), playerRaceState, playerCommerceState,
+  );
+  peachRaceRewardApplied = true;
+  queueRecoveredProgressSave();
+  console.info(`Peach Raceway result applied: best native finish ${result.bestFinishIndex}, +${result.prizeCake} Cake.`);
+  updatePeachRaceHud();
+}
+
+function updatePeachRaceHud(): void {
+  if (!peachRaceCoordinator) return;
+  const player = peachRaceCoordinator.runtime.session.entrant(0);
+  const note = requiredElement<HTMLElement>("nearby-note");
+  note.hidden = false;
+  if (!peachRaceCoordinator.runtime.session.isCountdownComplete) note.textContent = "Peach Raceway Â· starting grid";
+  else if (player.finishIndex !== null) note.textContent = `Finished Â· native place ${player.finishIndex + 1}/24${peachRaceRewardApplied ? " Â· reward saved" : ""}`;
+  else note.textContent = `Peach Raceway Â· lap ${Math.min(3, player.completedLaps + 1)}/3`;
+}
+
+function stopPeachRace(): void {
+  if (peachRaceFrame) cancelAnimationFrame(peachRaceFrame);
+  peachRaceFrame = 0;
+  peachRaceKeys.clear();
+  peachRaceCoordinator = undefined;
+  peachRaceView?.dispose();
+  peachRaceView = undefined;
+  peachRaceModels.forEach((model) => model.dispose());
+  peachRaceModels = [];
+  const worldCanvas = viewerHost.querySelector<HTMLElement>(".world-canvas");
+  if (worldCanvas) worldCanvas.style.removeProperty("visibility");
+  worldSimulation?.setPaused(false);
+  driveToggle.disabled = !drivingWorld;
+  worldLocation.disabled = !drivingWorld || activeManifest?.installStage === "bootstrap";
+  const note = requiredElement<HTMLElement>("nearby-note");
+  note.hidden = true;
+  note.textContent = "";
+  if (drivingWorld) requiredElement<HTMLElement>("viewer-title").textContent = loadedWorldFieldNumbers.size === 64 ? "The whole world" : "Peach Town area";
+  requiredElement<HTMLElement>("viewer-help").textContent = "Drag to orbit Â· Scroll to zoom Â· Right-drag to pan";
+  updatePeachRaceAvailability();
 }
 
 async function toggleDriving(): Promise<void> {
@@ -2577,6 +2805,7 @@ function wrapIndex(index: number, length: number): number {
 }
 
 function showEmpty(): void {
+  stopPeachRace();
   stopDrivingSession();
   stopWorldSimulation();
   importCard.hidden = true;
@@ -2588,6 +2817,7 @@ function showEmpty(): void {
 }
 
 function showImport(): void {
+  stopPeachRace();
   stopDrivingSession();
   stopWorldSimulation();
   emptyState.hidden = true;

@@ -218,6 +218,8 @@ h1 em { color: var(--red); font-style: normal; }
 .world-render-controls .location-control { margin: 0; }
 .drive-button { width: 100%; margin-top: 14px; padding: 10px 12px; }
 .drive-button:disabled { cursor: wait; opacity: .58; }
+.race-button { width: 100%; margin-top: 8px; padding: 9px 12px; }
+.race-canvas { position: absolute; inset: 0; z-index: 2; display: block; width: 100%; height: 100%; }
 .nearby-note { margin: 10px 0 0; padding: 7px 9px; border-left: 3px solid var(--orange); background: rgba(255,255,255,.5); font: 10px Consolas, "Courier New", monospace; }
 
 .dialogue-overlay {
