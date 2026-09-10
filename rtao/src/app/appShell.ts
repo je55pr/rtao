@@ -1,15 +1,5 @@
 const appShellHtml = `
   <section class="shell" aria-label="Road Trip Adventure browser reconstruction">
-    <header class="topbar">
-      <a class="brand" href="#" aria-label="Road Trip Adventure Online home">
-        <span class="brand-mark" aria-hidden="true">RTA</span>
-        <span>
-          <strong>Road Trip Adventure Online</strong>
-          <small>Browser reconstruction</small>
-        </span>
-      </a>
-      <a class="source-link" href="https://github.com/je55pr/rtao" target="_blank" rel="noreferrer">GitHub</a>
-    </header>
 
     <section class="world" id="world">
       <div class="world-copy" id="empty-state">
@@ -232,11 +222,6 @@ const appShellHtml = `
         </div>
       </section>
     </section>
-
-    <footer class="footer">
-      <span>Fan-made clean-room reconstruction</span>
-      <a href="https://github.com/je55pr/rtao" target="_blank" rel="noreferrer">Source on GitHub</a>
-    </footer>
   </section>
 `;
 
