@@ -45,7 +45,7 @@ try {
   if (!response?.ok()) throw new Error(`Production shell returned HTTP ${response?.status() ?? "unknown"}.`);
   await page.locator("#empty-state").waitFor({ state: "visible" });
   const headline = (await page.locator("#empty-state h1").innerText()).replace(/\s+/g, " ").trim();
-  if (!headline.includes("Your road trip")) throw new Error(`Unexpected first-run headline: '${headline}'.`);
+  if (!headline.includes("Play from your own game copy")) throw new Error(`Unexpected first-run headline: '${headline}'.`);
   if (!(await page.locator("#file-input").isEnabled())) throw new Error("First-run game-file input is not enabled.");
 
   const mainScript = await page.locator('script[type="module"][src]').getAttribute("src");
