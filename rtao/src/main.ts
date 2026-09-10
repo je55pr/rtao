@@ -80,6 +80,7 @@ import {
 } from "./game/parts";
 import type { RecoveredRaceState } from "./game/raceProgress";
 import type { PeachRaceCoordinator } from "./game/raceSession/peachRaceCoordinator";
+import { qFactoryRaceLaunchActivityId, qFactoryRaceOptions, qFactoryRaceSelectionTargets } from "./game/raceSession/qFactoryRaceFlow";
 import type { RaceView } from "./game/raceView";
 import {
   PartsShopCatalogueSession,
@@ -104,6 +105,8 @@ import {
 
 const app = requiredElement<HTMLElement>("app");
 const selectTeamCarActionOpcode = 0x04;
+const raceSelectActionOpcode = 0x08;
+const startRaceActionOpcode = 0x03;
 const numericChoiceActionOpcode = 0x05;
 const shopOrServiceActionOpcode = 0x13;
 const paintShopActionOpcode = 0x03;
@@ -143,6 +146,7 @@ let peachRaceLastTimestamp = 0;
 let peachRaceAccumulatorMs = 0;
 let peachRaceSceneTime = 0;
 let peachRaceRewardApplied = false;
+let peachRaceSuspendedTownSession = false;
 const peachRaceKeys = new Set<string>();
 let activeDirectory: FileSystemDirectoryHandle | undefined;
 let activeManifest: ImportManifest | undefined;
@@ -167,7 +171,7 @@ let shopInteriorPreviewInteraction: FixedInteractionDefinition | undefined;
 let shopInteriorSession: { flow: DialogueFlow; choiceIndex: number; interaction: FixedInteractionDefinition; entity: DialogueEntity } | undefined;
 let shopNumericChoiceSession: { action: DialogueActionToken; value: number } | undefined;
 let shopAdvertisingRewardSession: { action: DialogueActionToken; result: AdvertisingRedemptionResult } | undefined;
-let qFactorySession: { flow: DialogueFlow; choiceIndex: number; interaction: FixedInteractionDefinition } | undefined;
+let qFactorySession: { flow: DialogueFlow; choiceIndex: number; interaction: FixedInteractionDefinition; raceOptionIndex: number; selectedRaceActivityId?: number } | undefined;
 let equippedParts: PartLoadout = defaultPartLoadout;
 let changePartsSession: {
   original: PartLoadout;
@@ -382,6 +386,7 @@ requiredElement<HTMLButtonElement>("factory-return").addEventListener("click", (
     else if (isCurrentQuickPicPhotoAction()) void captureCurrentQuickPicPhoto();
     else returnFromShopInteriorHostAction();
   }
+  else if (qFactorySession?.flow.currentExternalAction?.opcode === startRaceActionOpcode) activateQFactoryHostAction();
   else returnFromQFactoryHostAction();
 });
 requiredElement<HTMLButtonElement>("factory-numeric-decrement").addEventListener("click", () => moveShopNumericChoice(-1));
@@ -771,15 +776,24 @@ function updatePeachRaceAvailability(): void {
   raceToggle.textContent = ready ? "Race Peach Raceway" : "Peach Raceway loadingâ€¦";
 }
 
-async function startPeachRace(scheduleAnimation = true): Promise<void> {
+async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors: readonly number[] = Array(15).fill(0), activityId = 0, preserveTownSession = false): Promise<void> {
+  if (activityId !== 0) throw new Error(`Only validated Peach Raceway activity 0 can launch; received activity ${activityId}.`);
   if (!activeDirectory || !activeManifest || !activeExecutableBytes) throw new Error("The installed PAL data is not ready.");
   const compiled = activeManifest.compiledRaceCourses?.find((record) => record.courseId === 0);
   const collision = activeManifest.raceCourseCollisions?.find((record) => record.courseId === 0);
   const source = activeManifest.raceCourses?.find((record) => record.courseId === 0);
   if (!compiled || !collision || !source) throw new Error("COURSE/C00 is not present in the completed local race cache.");
 
-  stopDrivingSession();
   stopPeachRace();
+  if (preserveTownSession && drivingGame && isDriving) {
+    endQFactoryInterior();
+    endResidentDialogue();
+    drivingGame.setPaused(true);
+    worldSimulation?.setPaused(true);
+    peachRaceSuspendedTownSession = true;
+  } else {
+    stopDrivingSession();
+  }
   raceToggle.disabled = true;
   raceToggle.textContent = "Loading Peach Racewayâ€¦";
   worldLocation.disabled = true;
@@ -805,8 +819,9 @@ async function startPeachRace(scheduleAnimation = true): Promise<void> {
     executable: activeExecutableBytes,
     courseBytes,
     compiledCollision: deserializeCompiledCollision(collisionBytes),
-    // Deterministic standalone boundary: the PAL frame oracle validates the all-standard selector/flag path.
-    playerEquipmentSelectors: Array(15).fill(0),
+    // Standalone capture supplies the validated all-standard selectors; Q's Factory may supply recovered fitted selectors.
+    playerEquipmentSelectors,
+    // The special equipment flag path remains outside the validated ordinary-frame boundary.
     playerEquipmentFlags: 0,
     globalEquipmentFlags: 0,
     countdown: { elapsedUpdates: 0, fadeUpdates: 64, sceneFlags: 0, updatesPerSecond: 50 },
@@ -991,6 +1006,8 @@ function updatePeachRaceHud(): void {
 }
 
 function stopPeachRace(): void {
+  const resumeTownSession = peachRaceSuspendedTownSession && !!drivingGame && isDriving;
+  peachRaceSuspendedTownSession = false;
   if (peachRaceFrame) cancelAnimationFrame(peachRaceFrame);
   peachRaceFrame = 0;
   peachRaceKeys.clear();
@@ -1002,13 +1019,20 @@ function stopPeachRace(): void {
   const worldCanvas = viewerHost.querySelector<HTMLElement>(".world-canvas");
   if (worldCanvas) worldCanvas.style.removeProperty("visibility");
   worldSimulation?.setPaused(false);
+  if (resumeTownSession) drivingGame?.setPaused(false);
   driveToggle.disabled = !drivingWorld;
-  worldLocation.disabled = !drivingWorld || activeManifest?.installStage === "bootstrap";
+  worldLocation.disabled = resumeTownSession || !drivingWorld || activeManifest?.installStage === "bootstrap";
   const note = requiredElement<HTMLElement>("nearby-note");
-  note.hidden = true;
-  note.textContent = "";
-  if (drivingWorld) requiredElement<HTMLElement>("viewer-title").textContent = loadedWorldFieldNumbers.size === 64 ? "The whole world" : "Peach Town area";
-  requiredElement<HTMLElement>("viewer-help").textContent = "Drag to orbit Â· Scroll to zoom Â· Right-drag to pan";
+  if (resumeTownSession && drivingGame) {
+    requiredElement<HTMLElement>("viewer-title").textContent = "Driving Q62";
+    requiredElement<HTMLElement>("viewer-help").textContent = "WASD / arrows to drive · Hold Shift for developer boost";
+    updateDriveHud(drivingGame.controller.state);
+  } else {
+    note.hidden = true;
+    note.textContent = "";
+    if (drivingWorld) requiredElement<HTMLElement>("viewer-title").textContent = loadedWorldFieldNumbers.size === 64 ? "The whole world" : "Peach Town area";
+    requiredElement<HTMLElement>("viewer-help").textContent = "Drag to orbit · Scroll to zoom · Right-drag to pan";
+  }
   updatePeachRaceAvailability();
 }
 
@@ -1306,11 +1330,12 @@ function handleDialogueKey(event: KeyboardEvent): void {
     } else if (["KeyE", "Enter", "Space"].includes(event.code)) {
       event.preventDefault();
       if (choices.length) chooseQFactoryDialogue(qFactorySession.choiceIndex);
-      else if (qFactorySession.flow.currentExternalAction) returnFromQFactoryHostAction();
+      else if (qFactorySession.flow.currentExternalAction) activateQFactoryHostAction();
       else advanceQFactoryDialogue();
     } else if (event.code === "Escape") {
       event.preventDefault();
-      endQFactoryInterior();
+      if (qFactorySession.flow.currentExternalAction?.opcode === raceSelectActionOpcode) returnFromQFactoryHostAction();
+      else endQFactoryInterior();
     }
     return;
   }
@@ -2306,7 +2331,7 @@ async function startQFactoryInterior(interaction: FixedInteractionDefinition): P
     );
     playerDialogueState.currentAreaIndex = interaction.areaIndex;
     const flow = new DialogueFlowClass(qFactoryDialogueEntity, playerDialogueState, 0x04);
-    qFactorySession = { flow, choiceIndex: defaultChoiceIndex(flow.currentChoices), interaction };
+    qFactorySession = { flow, choiceIndex: defaultChoiceIndex(flow.currentChoices), interaction, raceOptionIndex: 0 };
     renderQFactoryDialogue();
     console.info(`Q's Factory start: SHOP/T00 slot ${interaction.localIndex}, ${backdrop.width}x${backdrop.height}, ${backdrop.dmaPacketCount} DMA packets; outdoor state paused.`);
   } catch (error) {
@@ -2566,17 +2591,82 @@ function applyEquippedParts(): void {
   drivingGame?.setNativeBrakeSelector(nativeBrakeSelector);
 }
 
+function qFactoryRaceChoices() {
+  const session = qFactorySession;
+  if (!session || !activeExecutableBytes || !playerRaceState) return [];
+  return qFactoryRaceOptions(readRaceCatalogue(activeExecutableBytes), playerRaceState, session.interaction.areaIndex);
+}
+
+function renderQFactoryRaceChoices(host: HTMLElement): void {
+  const session = qFactorySession;
+  if (!session) return;
+  const options = qFactoryRaceChoices();
+  if (!options[session.raceOptionIndex]?.launchSupported) session.raceOptionIndex = Math.max(0, options.findIndex((option) => option.launchSupported));
+  options.forEach((option, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.disabled = !option.launchSupported;
+    button.textContent = option.activity.name + (option.unlocked ? option.launchSupported ? "" : " · not validated yet" : " · licence locked");
+    button.classList.toggle("selected", index === session.raceOptionIndex);
+    button.setAttribute("aria-current", index === session.raceOptionIndex ? "true" : "false");
+    button.addEventListener("mouseenter", () => { if (option.launchSupported && qFactorySession) { qFactorySession.raceOptionIndex = index; renderQFactoryDialogue(); } });
+    button.addEventListener("click", () => selectQFactoryRace(index));
+    host.append(button);
+  });
+}
+
+function selectQFactoryRace(index: number): void {
+  const session = qFactorySession;
+  const action = session?.flow.currentExternalAction;
+  if (!session || !action || action.opcode !== raceSelectActionOpcode) return;
+  const option = qFactoryRaceChoices()[index];
+  if (!option?.launchSupported) return;
+  session.raceOptionIndex = index;
+  session.selectedRaceActivityId = option.activity.activityId;
+  const { selectedTarget } = qFactoryRaceSelectionTargets(action);
+  session.flow.returnFromExternalAction(selectedTarget);
+  session.choiceIndex = defaultChoiceIndex(session.flow.currentChoices);
+  renderQFactoryDialogue();
+}
+
+function activateQFactoryHostAction(): void {
+  const session = qFactorySession;
+  const action = session?.flow.currentExternalAction;
+  if (!session || !action) return;
+  if (action.opcode === raceSelectActionOpcode) { selectQFactoryRace(session.raceOptionIndex); return; }
+  if (action.opcode === startRaceActionOpcode) { launchQFactoryRace(action); return; }
+  returnFromQFactoryHostAction();
+}
+
+function launchQFactoryRace(action: DialogueActionToken): void {
+  const session = qFactorySession;
+  if (!session || !playerEquipmentState) return;
+  const activityId = qFactoryRaceLaunchActivityId(action, session.selectedRaceActivityId);
+  if (activityId !== 0) {
+    console.warn(`Q's Factory activity ${activityId} remains outside the validated Peach Raceway launch boundary.`);
+    return;
+  }
+  const selectors = playerEquipmentState.selectorEntries()[0] ?? Array(15).fill(0);
+  console.info(`Q's Factory launching executable-selected activity ${activityId} with recovered Q62 equipment selectors.`);
+  void startPeachRace(true, selectors, activityId, true).catch((error) => {
+    stopPeachRace();
+    showError("Peach Raceway could not start from Q's Factory.", error);
+  });
+}
+
 function renderQFactoryDialogue(): void {
   const session = qFactorySession;
   if (!session) return;
   const flow = session.flow;
+  const external = flow.currentExternalAction;
   if (flow.currentExternalAction?.opcode === selectTeamCarActionOpcode) {
     startChangeParts();
     return;
   }
   const root = requiredElement<HTMLElement>("factory-interior");
   root.dataset.dialogueSlot = `0x${flow.currentSlot.toString(16).padStart(2, "0")}`;
-  requiredElement<HTMLElement>("factory-text").textContent = flow.currentPage ?? "";
+  const selectedRace = session.selectedRaceActivityId === undefined ? undefined : qFactoryRaceChoices().find((option) => option.activity.activityId === session.selectedRaceActivityId)?.activity;
+  requiredElement<HTMLElement>("factory-text").textContent = (flow.currentPage ?? "").replace("$R", selectedRace?.name ?? "$R");
   const choicesHost = requiredElement<HTMLElement>("factory-choices");
   choicesHost.replaceChildren();
   flow.currentChoices.forEach((choice, index) => {
@@ -2594,16 +2684,22 @@ function renderQFactoryDialogue(): void {
     choicesHost.append(button);
   });
 
-  const external = flow.currentExternalAction;
+  if (external?.opcode === raceSelectActionOpcode) renderQFactoryRaceChoices(choicesHost);
+
   const hostAction = requiredElement<HTMLElement>("factory-host-action");
   const continueButton = requiredElement<HTMLButtonElement>("factory-continue");
   const returnButton = requiredElement<HTMLButtonElement>("factory-return");
   if (external) {
     const presentation = describeInteriorHostAction(external);
-    requiredElement<HTMLElement>("factory-action-title").textContent = presentation.title;
-    requiredElement<HTMLElement>("factory-action-detail").textContent = presentation.detail;
+    const raceSelection = external.opcode === raceSelectActionOpcode;
+    const peachLaunch = external.opcode === startRaceActionOpcode && session.selectedRaceActivityId === 0;
+    requiredElement<HTMLElement>("factory-action-title").textContent = raceSelection ? "Race selector" : presentation.title;
+    requiredElement<HTMLElement>("factory-action-detail").textContent = raceSelection
+      ? "Peach Town's executable selector exposes its authored race range. Only independently validated Peach Raceway can launch in this milestone."
+      : peachLaunch ? "Launch the selected Peach Raceway session with Q62's recovered fitted equipment." : presentation.detail;
     hostAction.hidden = false;
-    returnButton.textContent = presentation.returnSlot ? "Return to Q's Factory" : (presentation.leaveLabel ?? "Return to town");
+    returnButton.textContent = raceSelection ? "Cancel race selection" : peachLaunch ? "Start Peach Raceway"
+      : presentation.returnSlot ? "Return to Q's Factory" : (presentation.leaveLabel ?? "Return to town");
     returnButton.hidden = false;
   } else {
     hostAction.hidden = true;
@@ -2613,7 +2709,8 @@ function renderQFactoryDialogue(): void {
   requiredElement<HTMLElement>("factory-key-hint").textContent = flow.currentChoices.length
     ? "↑ / ↓ · E select"
     : external
-      ? "E · return"
+      ? external.opcode === raceSelectActionOpcode ? "E · select supported race · Esc cancel"
+        : external.opcode === startRaceActionOpcode && session.selectedRaceActivityId === 0 ? "E · start race" : "E · return"
       : "E / Enter · continue";
 }
 
