@@ -630,7 +630,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   if (peachStartup) worldView.focusField(223);
   else if (onlyFieldSet && devOnlyFields[0] !== undefined) worldView.focusField(devOnlyFields[0]);
   if (raceCaptureScene) {
-    await runDeterministicPeachRaceCapture(raceCaptureScene);
+    if (!bootstrapInstall) await runDeterministicPeachRaceCapture(raceCaptureScene);
   } else if (captureScene) {
     await deterministicCaptureController.run(captureScene);
   } else if (parameters.get("driveProbe") === "fuji") {
@@ -752,6 +752,9 @@ async function hydrateCompletedInstall(manifest: ImportManifest): Promise<void> 
   await ensureNearbyWorldFields(centre);
   if (!isDriving) worldLocation.disabled = false;
   console.info(`Background install complete: ${manifest.fields.length} world sectors and ${manifest.raceCourses?.length ?? 0} race courses cached; nearby live ring reached ${loadedWorldFieldNumbers.size} sectors in ${Math.round(performance.now() - startedAt)} ms.`);
+  const raceCaptureId = new URLSearchParams(location.search).get("raceCapture");
+  const raceCaptureScene = raceCaptureId ? peachRaceCaptureSceneById(raceCaptureId) : undefined;
+  if (raceCaptureScene) await runDeterministicPeachRaceCapture(raceCaptureScene);
 }
 
 function updatePeachRaceAvailability(): void {
