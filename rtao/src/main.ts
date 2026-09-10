@@ -189,6 +189,12 @@ const importController = new ImportController({
   showImport,
   updateProgress,
   showInstalled,
+  installCompleted: (manifest) => {
+    console.info(`Background install complete: ${manifest.fields.length} world sectors and ${manifest.raceCourses?.length ?? 0} race courses cached.`);
+  },
+  backgroundImportFailed: (error) => {
+    console.warn("Peach Town remains playable, but the background whole-world cache did not finish.", error);
+  },
   showError,
 });
 
@@ -406,6 +412,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   worldLocation.disabled = true;
   driveToggle.disabled = true;
 
+  const bootstrapInstall = manifest.installStage === "bootstrap";
   const upgradedManifest = await ensureWholeWorldCache(manifest, (completed, total) => {
     requiredElement<HTMLElement>("field-count").textContent = `${completed}/${total}`;
   });
@@ -419,7 +426,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   const compiledWorld = [...upgradedManifest.compiledFields]
     .filter((field) => !onlyFieldSet || onlyFieldSet.has(field.fieldNumber))
     .sort((a, b) => a.fieldNumber - b.fieldNumber);
-  if (!onlyFieldSet && compiledWorld.length !== 64) throw new Error(`The cached install has ${compiledWorld.length}/64 compiled world sectors.`);
+  if (!onlyFieldSet && !bootstrapInstall && compiledWorld.length !== 64) throw new Error(`The cached install has ${compiledWorld.length}/64 compiled world sectors.`);
   const directory = await currentImportDirectory(upgradedManifest);
   activeDirectory = directory;
   activeManifest = upgradedManifest;
@@ -513,7 +520,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   const collisionWorld = [...(upgradedManifest.collisionFields ?? [])]
     .filter((field) => !onlyFieldSet || onlyFieldSet.has(field.fieldNumber))
     .sort((a, b) => a.fieldNumber - b.fieldNumber);
-  if (!onlyFieldSet && collisionWorld.length !== 64) throw new Error(`The cached install has ${collisionWorld.length}/64 collision sectors.`);
+  if (!onlyFieldSet && !bootstrapInstall && collisionWorld.length !== 64) throw new Error(`The cached install has ${collisionWorld.length}/64 collision sectors.`);
   requiredElement<HTMLElement>("viewer-title").textContent = "Preparing driving surfaces";
   for (const [index, collision] of collisionWorld.entries()) {
     drivingWorld.addField(collision.fieldNumber, await readBytes(directory, collision.path));
@@ -536,7 +543,9 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
     throw new Error(`Unknown deterministic capture '${captureId}'. Available captures: ${captureScenes.map((candidate) => candidate.id).join(", ")}.`);
   }
   const { BrowserWorldSimulation: BrowserWorldSimulationClass } = await import("./game/worldSimulation");
-  const simulation = new BrowserWorldSimulationClass(overworldCatalogue.residents, drivingWorld, worldView);
+  const loadedFieldNumbers = new Set(compiledWorld.map((field) => field.fieldNumber));
+  const residentDefinitions = overworldCatalogue.residents.filter((resident) => loadedFieldNumbers.has(resident.fieldNumber));
+  const simulation = new BrowserWorldSimulationClass(residentDefinitions, drivingWorld, worldView);
   worldSimulation = simulation;
   simulation.start();
   const modelLoadGeneration = ++residentModelLoadGeneration;
@@ -549,15 +558,20 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
       if (modelLoadGeneration === residentModelLoadGeneration) console.error("Resident car models could not finish loading in the background.", error);
     });
   }
-  requiredElement<HTMLElement>("viewer-title").textContent = onlyFieldSet ? `FLD/${devOnlyFields[0]?.toString().padStart(3, "0")}` : "The whole world";
+  requiredElement<HTMLElement>("viewer-title").textContent = bootstrapInstall
+    ? "Peach Town"
+    : onlyFieldSet ? `FLD/${devOnlyFields[0]?.toString().padStart(3, "0")}` : "The whole world";
   requiredElement<HTMLElement>("field-count").textContent = String(stats.sectors);
   requiredElement<HTMLElement>("triangle-count").textContent = stats.triangles.toLocaleString();
-  worldLocation.value = onlyFieldSet && worldLocation.querySelector(`option[value="${devOnlyFields[0]}"]`)
-    ? String(devOnlyFields[0])
-    : "world";
-  worldLocation.disabled = false;
+  worldLocation.value = bootstrapInstall
+    ? "223"
+    : onlyFieldSet && worldLocation.querySelector(`option[value="${devOnlyFields[0]}"]`)
+      ? String(devOnlyFields[0])
+      : "world";
+  worldLocation.disabled = bootstrapInstall;
   driveToggle.disabled = false;
-  if (onlyFieldSet && devOnlyFields[0] !== undefined) worldView.focusField(devOnlyFields[0]);
+  if (bootstrapInstall) worldView.focusField(223);
+  else if (onlyFieldSet && devOnlyFields[0] !== undefined) worldView.focusField(devOnlyFields[0]);
   if (captureScene) {
     await deterministicCaptureController.run(captureScene);
   } else if (parameters.get("driveProbe") === "fuji") {
@@ -670,7 +684,7 @@ function stopDrivingSession(): void {
   isDriving = false;
   driveToggle.textContent = "Start driving Q62";
   driveToggle.disabled = !drivingWorld;
-  worldLocation.disabled = !drivingWorld;
+  worldLocation.disabled = !drivingWorld || activeManifest?.installStage === "bootstrap";
   requiredElement<HTMLElement>("viewer-help").textContent = "Drag to orbit · Scroll to zoom · Right-drag to pan";
   requiredElement<HTMLElement>("drive-field-row").hidden = true;
   requiredElement<HTMLElement>("drive-speed-row").hidden = true;
@@ -678,7 +692,7 @@ function stopDrivingSession(): void {
   const nearby = requiredElement<HTMLElement>("nearby-note");
   nearby.hidden = true;
   nearby.textContent = "";
-  if (drivingWorld) requiredElement<HTMLElement>("viewer-title").textContent = "The whole world";
+  if (drivingWorld) requiredElement<HTMLElement>("viewer-title").textContent = activeManifest?.installStage === "bootstrap" ? "Peach Town" : "The whole world";
 }
 
 function updateDriveHud(state: CarState): void {
@@ -2325,7 +2339,7 @@ async function ensureWholeWorldCache(
   const existing = new Map(manifest.compiledFields.filter((field) => field.cacheVersion === compiledFieldCacheVersion).map((field) => [field.fieldNumber, field]));
   const collisions = new Map((manifest.collisionFields ?? []).map((field) => [field.fieldNumber, field]));
   const fields = [...manifest.fields].sort((a, b) => a.fieldNumber - b.fieldNumber);
-  if (!manifest.devPartialFields && fields.length !== 64) throw new Error(`Expected 64 cached FLDs; found ${fields.length}.`);
+  if (manifest.installStage !== "bootstrap" && !manifest.devPartialFields && fields.length !== 64) throw new Error(`Expected 64 cached FLDs; found ${fields.length}.`);
   if (fields.every((field) => existing.has(field.fieldNumber) && collisions.has(field.fieldNumber))) return manifest;
 
   const directory = await currentImportDirectory(manifest);

@@ -17,6 +17,10 @@ export type ImportWorkerResponse =
       readonly total: number;
     }
   | {
+      readonly type: "ready";
+      readonly manifest: ImportManifest;
+    }
+  | {
       readonly type: "complete";
       readonly manifest: ImportManifest;
     }
@@ -24,4 +28,5 @@ export type ImportWorkerResponse =
       readonly type: "error";
       readonly message: string;
       readonly stack?: string;
+      readonly background?: boolean;
     };

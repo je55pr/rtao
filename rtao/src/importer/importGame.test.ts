@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { OverworldCatalogue } from "../formats/overworld";
-import { bodyShopBodyIds } from "../game/bodyCatalog";
-import { browserRuntimeCarBodyIds } from "./importGame";
+import { bodyShopBodyIds, peachBodyShopStock } from "../game/bodyCatalog";
+import { browserBootstrapCarBodyIds, browserRuntimeCarBodyIds } from "./importGame";
 
 describe("browser runtime car selection", () => {
   test("keeps the player, residents, fixed-interaction staff, race participants, and Body Shop stock", () => {
@@ -18,6 +18,17 @@ describe("browser runtime car selection", () => {
     };
     expect(browserRuntimeCarBodyIds(catalogue, [103, 28, 151])).toEqual(
       [...new Set([28, 44, 62, 75, 103, 149, 151, ...bodyShopBodyIds])].sort((a, b) => a - b),
+    );
+  });
+
+
+  test("keeps the Peach bootstrap small while retaining Peach residents/interactions and Body Shop previews", () => {
+    const catalogue: OverworldCatalogue = {
+      residents: [resident(28, 1, 0), { ...resident(75, 2, 0), fieldNumber: 113 }],
+      interactions: [interaction(44, 1, 0), { ...interaction(149, 2, 5), fieldNumber: 113 }],
+    };
+    expect(browserBootstrapCarBodyIds(catalogue)).toEqual(
+      [...new Set([28, 44, 62, ...peachBodyShopStock.map((item) => item.bodyId)])].sort((a, b) => a - b),
     );
   });
 });
