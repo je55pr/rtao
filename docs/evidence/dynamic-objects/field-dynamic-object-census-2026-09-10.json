@@ -1,0 +1,3136 @@
+{
+  "schema": 1,
+  "authority": {
+    "discLabel": "European PAL Road Trip Adventure / ChoroQ HG 2 MODE2/2352 image",
+    "executable": "SLES_513.56",
+    "executableSha256": "2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9"
+  },
+  "scope": {
+    "ordinaryFieldCount": 64,
+    "fieldDirectory": "FLD",
+    "payloadRetained": false
+  },
+  "summary": {
+    "fieldsWithExtra1": 14,
+    "fieldsWithDecodedExtra1MscalfObject": 12,
+    "mscalfMeshExtraCount": 13,
+    "fieldsWithAnyMscalfMeshExtra": 13,
+    "nonExtra1MscalfMeshExtras": [
+      {
+        "fieldNumber": 23,
+        "index": 79
+      }
+    ],
+    "exactObjectFamilies": [],
+    "repeatedStructuralFamilies": [
+      [
+        "220:1",
+        "221:1"
+      ]
+    ]
+  },
+  "fields": [
+    {
+      "fieldNumber": 0,
+      "fileBytes": 2506352,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 1,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 2,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 3,
+      "fileBytes": 2528848,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 17312,
+          "sha256": "8d40e5c0e2886a45825c87186d4e49f89ef110606da5e46f56c5952b9ba1e7f1",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 10,
+      "fileBytes": 2506352,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 11,
+      "fileBytes": 2818448,
+      "extraCount": 2,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 49520,
+          "sha256": "ffa2c230046c2394d115be1bde863e7600e88e5472ae826343c38fc233bdb6fb",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 1,
+          "bytes": 25232,
+          "sha256": "afebf08d2d965c0e889dad2f13bf1e04464b35934e2bd83677e48c966c0fdc7f",
+          "hg2": true,
+          "sectionCount": 3,
+          "sections": [
+            {
+              "kind": "mesh",
+              "primitiveCount": 16,
+              "vertices": 64,
+              "stripTriangles": 32,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 3.889
+            },
+            {
+              "kind": "mesh",
+              "primitiveCount": 2,
+              "vertices": 38,
+              "stripTriangles": 34,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 90.554
+            },
+            {
+              "kind": "non-mesh"
+            }
+          ],
+          "radius": 90.554,
+          "texture": {
+            "width": 128,
+            "height": 128,
+            "transparency": true
+          },
+          "structuralKey": "16p/64v/32t/vu4|2p/38v/34t/vu4"
+        }
+      ],
+      "extra1": {
+        "bytes": 25232,
+        "sha256": "afebf08d2d965c0e889dad2f13bf1e04464b35934e2bd83677e48c966c0fdc7f",
+        "hg2": true,
+        "sectionCount": 3,
+        "sections": [
+          {
+            "kind": "mesh",
+            "primitiveCount": 16,
+            "vertices": 64,
+            "stripTriangles": 32,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 3.889
+          },
+          {
+            "kind": "mesh",
+            "primitiveCount": 2,
+            "vertices": 38,
+            "stripTriangles": 34,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 90.554
+          },
+          {
+            "kind": "non-mesh"
+          }
+        ],
+        "structuralKey": "16p/64v/32t/vu4|2p/38v/34t/vu4",
+        "decodedKind": "prop",
+        "decodedMeshCount": 2,
+        "decodedRadius": 90.554,
+        "texture": {
+          "width": 128,
+          "height": 128,
+          "transparency": true
+        }
+      }
+    },
+    {
+      "fieldNumber": 12,
+      "fileBytes": 3105264,
+      "extraCount": 2,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 35072,
+          "sha256": "78eedc6671ca1828483cae9bdc0f31a25a7826ec2a252511773312f065d4bc8f",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 1,
+          "bytes": 31872,
+          "sha256": "d0316eb500442b6fc878c4153e574ffce7cfcb946ee23f46908539934f7175e4",
+          "hg2": true,
+          "sectionCount": 3,
+          "sections": [
+            {
+              "kind": "mesh",
+              "primitiveCount": 44,
+              "vertices": 236,
+              "stripTriangles": 148,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 2.836
+            },
+            {
+              "kind": "mesh",
+              "primitiveCount": 8,
+              "vertices": 24,
+              "stripTriangles": 8,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 2.787
+            },
+            {
+              "kind": "non-mesh"
+            }
+          ],
+          "radius": 2.836,
+          "texture": {
+            "width": 128,
+            "height": 128,
+            "transparency": false
+          },
+          "structuralKey": "44p/236v/148t/vu4|8p/24v/8t/vu4"
+        }
+      ],
+      "extra1": {
+        "bytes": 31872,
+        "sha256": "d0316eb500442b6fc878c4153e574ffce7cfcb946ee23f46908539934f7175e4",
+        "hg2": true,
+        "sectionCount": 3,
+        "sections": [
+          {
+            "kind": "mesh",
+            "primitiveCount": 44,
+            "vertices": 236,
+            "stripTriangles": 148,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 2.836
+          },
+          {
+            "kind": "mesh",
+            "primitiveCount": 8,
+            "vertices": 24,
+            "stripTriangles": 8,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 2.787
+          },
+          {
+            "kind": "non-mesh"
+          }
+        ],
+        "structuralKey": "44p/236v/148t/vu4|8p/24v/8t/vu4",
+        "decodedKind": "prop",
+        "decodedMeshCount": 2,
+        "decodedRadius": 2.836,
+        "texture": {
+          "width": 128,
+          "height": 128,
+          "transparency": false
+        }
+      }
+    },
+    {
+      "fieldNumber": 13,
+      "fileBytes": 5106592,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 43200,
+          "sha256": "5426e495982dfbf622c4aeb3c498dcb0eff4e2875d4b15eba8fa01a68b8f6f16",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 20,
+      "fileBytes": 1674048,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 18400,
+          "sha256": "86fb62f2088fd42da064e421cc6f3ac63e90ba756985705b506bf5c28af3b332",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 21,
+      "fileBytes": 2624592,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 16176,
+          "sha256": "b89d79a485beab76aa111f54b084a85509f7f3f985a4c0d539c0d337123efc10",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 22,
+      "fileBytes": 3988160,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 85072,
+          "sha256": "6cdecfe2943012f21eceeeed7935ecf88013451b45b9649e07bd44fc4ae8f064",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 23,
+      "fileBytes": 4745744,
+      "extraCount": 80,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 52736,
+          "sha256": "fd9fe687e5dd94e9cb0b547d9db5d0547509e256b848729aa64086c79015ba47",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 1,
+          "bytes": 6208,
+          "sha256": "ded8d85757fdf60f1fe85d3a3d26310ea3523d1403329faf1bdafdf6dfeeeb96",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 2,
+          "bytes": 94976,
+          "sha256": "33cc4415b77d77015330877cab2d11092fb019ab5a1a3b30f98ab8ca5fa6ae46",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 3,
+          "bytes": 5904,
+          "sha256": "8b3da65a8627bd9867fd0e12fa364a9c1799f043475da697e5035981781725e6",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 4,
+          "bytes": 111952,
+          "sha256": "7cc43b674dce9474c333a2b92da5c9298e338765cf743c166fec5350ee30b2ea",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 5,
+          "bytes": 4160,
+          "sha256": "5479c6277237f0a7e22d5f67ed25c45042a719a7445088ec6ad2c793273dbdcd",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 6,
+          "bytes": 197392,
+          "sha256": "fd7dd7d8ccdd8bce1b036c44e95a2e118f2242e4b7007865fbb13f9931aa1a48",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 7,
+          "bytes": 3712,
+          "sha256": "447ff9a40cbc6867c57c2f1a493b532f9af40efacfa544031b6add6a35154117",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 8,
+          "bytes": 38976,
+          "sha256": "9d4bda9b994aa6e5e4ad321f25aa21aecfa55b71b206dba38f9f4e652866ecc8",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 9,
+          "bytes": 3456,
+          "sha256": "a028a36585b37f524ec5d48c674b00ba29c20c2e6e91f4abe884739c9a0f62f5",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 10,
+          "bytes": 82688,
+          "sha256": "784b6701b1e608feb4f06999cb0731f9336fb6bb37b0b5aa3dd8c4e8a133cbc2",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 11,
+          "bytes": 3776,
+          "sha256": "b8a588c4491e3244316b5c3f777b997eb686164e2612a796bd6d875f959d5003",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 12,
+          "bytes": 18992,
+          "sha256": "f2fb4eaa308209875cacbdd9f03c71c3cf89ac93204d338c935b80efdcefdb72",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 13,
+          "bytes": 5840,
+          "sha256": "0be23e390f5492dceb9171a31b41fe7c64d7b26b1fa836a1d3bb9461db5455f6",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 14,
+          "bytes": 36064,
+          "sha256": "34dbdf491a88a0f9ece96501ff30024c0b623d4e47a2e33d858391c7fc0c1c87",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 15,
+          "bytes": 3456,
+          "sha256": "83b080b92c58a992dc6545031446acf2637d2f43967327c60e2296590636a04e",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 16,
+          "bytes": 36816,
+          "sha256": "f2878cb16854dade6fd56e358c4c562a468352e74544342ad1e692f0302ad10a",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 17,
+          "bytes": 3520,
+          "sha256": "749e94202b82c1054b258ded0f72fe453f18f1a55105165401299aadc540d5c1",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 18,
+          "bytes": 40784,
+          "sha256": "5d920cdd3e65602305d61aec4e910a35bfe78b6f4c61701065819b5256a6faef",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 19,
+          "bytes": 33808,
+          "sha256": "cbfc1b720cd73edbf40ae350a5077fdf08e5aa94f888074e58a87634cab8ab87",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 20,
+          "bytes": 178240,
+          "sha256": "00b44ea9f2fa59516f4de8eeb8d28f34d736a72e157a32b5ef76b5342bfe3d52",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 21,
+          "bytes": 3728,
+          "sha256": "e9467423287fcf4671fd63761fa8bd5d6975370e952a039d28a8558bed4b9029",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 22,
+          "bytes": 42016,
+          "sha256": "c2319e748780d31d8588a01a59d7df1ed8a5e2571499e6a3c254d3c1100a839c",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 23,
+          "bytes": 4160,
+          "sha256": "f1a008d4b6aea00317f95091c3f65119ce86f034290eb7c0861c20e0600a3810",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 24,
+          "bytes": 46624,
+          "sha256": "2ec937e24b2d70b005b5412276ed90c6f3776419a6089823d4db08ce55b80617",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 25,
+          "bytes": 14496,
+          "sha256": "1e7ca61b4a706cc59271754490e0d0584113f8b58425ac283b7b4cb820a8a2c9",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 26,
+          "bytes": 148976,
+          "sha256": "4f82a0818cea533f65051f9538cfa8328ea3ddb6409ae2661cf3d951c54ff00b",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 27,
+          "bytes": 35024,
+          "sha256": "ed5b7a3bcdaf347a7e0a4c4d00a72a2ccf89d0e0543a39916845360a291baf86",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 28,
+          "bytes": 52496,
+          "sha256": "0f26a0d708d7a2dbd68fa4b06dc10affcd3f6eda3e8b7102bf5c38c05e7f7ba3",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 29,
+          "bytes": 6144,
+          "sha256": "311c2b3b75f51e383ffdd5d2664ea71e24493856b7ec29618d04844b88b3fe97",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 30,
+          "bytes": 67872,
+          "sha256": "70512a7bc995f014c81e5d7e1c3f4364e2ba8fbd9fbd4ac7ec5f20f65e61c907",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 31,
+          "bytes": 4112,
+          "sha256": "2e393fe69358facdb87201a7a3a67ba19ae60d12f33de55fcd295fa5832c9cf0",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 32,
+          "bytes": 134592,
+          "sha256": "325e0e2b266354fff454e3792a82bbd5cdf7d14ce504c81a833b81cd5fb5fa18",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 33,
+          "bytes": 4224,
+          "sha256": "117dd5a46e287de28b47b0da26cb99c63070639e51e5e696edf2cc7e2f6c2416",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 34,
+          "bytes": 177776,
+          "sha256": "ffeca0c385d90c5f1b5091f543f249290e6a0000415cb21e3fafe795ebcd8e84",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 35,
+          "bytes": 7104,
+          "sha256": "6ac1072602c76e2fcb02c3942e8c8c6fa17a4912e7be531a6e7cce9a772700ad",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 36,
+          "bytes": 136464,
+          "sha256": "aa26fd09477b4ff180a247dedc2dfab11593481933d1b9feead91da04f49caa1",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 37,
+          "bytes": 4224,
+          "sha256": "101a3aef281f9f958e130866b8371509439240349ab64b992e3050a3735558eb",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 38,
+          "bytes": 79008,
+          "sha256": "6ca179a874ac81409da3aa401b84502c38ef052fc1f0f51d1931f404ba3eaae3",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 39,
+          "bytes": 3728,
+          "sha256": "7f2adcbbe8cf87b5968594e67ef33d2812bf3f15511a27695d838960b63a3cd9",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 40,
+          "bytes": 62752,
+          "sha256": "c41590b628c0e0ad48b55edade31371b4713465643e9566830a25df23b03776c",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 41,
+          "bytes": 3456,
+          "sha256": "89fd36040d0b4a0554032af935d1d16067638bb1999d048e41751d0e7b71923c",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 42,
+          "bytes": 26928,
+          "sha256": "16bbc1ae849abd38fb8ff4a8217f310e83e3c71b7116241c6d03ecbcdf2fa6f4",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 43,
+          "bytes": 4208,
+          "sha256": "9fb306edbb1a4597b129b9f8dc86b569508bc068a03fbe49a94ea5af401798a4",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 44,
+          "bytes": 34656,
+          "sha256": "0c48d04cb586865caedf6c5b1e7bd1dbe2790e36add87546e7954748fd44e64a",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 45,
+          "bytes": 3520,
+          "sha256": "04c09b50b1898fa26db030f1a5dc11e3af9e19cf12f767bdc3bddd28d4d465d5",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 46,
+          "bytes": 20192,
+          "sha256": "de523f3373859ee98e23eb32a4a804a7b20d29ecaac30a9aebe1dc67167cbd6c",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 47,
+          "bytes": 4816,
+          "sha256": "fefea4b5918e7250c3948d1b24a85b2edd80f44092618133737367b7534916ff",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 48,
+          "bytes": 56768,
+          "sha256": "ea167adbb2c5792cd236dc17afb9178065198b344d1f08a990b6b70995fa685f",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 49,
+          "bytes": 4496,
+          "sha256": "0b44b60aa5e38314c5802071b19b605cc3d0a6dd8c8ed1cc6e00c1a022d71d65",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 50,
+          "bytes": 34080,
+          "sha256": "4b10702bd084ebca9af5e0d1f4ac7f0e070185f08e5bb8487bf4d26f1fb3d0e5",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 51,
+          "bytes": 5648,
+          "sha256": "2ccbb425e39ad137e663e58906d5aaefe38697d7e8cdb7c53802a0e9a029ec41",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 52,
+          "bytes": 75312,
+          "sha256": "4ff3c8424fb958d6a260ed7735aa1e1d36a28a2a2e38049ca8f9d17c1502e4f5",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 53,
+          "bytes": 9120,
+          "sha256": "91693e219832b4ae64b15481ad19ed2ee8eae73a7f11946a46d05996d6b7a5ca",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 54,
+          "bytes": 8784,
+          "sha256": "f8e26bb231809dcd5acca3acd08122a0375e3ac4c9fc5f50fda0b742b23dab3a",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 55,
+          "bytes": 16992,
+          "sha256": "5c0ef2eddc0bcc3b1a7ddc5b7b43d430dbfe278c5efed1ee092bd5bed6b8f7af",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 56,
+          "bytes": 6768,
+          "sha256": "29d75af540efd1cae30f6cb52cca44be104390588a8c5464b04370dcec6ae55e",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 57,
+          "bytes": 6208,
+          "sha256": "8e322cfaa0a69437e73d67b5bb90855c85c0ac048696319c1f730d90d8e18b00",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 58,
+          "bytes": 2400,
+          "sha256": "101b230c65f6e0c964570a1f553f00d2cd625d6b08eae8662a91ce55c0237b3c",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 59,
+          "bytes": 4144,
+          "sha256": "f0ab39b83c2e31097f98ae345d133b45164ace87c8e8899e30fb25c9f6d75ca8",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 60,
+          "bytes": 3776,
+          "sha256": "8e67234cb0360d3134d244a1bb8a85526869b73fe58cac3bf92c6c3d0eb2945e",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 61,
+          "bytes": 5504,
+          "sha256": "171d6d47346e5c76792e7e1bb5d5c97e69296f05a2d03ebd6d8aa2ba36261557",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 62,
+          "bytes": 12992,
+          "sha256": "1b33a8dae53be4659ee082cd72d3cdbde09d41b0f368d4edfb2e402f55a50819",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 63,
+          "bytes": 3024,
+          "sha256": "b9d79a2e3534bb70888a55ba8ccc90845e16eb0dffe0a210bf9558b844c1d92b",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 64,
+          "bytes": 6560,
+          "sha256": "1b4234e4cb3f41f773700af4676fcdcb7a94ccd9035796c5159dbec7c603a061",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 65,
+          "bytes": 33280,
+          "sha256": "54a95dc418616ab4501281ff746a6c8d3921fa958b2de90054a44b4f4aaac9a5",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 66,
+          "bytes": 14720,
+          "sha256": "68e146c8110dde6eca744877103749ba8ba2d91a3e71396bc1a329f97ba6509b",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 67,
+          "bytes": 5168,
+          "sha256": "97efbf6396f2cd9ca9101b49d61428fd36eb327e0ec522d8752002079275ea4a",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 68,
+          "bytes": 17808,
+          "sha256": "c3e9db7154b0059700cab00a56afd81d94e355c2c7cb9dba364bd4e08a31c42c",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 69,
+          "bytes": 25664,
+          "sha256": "dc6e76381ac1c11d00f5da5c3b2171c66a1f288427d08afcd8a3853def8cc757",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 70,
+          "bytes": 14624,
+          "sha256": "c6f71c5b2c7b28e517b1c6b618429ff89ea2b448c072e041d95f57243f4be1f3",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 71,
+          "bytes": 14768,
+          "sha256": "0f468b2a19a140868437d069f38e549437e864f2a6911bea5a1230825791a2a3",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 72,
+          "bytes": 6880,
+          "sha256": "df32798abfff3ffddd1673a254a45258481e91b6dfa680088b3ab5ae68eb4bed",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 73,
+          "bytes": 2944,
+          "sha256": "a5973dac5bc953782fdda3e992dc512e993521b329533088520f31da1d8c436b",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 74,
+          "bytes": 5952,
+          "sha256": "8ea7f8b8e547e801d2fb7e07c0942f49e9ad640309698d084a166afc264d8d2d",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 75,
+          "bytes": 2784,
+          "sha256": "fe1693ff773e755e779f9d8af5238a460de27d23ef91f984efbb03dd086344d1",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 76,
+          "bytes": 4880,
+          "sha256": "c2b8dde22f9a5960fa39f815cdb2cb71a34f3b2a5b9d4c763d7cfb779ed98750",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 77,
+          "bytes": 6384,
+          "sha256": "d144d45eccf2c2b62ab1cf249ee836d0a520eed01f34d02b8eb0fdc677b8fa51",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 78,
+          "bytes": 10544,
+          "sha256": "66e5ae71c4f062b88cda88c78e45bd823c640203d300bb16e3077b37839a7005",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 79,
+          "bytes": 155008,
+          "sha256": "92421930edee3ce2c0019034670a37afb2822b2046ddd198562a5db640e9838c",
+          "hg2": true,
+          "sectionCount": 4,
+          "sections": [
+            {
+              "kind": "mesh",
+              "primitiveCount": 30,
+              "vertices": 396,
+              "stripTriangles": 336,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 7.359
+            },
+            {
+              "kind": "mesh",
+              "primitiveCount": 31,
+              "vertices": 194,
+              "stripTriangles": 132,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 28.708
+            },
+            {
+              "kind": "mesh",
+              "primitiveCount": 259,
+              "vertices": 1342,
+              "stripTriangles": 824,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 3.578
+            },
+            {
+              "kind": "non-mesh"
+            }
+          ],
+          "radius": 28.708,
+          "texture": {
+            "width": 128,
+            "height": 128,
+            "transparency": true
+          },
+          "structuralKey": "30p/396v/336t/vu4|31p/194v/132t/vu4|259p/1342v/824t/vu4"
+        }
+      ],
+      "extra1": {
+        "bytes": 6208,
+        "sha256": "ded8d85757fdf60f1fe85d3a3d26310ea3523d1403329faf1bdafdf6dfeeeb96",
+        "hg2": false,
+        "sectionCount": null,
+        "sections": [],
+        "structuralKey": null,
+        "decodedKind": null,
+        "decodedMeshCount": 0,
+        "decodedRadius": null,
+        "texture": null
+      }
+    },
+    {
+      "fieldNumber": 30,
+      "fileBytes": 1729008,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 18544,
+          "sha256": "e6575b67a0a4d3a2312e265561c18162133ac372ab77957030fb49ab34431ea3",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 31,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 32,
+      "fileBytes": 1491808,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 22192,
+          "sha256": "7382f81cc8d7852365e5282671e180024b68758a8b8f0be9c491c45e8e23c0ba",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 33,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 100,
+      "fileBytes": 2506352,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 101,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 102,
+      "fileBytes": 2689120,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 21184,
+          "sha256": "21a069ea379c6cc7bb72f93a9a63b62d78f2569a2e8bdadff728da26b859e44b",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 103,
+      "fileBytes": 2952432,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 45088,
+          "sha256": "47f308a7f70be207ff80cc8f005d2ec93056fe0fd89c7c9ff05ec996fa34f780",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 110,
+      "fileBytes": 3069184,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 17136,
+          "sha256": "6d12f7022ffbe97b9eb1c4b93e19bf3620564346de830816e1f36a9ee39af929",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 111,
+      "fileBytes": 1407584,
+      "extraCount": 2,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 8304,
+          "sha256": "ca307343c9210310b63c8bdae1f17b8af994671c66f69b4b97987725ce0b873f",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 1,
+          "bytes": 44432,
+          "sha256": "7808a195f0cec5d9a56a8500b838972e2909c5bc5fe891ae6d1bd3805b796ac2",
+          "hg2": true,
+          "sectionCount": 2,
+          "sections": [
+            {
+              "kind": "non-mesh"
+            },
+            {
+              "kind": "non-mesh"
+            }
+          ],
+          "radius": null,
+          "texture": {
+            "width": 128,
+            "height": 128,
+            "transparency": false
+          },
+          "structuralKey": null
+        }
+      ],
+      "extra1": {
+        "bytes": 44432,
+        "sha256": "7808a195f0cec5d9a56a8500b838972e2909c5bc5fe891ae6d1bd3805b796ac2",
+        "hg2": true,
+        "sectionCount": 2,
+        "sections": [
+          {
+            "kind": "non-mesh"
+          },
+          {
+            "kind": "non-mesh"
+          }
+        ],
+        "structuralKey": null,
+        "decodedKind": null,
+        "decodedMeshCount": 0,
+        "decodedRadius": null,
+        "texture": null
+      }
+    },
+    {
+      "fieldNumber": 112,
+      "fileBytes": 971520,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 336,
+          "sha256": "d61eb3f35a6a73f52403a28e12623c48830e13fe93008ad41627d2915b0efad5",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 113,
+      "fileBytes": 4979760,
+      "extraCount": 2,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 90064,
+          "sha256": "052bd4b7bedd568a50f5409b6079e57295afc6e872cb0fe0b00ad02337f520ea",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 1,
+          "bytes": 40560,
+          "sha256": "1030e96a8c4ce4ab71fb0e74753b6171d49f73de7c8f99930a4feda886771776",
+          "hg2": true,
+          "sectionCount": 2,
+          "sections": [
+            {
+              "kind": "mesh",
+              "primitiveCount": 56,
+              "vertices": 460,
+              "stripTriangles": 348,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 10.221
+            },
+            {
+              "kind": "non-mesh"
+            }
+          ],
+          "radius": 10.221,
+          "texture": null,
+          "structuralKey": "56p/460v/348t/vu4"
+        }
+      ],
+      "extra1": {
+        "bytes": 40560,
+        "sha256": "1030e96a8c4ce4ab71fb0e74753b6171d49f73de7c8f99930a4feda886771776",
+        "hg2": true,
+        "sectionCount": 2,
+        "sections": [
+          {
+            "kind": "mesh",
+            "primitiveCount": 56,
+            "vertices": 460,
+            "stripTriangles": 348,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 10.221
+          },
+          {
+            "kind": "non-mesh"
+          }
+        ],
+        "structuralKey": "56p/460v/348t/vu4",
+        "decodedKind": "prop",
+        "decodedMeshCount": 1,
+        "decodedRadius": 10.221,
+        "texture": null
+      }
+    },
+    {
+      "fieldNumber": 120,
+      "fileBytes": 2273232,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 35232,
+          "sha256": "7c891814eed98cf9fc5aee3de0e0349572845257f7cb4700632c0a89bc37ccce",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 121,
+      "fileBytes": 3541056,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 26816,
+          "sha256": "5dd526c20987c0ccfe49f6ec1a7e313c1ec5a5ff78dddf9d45cef493d4c717ec",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 122,
+      "fileBytes": 1666912,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 123,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 130,
+      "fileBytes": 2452864,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 20320,
+          "sha256": "ca350f3131a2b9542f095c6c20fc0447d6e02c90c610c2994c568a5e4810ab0b",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 131,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 132,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 133,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 200,
+      "fileBytes": 2912928,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 27232,
+          "sha256": "9cf03d4539b3a0e7c8ffaffd4aea1fa93513e37fed855340e49d4085c17b0aec",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 201,
+      "fileBytes": 542896,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 336,
+          "sha256": "d61eb3f35a6a73f52403a28e12623c48830e13fe93008ad41627d2915b0efad5",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 202,
+      "fileBytes": 3444368,
+      "extraCount": 2,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 31968,
+          "sha256": "436a6407d011a8712fd740380861d753cec9a422ad0e6a01dc499ce4f8b66411",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 1,
+          "bytes": 20064,
+          "sha256": "7a1c50c0adc56bc6d6921d2d87058e4d8bff810e2ce706592019545adc12bf80",
+          "hg2": true,
+          "sectionCount": 2,
+          "sections": [
+            {
+              "kind": "mesh",
+              "primitiveCount": 12,
+              "vertices": 40,
+              "stripTriangles": 16,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 6.328
+            },
+            {
+              "kind": "non-mesh"
+            }
+          ],
+          "radius": 6.328,
+          "texture": {
+            "width": 128,
+            "height": 128,
+            "transparency": false
+          },
+          "structuralKey": "12p/40v/16t/vu4"
+        }
+      ],
+      "extra1": {
+        "bytes": 20064,
+        "sha256": "7a1c50c0adc56bc6d6921d2d87058e4d8bff810e2ce706592019545adc12bf80",
+        "hg2": true,
+        "sectionCount": 2,
+        "sections": [
+          {
+            "kind": "mesh",
+            "primitiveCount": 12,
+            "vertices": 40,
+            "stripTriangles": 16,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 6.328
+          },
+          {
+            "kind": "non-mesh"
+          }
+        ],
+        "structuralKey": "12p/40v/16t/vu4",
+        "decodedKind": "prop",
+        "decodedMeshCount": 1,
+        "decodedRadius": 6.328,
+        "texture": {
+          "width": 128,
+          "height": 128,
+          "transparency": false
+        }
+      }
+    },
+    {
+      "fieldNumber": 203,
+      "fileBytes": 5136704,
+      "extraCount": 2,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 57408,
+          "sha256": "74706fe476ea341f194f3386c89e95c8c7ecdc60a974f6c0b913252c046126e4",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 1,
+          "bytes": 28336,
+          "sha256": "f7787915e9c1abf1c79734e8d01b83b5d5c99e9987cc185063b4fcffd1f51d35",
+          "hg2": true,
+          "sectionCount": 3,
+          "sections": [
+            {
+              "kind": "mesh",
+              "primitiveCount": 28,
+              "vertices": 124,
+              "stripTriangles": 68,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 2.953
+            },
+            {
+              "kind": "mesh",
+              "primitiveCount": 21,
+              "vertices": 64,
+              "stripTriangles": 22,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 3.441
+            },
+            {
+              "kind": "non-mesh"
+            }
+          ],
+          "radius": 3.441,
+          "texture": {
+            "width": 128,
+            "height": 128,
+            "transparency": false
+          },
+          "structuralKey": "28p/124v/68t/vu4|21p/64v/22t/vu4"
+        }
+      ],
+      "extra1": {
+        "bytes": 28336,
+        "sha256": "f7787915e9c1abf1c79734e8d01b83b5d5c99e9987cc185063b4fcffd1f51d35",
+        "hg2": true,
+        "sectionCount": 3,
+        "sections": [
+          {
+            "kind": "mesh",
+            "primitiveCount": 28,
+            "vertices": 124,
+            "stripTriangles": 68,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 2.953
+          },
+          {
+            "kind": "mesh",
+            "primitiveCount": 21,
+            "vertices": 64,
+            "stripTriangles": 22,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 3.441
+          },
+          {
+            "kind": "non-mesh"
+          }
+        ],
+        "structuralKey": "28p/124v/68t/vu4|21p/64v/22t/vu4",
+        "decodedKind": "prop",
+        "decodedMeshCount": 2,
+        "decodedRadius": 3.441,
+        "texture": {
+          "width": 128,
+          "height": 128,
+          "transparency": false
+        }
+      }
+    },
+    {
+      "fieldNumber": 210,
+      "fileBytes": 3841824,
+      "extraCount": 2,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 63072,
+          "sha256": "5dffd544279424e353f7cee94b7da834faaf18c9ae5505b2ee0610e7c0c3b0f9",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 1,
+          "bytes": 37776,
+          "sha256": "b4e40a227ad8c7302f069c75ba9c3970cc82c60262670b4436706d4398b8b43c",
+          "hg2": true,
+          "sectionCount": 3,
+          "sections": [
+            {
+              "kind": "mesh",
+              "primitiveCount": 42,
+              "vertices": 234,
+              "stripTriangles": 150,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 3.058
+            },
+            {
+              "kind": "mesh",
+              "primitiveCount": 25,
+              "vertices": 140,
+              "stripTriangles": 90,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 1.617
+            },
+            {
+              "kind": "non-mesh"
+            }
+          ],
+          "radius": 3.058,
+          "texture": {
+            "width": 128,
+            "height": 128,
+            "transparency": false
+          },
+          "structuralKey": "42p/234v/150t/vu4|25p/140v/90t/vu4"
+        }
+      ],
+      "extra1": {
+        "bytes": 37776,
+        "sha256": "b4e40a227ad8c7302f069c75ba9c3970cc82c60262670b4436706d4398b8b43c",
+        "hg2": true,
+        "sectionCount": 3,
+        "sections": [
+          {
+            "kind": "mesh",
+            "primitiveCount": 42,
+            "vertices": 234,
+            "stripTriangles": 150,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 3.058
+          },
+          {
+            "kind": "mesh",
+            "primitiveCount": 25,
+            "vertices": 140,
+            "stripTriangles": 90,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 1.617
+          },
+          {
+            "kind": "non-mesh"
+          }
+        ],
+        "structuralKey": "42p/234v/150t/vu4|25p/140v/90t/vu4",
+        "decodedKind": "prop",
+        "decodedMeshCount": 2,
+        "decodedRadius": 3.058,
+        "texture": {
+          "width": 128,
+          "height": 128,
+          "transparency": false
+        }
+      }
+    },
+    {
+      "fieldNumber": 211,
+      "fileBytes": 2032576,
+      "extraCount": 2,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 13872,
+          "sha256": "d5d517fb56088b9ea4fd207985a972c729cf03b0212a5466da4736afffaf9e33",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 1,
+          "bytes": 21920,
+          "sha256": "50610a40a85e71627e8c9e2fa98c9a47e37edf40461ee848aa9e02e3fb55cfc3",
+          "hg2": true,
+          "sectionCount": 2,
+          "sections": [
+            {
+              "kind": "mesh",
+              "primitiveCount": 20,
+              "vertices": 74,
+              "stripTriangles": 34,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 3.939
+            },
+            {
+              "kind": "non-mesh"
+            }
+          ],
+          "radius": 3.939,
+          "texture": {
+            "width": 128,
+            "height": 128,
+            "transparency": false
+          },
+          "structuralKey": "20p/74v/34t/vu4"
+        }
+      ],
+      "extra1": {
+        "bytes": 21920,
+        "sha256": "50610a40a85e71627e8c9e2fa98c9a47e37edf40461ee848aa9e02e3fb55cfc3",
+        "hg2": true,
+        "sectionCount": 2,
+        "sections": [
+          {
+            "kind": "mesh",
+            "primitiveCount": 20,
+            "vertices": 74,
+            "stripTriangles": 34,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 3.939
+          },
+          {
+            "kind": "non-mesh"
+          }
+        ],
+        "structuralKey": "20p/74v/34t/vu4",
+        "decodedKind": "prop",
+        "decodedMeshCount": 1,
+        "decodedRadius": 3.939,
+        "texture": {
+          "width": 128,
+          "height": 128,
+          "transparency": false
+        }
+      }
+    },
+    {
+      "fieldNumber": 212,
+      "fileBytes": 3307888,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 24912,
+          "sha256": "e7942b4be7051584c25c6cd73240ab52bc4e7e18d9bc712be873968d60ba3391",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 213,
+      "fileBytes": 4945392,
+      "extraCount": 2,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 27712,
+          "sha256": "43b6862504b3a08766e353d814994c9d2a06b7d82a1325193b3623f8a3534a19",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 1,
+          "bytes": 22640,
+          "sha256": "5322ead20fbf803ce52f97870f6200930922e9a35620810712c3859920ce4abb",
+          "hg2": true,
+          "sectionCount": 2,
+          "sections": [
+            {
+              "kind": "mesh",
+              "primitiveCount": 25,
+              "vertices": 86,
+              "stripTriangles": 36,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 41.966
+            },
+            {
+              "kind": "non-mesh"
+            }
+          ],
+          "radius": 41.966,
+          "texture": {
+            "width": 128,
+            "height": 128,
+            "transparency": false
+          },
+          "structuralKey": "25p/86v/36t/vu4"
+        }
+      ],
+      "extra1": {
+        "bytes": 22640,
+        "sha256": "5322ead20fbf803ce52f97870f6200930922e9a35620810712c3859920ce4abb",
+        "hg2": true,
+        "sectionCount": 2,
+        "sections": [
+          {
+            "kind": "mesh",
+            "primitiveCount": 25,
+            "vertices": 86,
+            "stripTriangles": 36,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 41.966
+          },
+          {
+            "kind": "non-mesh"
+          }
+        ],
+        "structuralKey": "25p/86v/36t/vu4",
+        "decodedKind": "turbine-rotor",
+        "decodedMeshCount": 1,
+        "decodedRadius": 41.966,
+        "texture": {
+          "width": 128,
+          "height": 128,
+          "transparency": false
+        }
+      }
+    },
+    {
+      "fieldNumber": 220,
+      "fileBytes": 3696960,
+      "extraCount": 2,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 18224,
+          "sha256": "4d573133c1d796d3e10e9e7044909326d99eae0d6862cde6e182c69fed11543a",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 1,
+          "bytes": 6368,
+          "sha256": "e340fd8bd6a46b0ffed95492b83a0b4de4e26f7cd409e34c95df8d3385eaf566",
+          "hg2": true,
+          "sectionCount": 4,
+          "sections": [
+            {
+              "kind": "mesh",
+              "primitiveCount": 1,
+              "vertices": 4,
+              "stripTriangles": 2,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 3.426
+            },
+            {
+              "kind": "mesh",
+              "primitiveCount": 2,
+              "vertices": 8,
+              "stripTriangles": 4,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 3.692
+            },
+            {
+              "kind": "mesh",
+              "primitiveCount": 3,
+              "vertices": 12,
+              "stripTriangles": 6,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 3.925
+            },
+            {
+              "kind": "non-mesh"
+            }
+          ],
+          "radius": 3.925,
+          "texture": {
+            "width": 64,
+            "height": 32,
+            "transparency": true
+          },
+          "structuralKey": "1p/4v/2t/vu4|2p/8v/4t/vu4|3p/12v/6t/vu4"
+        }
+      ],
+      "extra1": {
+        "bytes": 6368,
+        "sha256": "e340fd8bd6a46b0ffed95492b83a0b4de4e26f7cd409e34c95df8d3385eaf566",
+        "hg2": true,
+        "sectionCount": 4,
+        "sections": [
+          {
+            "kind": "mesh",
+            "primitiveCount": 1,
+            "vertices": 4,
+            "stripTriangles": 2,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 3.426
+          },
+          {
+            "kind": "mesh",
+            "primitiveCount": 2,
+            "vertices": 8,
+            "stripTriangles": 4,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 3.692
+          },
+          {
+            "kind": "mesh",
+            "primitiveCount": 3,
+            "vertices": 12,
+            "stripTriangles": 6,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 3.925
+          },
+          {
+            "kind": "non-mesh"
+          }
+        ],
+        "structuralKey": "1p/4v/2t/vu4|2p/8v/4t/vu4|3p/12v/6t/vu4",
+        "decodedKind": "palm-crown",
+        "decodedMeshCount": 3,
+        "decodedRadius": 3.925,
+        "texture": {
+          "width": 64,
+          "height": 32,
+          "transparency": true
+        }
+      }
+    },
+    {
+      "fieldNumber": 221,
+      "fileBytes": 3129600,
+      "extraCount": 2,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 17776,
+          "sha256": "75c3f32ed9ea60d2a363c4f23a8ce6b877eabf2490920d9a8fc5026e8c17ab04",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 1,
+          "bytes": 6368,
+          "sha256": "e20ced29c6d7eb74f218f3ede4ae5c0f1964b9b327014920171003226486b363",
+          "hg2": true,
+          "sectionCount": 4,
+          "sections": [
+            {
+              "kind": "mesh",
+              "primitiveCount": 1,
+              "vertices": 4,
+              "stripTriangles": 2,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 3.426
+            },
+            {
+              "kind": "mesh",
+              "primitiveCount": 2,
+              "vertices": 8,
+              "stripTriangles": 4,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 3.692
+            },
+            {
+              "kind": "mesh",
+              "primitiveCount": 3,
+              "vertices": 12,
+              "stripTriangles": 6,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 3.925
+            },
+            {
+              "kind": "non-mesh"
+            }
+          ],
+          "radius": 3.925,
+          "texture": {
+            "width": 64,
+            "height": 32,
+            "transparency": true
+          },
+          "structuralKey": "1p/4v/2t/vu4|2p/8v/4t/vu4|3p/12v/6t/vu4"
+        }
+      ],
+      "extra1": {
+        "bytes": 6368,
+        "sha256": "e20ced29c6d7eb74f218f3ede4ae5c0f1964b9b327014920171003226486b363",
+        "hg2": true,
+        "sectionCount": 4,
+        "sections": [
+          {
+            "kind": "mesh",
+            "primitiveCount": 1,
+            "vertices": 4,
+            "stripTriangles": 2,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 3.426
+          },
+          {
+            "kind": "mesh",
+            "primitiveCount": 2,
+            "vertices": 8,
+            "stripTriangles": 4,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 3.692
+          },
+          {
+            "kind": "mesh",
+            "primitiveCount": 3,
+            "vertices": 12,
+            "stripTriangles": 6,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 3.925
+          },
+          {
+            "kind": "non-mesh"
+          }
+        ],
+        "structuralKey": "1p/4v/2t/vu4|2p/8v/4t/vu4|3p/12v/6t/vu4",
+        "decodedKind": "palm-crown",
+        "decodedMeshCount": 3,
+        "decodedRadius": 3.925,
+        "texture": {
+          "width": 64,
+          "height": 32,
+          "transparency": true
+        }
+      }
+    },
+    {
+      "fieldNumber": 222,
+      "fileBytes": 3808112,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 21328,
+          "sha256": "38bdee3585187f01edc0216849cc97cdd10ed0b06102a30390f73d091a389730",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 223,
+      "fileBytes": 5566432,
+      "extraCount": 2,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 20320,
+          "sha256": "bc0f5aaaac1d65b2a9547d1b4bcf0996c1ff69485571d557ffe8b8630065b230",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 1,
+          "bytes": 62336,
+          "sha256": "3a016551e09f60a75105e666f99972daf869d351b009883dd09f03f894ae98c0",
+          "hg2": true,
+          "sectionCount": 4,
+          "sections": [
+            {
+              "kind": "mesh",
+              "primitiveCount": 74,
+              "vertices": 308,
+              "stripTriangles": 160,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 2.04
+            },
+            {
+              "kind": "mesh",
+              "primitiveCount": 49,
+              "vertices": 298,
+              "stripTriangles": 200,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 1.202
+            },
+            {
+              "kind": "mesh",
+              "primitiveCount": 42,
+              "vertices": 220,
+              "stripTriangles": 136,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 1.171
+            },
+            {
+              "kind": "non-mesh"
+            }
+          ],
+          "radius": 2.04,
+          "texture": {
+            "width": 128,
+            "height": 128,
+            "transparency": true
+          },
+          "structuralKey": "74p/308v/160t/vu4|49p/298v/200t/vu4|42p/220v/136t/vu4"
+        }
+      ],
+      "extra1": {
+        "bytes": 62336,
+        "sha256": "3a016551e09f60a75105e666f99972daf869d351b009883dd09f03f894ae98c0",
+        "hg2": true,
+        "sectionCount": 4,
+        "sections": [
+          {
+            "kind": "mesh",
+            "primitiveCount": 74,
+            "vertices": 308,
+            "stripTriangles": 160,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 2.04
+          },
+          {
+            "kind": "mesh",
+            "primitiveCount": 49,
+            "vertices": 298,
+            "stripTriangles": 200,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 1.202
+          },
+          {
+            "kind": "mesh",
+            "primitiveCount": 42,
+            "vertices": 220,
+            "stripTriangles": 136,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 1.171
+          },
+          {
+            "kind": "non-mesh"
+          }
+        ],
+        "structuralKey": "74p/308v/160t/vu4|49p/298v/200t/vu4|42p/220v/136t/vu4",
+        "decodedKind": "prop",
+        "decodedMeshCount": 3,
+        "decodedRadius": 2.04,
+        "texture": {
+          "width": 128,
+          "height": 128,
+          "transparency": true
+        }
+      }
+    },
+    {
+      "fieldNumber": 230,
+      "fileBytes": 1568480,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 21568,
+          "sha256": "2b6656e5af03dc0b3e239a4343a902336b56595654b646df5f0bebef18887dc6",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 231,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 232,
+      "fileBytes": 1809984,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 21456,
+          "sha256": "5a37fca34b9dd3a343711afdf7136226a5d00aecbfc97929594f6fadc128b58e",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 233,
+      "fileBytes": 4876608,
+      "extraCount": 2,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 155056,
+          "sha256": "86390ea3f35fc4821d70e65d84a19b41e773fedf7f419db521d000306111d37b",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        },
+        {
+          "index": 1,
+          "bytes": 63632,
+          "sha256": "0fc662f18cea79643f0d6ce4e9662ae3dd4935fe7b576a54beeb6b873a5c3cf5",
+          "hg2": true,
+          "sectionCount": 4,
+          "sections": [
+            {
+              "kind": "mesh",
+              "primitiveCount": 59,
+              "vertices": 334,
+              "stripTriangles": 216,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 2.266
+            },
+            {
+              "kind": "mesh",
+              "primitiveCount": 26,
+              "vertices": 112,
+              "stripTriangles": 60,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 5.009
+            },
+            {
+              "kind": "mesh",
+              "primitiveCount": 89,
+              "vertices": 402,
+              "stripTriangles": 224,
+              "vuPrograms": [
+                4
+              ],
+              "radius": 4.158
+            },
+            {
+              "kind": "non-mesh"
+            }
+          ],
+          "radius": 5.009,
+          "texture": {
+            "width": 128,
+            "height": 128,
+            "transparency": true
+          },
+          "structuralKey": "59p/334v/216t/vu4|26p/112v/60t/vu4|89p/402v/224t/vu4"
+        }
+      ],
+      "extra1": {
+        "bytes": 63632,
+        "sha256": "0fc662f18cea79643f0d6ce4e9662ae3dd4935fe7b576a54beeb6b873a5c3cf5",
+        "hg2": true,
+        "sectionCount": 4,
+        "sections": [
+          {
+            "kind": "mesh",
+            "primitiveCount": 59,
+            "vertices": 334,
+            "stripTriangles": 216,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 2.266
+          },
+          {
+            "kind": "mesh",
+            "primitiveCount": 26,
+            "vertices": 112,
+            "stripTriangles": 60,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 5.009
+          },
+          {
+            "kind": "mesh",
+            "primitiveCount": 89,
+            "vertices": 402,
+            "stripTriangles": 224,
+            "vuPrograms": [
+              4
+            ],
+            "radius": 4.158
+          },
+          {
+            "kind": "non-mesh"
+          }
+        ],
+        "structuralKey": "59p/334v/216t/vu4|26p/112v/60t/vu4|89p/402v/224t/vu4",
+        "decodedKind": "prop",
+        "decodedMeshCount": 3,
+        "decodedRadius": 5.009,
+        "texture": {
+          "width": 128,
+          "height": 128,
+          "transparency": true
+        }
+      }
+    },
+    {
+      "fieldNumber": 300,
+      "fileBytes": 2536208,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 30608,
+          "sha256": "78029ca59307d119b9d66851a4e035688af8fdb228844fc2ffdad45b777eae87",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 301,
+      "fileBytes": 2920000,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 22352,
+          "sha256": "fb87a5d52e5f67d51541ddb0e208623dde8312526e266306cc40a9fc3aacfecf",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 302,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 303,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 310,
+      "fileBytes": 2939936,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 24432,
+          "sha256": "f0e0308b89e1ea12b69536d9ff036a3ef386e9ef68a42d177ad0ae0affae6674",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 311,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 312,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 313,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 320,
+      "fileBytes": 2506352,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 321,
+      "fileBytes": 3113168,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 20688,
+          "sha256": "fd9444ee5a98df25ad082a62edeef6392f67fb4063d192bf53cab7a0a3ecf9d0",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 322,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 323,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 330,
+      "fileBytes": 2659664,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 21536,
+          "sha256": "d5b073d362594f2817b3ca3dd0e6e95129641652c120d5590241bcbbeb85bbbe",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 331,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 332,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "1b77ab1fb1177242c913cf5a1b4dde4e98a0cb1420008c64729d8c33cf735839",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    },
+    {
+      "fieldNumber": 333,
+      "fileBytes": 2433728,
+      "extraCount": 1,
+      "extraSections": [
+        {
+          "index": 0,
+          "bytes": 752,
+          "sha256": "b66503635d6c39ef79073285c5b9533a33d9b5f7c15fdb2d7e09ab2779e45aba",
+          "hg2": false,
+          "sectionCount": null,
+          "sections": [],
+          "radius": null,
+          "texture": null,
+          "structuralKey": null
+        }
+      ],
+      "extra1": null
+    }
+  ]
+}
