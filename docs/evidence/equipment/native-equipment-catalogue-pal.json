@@ -1,0 +1,1824 @@
+{
+  "schema": 1,
+  "authority": "Road Trip Adventure European PAL executable SLES_513.56",
+  "source": {
+    "input_kind": "pal-executable",
+    "elf_size": 1952960,
+    "elf_sha256": "2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9"
+  },
+  "evidence_addresses": {
+    "price_helper": "0x00245268",
+    "price_jump_table": "0x0030ac20",
+    "selector_write_helper": "0x0023df78",
+    "selector_side_effect_jump_table": "0x00301410"
+  },
+  "categories": [
+    {
+      "category": 1,
+      "label": "Tyres",
+      "table_address": "0x00301630",
+      "record_stride": 28,
+      "item_count": 13,
+      "known_role": "six PAL surface grip coefficients; Big selector additionally drives cfg flag 0x0400",
+      "selector_write_effect": "record u16@+0x1a nonzero sets cfg flags 0x0400; zero clears it",
+      "items": [
+        {
+          "index": 0,
+          "address": "0x00301630",
+          "record_name": "Normal",
+          "name_pointer": "0x003d6a58",
+          "description_pointer": "0x00301a68",
+          "price_cake": 200,
+          "record_hex": "586a3d00681a3000c8000000c400a8008000a8006000400000000000",
+          "configuration_tail_hex": "c400a8008000a8006000400000000000",
+          "known_fields": {
+            "surface_grip_u16": [
+              196,
+              168,
+              128,
+              168,
+              96,
+              64
+            ],
+            "raw_u16_0x18": 0,
+            "selector_flag_source_u16_0x1a": 0
+          }
+        },
+        {
+          "index": 1,
+          "address": "0x0030164c",
+          "record_name": "Sports",
+          "name_pointer": "0x003d6a50",
+          "description_pointer": "0x00301a40",
+          "price_cake": 1000,
+          "record_hex": "506a3d00401a3000e8030000f000c4009a00a0006000400000000000",
+          "configuration_tail_hex": "f000c4009a00a0006000400000000000",
+          "known_fields": {
+            "surface_grip_u16": [
+              240,
+              196,
+              154,
+              160,
+              96,
+              64
+            ],
+            "raw_u16_0x18": 0,
+            "selector_flag_source_u16_0x1a": 0
+          }
+        },
+        {
+          "index": 2,
+          "address": "0x00301668",
+          "record_name": "Semi-Racing",
+          "name_pointer": "0x00301a30",
+          "description_pointer": "0x00301a00",
+          "price_cake": 2000,
+          "record_hex": "301a3000001a3000d00700004d01a8009a008c005000400000000000",
+          "configuration_tail_hex": "4d01a8009a008c005000400000000000",
+          "known_fields": {
+            "surface_grip_u16": [
+              333,
+              168,
+              154,
+              140,
+              80,
+              64
+            ],
+            "raw_u16_0x18": 0,
+            "selector_flag_source_u16_0x1a": 0
+          }
+        },
+        {
+          "index": 3,
+          "address": "0x00301684",
+          "record_name": "Racing",
+          "name_pointer": "0x003d6a48",
+          "description_pointer": "0x003019d8",
+          "price_cake": 5000,
+          "record_hex": "486a3d00d81930008813000000026600660064003300400000000000",
+          "configuration_tail_hex": "00026600660064003300400000000000",
+          "known_fields": {
+            "surface_grip_u16": [
+              512,
+              102,
+              102,
+              100,
+              51,
+              64
+            ],
+            "raw_u16_0x18": 0,
+            "selector_flag_source_u16_0x1a": 0
+          }
+        },
+        {
+          "index": 4,
+          "address": "0x003016a0",
+          "record_name": "HG Racing",
+          "name_pointer": "0x003019c8",
+          "description_pointer": "0x00301998",
+          "price_cake": 10000,
+          "record_hex": "c819300098193000102700000002a000660080003300400000000000",
+          "configuration_tail_hex": "0002a000660080003300400000000000",
+          "known_fields": {
+            "surface_grip_u16": [
+              512,
+              160,
+              102,
+              128,
+              51,
+              64
+            ],
+            "raw_u16_0x18": 0,
+            "selector_flag_source_u16_0x1a": 0
+          }
+        },
+        {
+          "index": 5,
+          "address": "0x003016bc",
+          "record_name": "Wet",
+          "name_pointer": "0x003d6a40",
+          "description_pointer": "0x00301960",
+          "price_cake": 2000,
+          "record_hex": "406a3d0060193000d0070000f000c400c400a0008000400000000000",
+          "configuration_tail_hex": "f000c400c400a0008000400000000000",
+          "known_fields": {
+            "surface_grip_u16": [
+              240,
+              196,
+              196,
+              160,
+              128,
+              64
+            ],
+            "raw_u16_0x18": 0,
+            "selector_flag_source_u16_0x1a": 0
+          }
+        },
+        {
+          "index": 6,
+          "address": "0x003016d8",
+          "record_name": "HG Wet",
+          "name_pointer": "0x003d6a38",
+          "description_pointer": "0x00301920",
+          "price_cake": 3000,
+          "record_hex": "386a3d0020193000b80b0000f000c400f000a0008000400000000000",
+          "configuration_tail_hex": "f000c400f000a0008000400000000000",
+          "known_fields": {
+            "surface_grip_u16": [
+              240,
+              196,
+              240,
+              160,
+              128,
+              64
+            ],
+            "raw_u16_0x18": 0,
+            "selector_flag_source_u16_0x1a": 0
+          }
+        },
+        {
+          "index": 7,
+          "address": "0x003016f4",
+          "record_name": "Off-Road",
+          "name_pointer": "0x00301910",
+          "description_pointer": "0x003018d8",
+          "price_cake": 500,
+          "record_hex": "10193000d8183000f4010000c400c400a000a0008000400000000000",
+          "configuration_tail_hex": "c400c400a000a0008000400000000000",
+          "known_fields": {
+            "surface_grip_u16": [
+              196,
+              196,
+              160,
+              160,
+              128,
+              64
+            ],
+            "raw_u16_0x18": 0,
+            "selector_flag_source_u16_0x1a": 0
+          }
+        },
+        {
+          "index": 8,
+          "address": "0x00301710",
+          "record_name": "HG Off-Road",
+          "name_pointer": "0x003018c8",
+          "description_pointer": "0x00301890",
+          "price_cake": 3000,
+          "record_hex": "c818300090183000b80b0000f000f000a000b400a800800000000000",
+          "configuration_tail_hex": "f000f000a000b400a800800000000000",
+          "known_fields": {
+            "surface_grip_u16": [
+              240,
+              240,
+              160,
+              180,
+              168,
+              128
+            ],
+            "raw_u16_0x18": 0,
+            "selector_flag_source_u16_0x1a": 0
+          }
+        },
+        {
+          "index": 9,
+          "address": "0x0030172c",
+          "record_name": "Studless",
+          "name_pointer": "0x00301880",
+          "description_pointer": "0x00301848",
+          "price_cake": 1000,
+          "record_hex": "8018300048183000e8030000c400c400a000a800a800c40000000000",
+          "configuration_tail_hex": "c400c400a000a800a800c40000000000",
+          "known_fields": {
+            "surface_grip_u16": [
+              196,
+              196,
+              160,
+              168,
+              168,
+              196
+            ],
+            "raw_u16_0x18": 0,
+            "selector_flag_source_u16_0x1a": 0
+          }
+        },
+        {
+          "index": 10,
+          "address": "0x00301748",
+          "record_name": "HG Studless",
+          "name_pointer": "0x00301838",
+          "description_pointer": "0x003017f8",
+          "price_cake": 3000,
+          "record_hex": "38183000f8173000b80b0000f000c400a000a800c400c40000000000",
+          "configuration_tail_hex": "f000c400a000a800c400c40000000000",
+          "known_fields": {
+            "surface_grip_u16": [
+              240,
+              196,
+              160,
+              168,
+              196,
+              196
+            ],
+            "raw_u16_0x18": 0,
+            "selector_flag_source_u16_0x1a": 0
+          }
+        },
+        {
+          "index": 11,
+          "address": "0x00301764",
+          "record_name": "Big",
+          "name_pointer": "0x003d6a30",
+          "description_pointer": "0x003017b8",
+          "price_cake": 5000,
+          "record_hex": "306a3d00b817300088130000f000f000e600d200c400600000000100",
+          "configuration_tail_hex": "f000f000e600d200c400600000000100",
+          "known_fields": {
+            "surface_grip_u16": [
+              240,
+              240,
+              230,
+              210,
+              196,
+              96
+            ],
+            "raw_u16_0x18": 0,
+            "selector_flag_source_u16_0x1a": 1
+          }
+        },
+        {
+          "index": 12,
+          "address": "0x00301780",
+          "record_name": "Devil",
+          "name_pointer": "0x003d6a28",
+          "description_pointer": "0x003017a0",
+          "price_cake": 200000,
+          "record_hex": "286a3d00a0173000400d030000ff00ff00ff00ff00ff00ff00000000",
+          "configuration_tail_hex": "00ff00ff00ff00ff00ff00ff00000000",
+          "known_fields": {
+            "surface_grip_u16": [
+              65280,
+              65280,
+              65280,
+              65280,
+              65280,
+              65280
+            ],
+            "raw_u16_0x18": 0,
+            "selector_flag_source_u16_0x1a": 0
+          }
+        }
+      ]
+    },
+    {
+      "category": 2,
+      "label": "Engine",
+      "table_address": "0x00301a90",
+      "record_stride": 24,
+      "item_count": 12,
+      "known_role": "drive-force scalar at +0x0c; final flag code is consumed by selector writer",
+      "selector_write_effect": "record u32@+0x14 code 1/2 selects cfg flag 0x0001/0x0002 after clearing both",
+      "items": [
+        {
+          "index": 0,
+          "address": "0x00301a90",
+          "record_name": "Normal",
+          "name_pointer": "0x003d6a58",
+          "description_pointer": "0x00301d90",
+          "price_cake": 200,
+          "record_hex": "586a3d00901d3000c8000000dc0500000300000000000000",
+          "configuration_tail_hex": "dc0500000300000000000000",
+          "known_fields": {
+            "drive_scalar_u32_0x0c": 1500,
+            "raw_u32_0x10": 3,
+            "selector_flag_code_u32_0x14": 0
+          }
+        },
+        {
+          "index": 1,
+          "address": "0x00301aa8",
+          "record_name": "Panther",
+          "name_pointer": "0x003d6a70",
+          "description_pointer": "0x00301d70",
+          "price_cake": 500,
+          "record_hex": "706a3d00701d3000f4010000080700000400000000000000",
+          "configuration_tail_hex": "080700000400000000000000",
+          "known_fields": {
+            "drive_scalar_u32_0x0c": 1800,
+            "raw_u32_0x10": 4,
+            "selector_flag_code_u32_0x14": 0
+          }
+        },
+        {
+          "index": 2,
+          "address": "0x00301ac0",
+          "record_name": "Blue MAX",
+          "name_pointer": "0x00301d60",
+          "description_pointer": "0x00301d40",
+          "price_cake": 1000,
+          "record_hex": "601d3000401d3000e8030000980800000500000000000000",
+          "configuration_tail_hex": "980800000500000000000000",
+          "known_fields": {
+            "drive_scalar_u32_0x0c": 2200,
+            "raw_u32_0x10": 5,
+            "selector_flag_code_u32_0x14": 0
+          }
+        },
+        {
+          "index": 3,
+          "address": "0x00301ad8",
+          "record_name": "Blue MAX V2",
+          "name_pointer": "0x00301d30",
+          "description_pointer": "0x00301d10",
+          "price_cake": 1500,
+          "record_hex": "301d3000101d3000dc050000280a00000600000000000000",
+          "configuration_tail_hex": "280a00000600000000000000",
+          "known_fields": {
+            "drive_scalar_u32_0x0c": 2600,
+            "raw_u32_0x10": 6,
+            "selector_flag_code_u32_0x14": 0
+          }
+        },
+        {
+          "index": 4,
+          "address": "0x00301af0",
+          "record_name": "MAD",
+          "name_pointer": "0x003d6a68",
+          "description_pointer": "0x00301cf0",
+          "price_cake": 2000,
+          "record_hex": "686a3d00f01c3000d0070000540b00000700000000000000",
+          "configuration_tail_hex": "540b00000700000000000000",
+          "known_fields": {
+            "drive_scalar_u32_0x0c": 2900,
+            "raw_u32_0x10": 7,
+            "selector_flag_code_u32_0x14": 0
+          }
+        },
+        {
+          "index": 5,
+          "address": "0x00301b08",
+          "record_name": "MAD V2",
+          "name_pointer": "0x003d6a60",
+          "description_pointer": "0x00301cd0",
+          "price_cake": 4000,
+          "record_hex": "606a3d00d01c3000a00f0000e40c00000800000000000000",
+          "configuration_tail_hex": "e40c00000800000000000000",
+          "known_fields": {
+            "drive_scalar_u32_0x0c": 3300,
+            "raw_u32_0x10": 8,
+            "selector_flag_code_u32_0x14": 0
+          }
+        },
+        {
+          "index": 6,
+          "address": "0x00301b20",
+          "record_name": "Long MAD",
+          "name_pointer": "0x00301cc0",
+          "description_pointer": "0x00301ca0",
+          "price_cake": 8000,
+          "record_hex": "c01c3000a01c3000401f0000100e00000600000000000000",
+          "configuration_tail_hex": "100e00000600000000000000",
+          "known_fields": {
+            "drive_scalar_u32_0x0c": 3600,
+            "raw_u32_0x10": 6,
+            "selector_flag_code_u32_0x14": 0
+          }
+        },
+        {
+          "index": 7,
+          "address": "0x00301b38",
+          "record_name": "Black MAX",
+          "name_pointer": "0x00301c90",
+          "description_pointer": "0x00301c70",
+          "price_cake": 12000,
+          "record_hex": "901c3000701c3000e02e00003c0f00000800000000000000",
+          "configuration_tail_hex": "3c0f00000800000000000000",
+          "known_fields": {
+            "drive_scalar_u32_0x0c": 3900,
+            "raw_u32_0x10": 8,
+            "selector_flag_code_u32_0x14": 0
+          }
+        },
+        {
+          "index": 8,
+          "address": "0x00301b50",
+          "record_name": "RS Magnum",
+          "name_pointer": "0x00301c60",
+          "description_pointer": "0x00301c40",
+          "price_cake": 16000,
+          "record_hex": "601c3000401c3000803e0000681000000c00000000000000",
+          "configuration_tail_hex": "681000000c00000000000000",
+          "known_fields": {
+            "drive_scalar_u32_0x0c": 4200,
+            "raw_u32_0x10": 12,
+            "selector_flag_code_u32_0x14": 0
+          }
+        },
+        {
+          "index": 9,
+          "address": "0x00301b68",
+          "record_name": "Speed MAX",
+          "name_pointer": "0x00301c30",
+          "description_pointer": "0x00301c10",
+          "price_cake": 20000,
+          "record_hex": "301c3000101c3000204e0000941100001000000000000000",
+          "configuration_tail_hex": "941100001000000000000000",
+          "known_fields": {
+            "drive_scalar_u32_0x0c": 4500,
+            "raw_u32_0x10": 16,
+            "selector_flag_code_u32_0x14": 0
+          }
+        },
+        {
+          "index": 10,
+          "address": "0x00301b80",
+          "record_name": "Hyper MAX",
+          "name_pointer": "0x00301c00",
+          "description_pointer": "0x00301be0",
+          "price_cake": 80000,
+          "record_hex": "001c3000e01b300080380100701700001400000001000000",
+          "configuration_tail_hex": "701700001400000001000000",
+          "known_fields": {
+            "drive_scalar_u32_0x0c": 6000,
+            "raw_u32_0x10": 20,
+            "selector_flag_code_u32_0x14": 1
+          }
+        },
+        {
+          "index": 11,
+          "address": "0x00301b98",
+          "record_name": "Devil Engine",
+          "name_pointer": "0x00301bd0",
+          "description_pointer": "0x00301bb0",
+          "price_cake": 160000,
+          "record_hex": "d01b3000b01b300000710200307500000000000002000000",
+          "configuration_tail_hex": "307500000000000002000000",
+          "known_fields": {
+            "drive_scalar_u32_0x0c": 30000,
+            "raw_u32_0x10": 0,
+            "selector_flag_code_u32_0x14": 2
+          }
+        }
+      ]
+    },
+    {
+      "category": 3,
+      "label": "Chassis",
+      "table_address": "0x00301db8",
+      "record_stride": 16,
+      "item_count": 5,
+      "known_role": "weight word at +0x0c is the live inverse-mass divisor source",
+      "selector_write_effect": "no category-specific selector-write side effect beyond selector byte",
+      "items": [
+        {
+          "index": 0,
+          "address": "0x00301db8",
+          "record_name": "Normal",
+          "name_pointer": "0x003d6a58",
+          "description_pointer": "0x00301ec8",
+          "price_cake": 200,
+          "record_hex": "586a3d00c81e3000c800000019000000",
+          "configuration_tail_hex": "19000000",
+          "known_fields": {
+            "weight_word_u32_0x0c": 25
+          }
+        },
+        {
+          "index": 1,
+          "address": "0x00301dc8",
+          "record_name": "Light",
+          "name_pointer": "0x003d6a90",
+          "description_pointer": "0x00301e98",
+          "price_cake": 500,
+          "record_hex": "906a3d00981e3000f401000016000000",
+          "configuration_tail_hex": "16000000",
+          "known_fields": {
+            "weight_word_u32_0x0c": 22
+          }
+        },
+        {
+          "index": 2,
+          "address": "0x00301dd8",
+          "record_name": "Feather",
+          "name_pointer": "0x003d6a88",
+          "description_pointer": "0x00301e68",
+          "price_cake": 1000,
+          "record_hex": "886a3d00681e3000e803000014000000",
+          "configuration_tail_hex": "14000000",
+          "known_fields": {
+            "weight_word_u32_0x0c": 20
+          }
+        },
+        {
+          "index": 3,
+          "address": "0x00301de8",
+          "record_name": "Phantom",
+          "name_pointer": "0x003d6a80",
+          "description_pointer": "0x00301e38",
+          "price_cake": 2000,
+          "record_hex": "806a3d00381e3000d007000012000000",
+          "configuration_tail_hex": "12000000",
+          "known_fields": {
+            "weight_word_u32_0x0c": 18
+          }
+        },
+        {
+          "index": 4,
+          "address": "0x00301df8",
+          "record_name": "Hyper",
+          "name_pointer": "0x003d6a78",
+          "description_pointer": "0x00301e08",
+          "price_cake": 4000,
+          "record_hex": "786a3d00081e3000a00f00000f000000",
+          "configuration_tail_hex": "0f000000",
+          "known_fields": {
+            "weight_word_u32_0x0c": 15
+          }
+        }
+      ]
+    },
+    {
+      "category": 4,
+      "label": "Transmission",
+      "table_address": "0x00301ee8",
+      "record_stride": 28,
+      "item_count": 6,
+      "known_role": "eight signed reverse/forward/sentinel gear words at +0x0c",
+      "selector_write_effect": "no category-specific selector-write side effect beyond selector byte",
+      "items": [
+        {
+          "index": 0,
+          "address": "0x00301ee8",
+          "record_name": "Normal",
+          "name_pointer": "0x003d6a58",
+          "description_pointer": "0x00302090",
+          "price_cake": 200,
+          "record_hex": "586a3d0090203000c8000000a1ff7400a200e3003e01be0100000000",
+          "configuration_tail_hex": "a1ff7400a200e3003e01be0100000000",
+          "known_fields": {
+            "gear_words_s16_0x0c": [
+              -95,
+              116,
+              162,
+              227,
+              318,
+              446,
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "index": 1,
+          "address": "0x00301f04",
+          "record_name": "Sports",
+          "name_pointer": "0x003d6a50",
+          "description_pointer": "0x00302060",
+          "price_cake": 1000,
+          "record_hex": "506a3d0060203000e8030000a1ff7400b60023019801ea0100000000",
+          "configuration_tail_hex": "a1ff7400b60023019801ea0100000000",
+          "known_fields": {
+            "gear_words_s16_0x0c": [
+              -95,
+              116,
+              182,
+              291,
+              408,
+              490,
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "index": 2,
+          "address": "0x00301f20",
+          "record_name": "Power",
+          "name_pointer": "0x003d6aa8",
+          "description_pointer": "0x00302030",
+          "price_cake": 2000,
+          "record_hex": "a86a3d0030203000d0070000a1ff8000dc0014018301d0012d020000",
+          "configuration_tail_hex": "a1ff8000dc0014018301d0012d020000",
+          "known_fields": {
+            "gear_words_s16_0x0c": [
+              -95,
+              128,
+              220,
+              276,
+              387,
+              464,
+              557,
+              0
+            ]
+          }
+        },
+        {
+          "index": 3,
+          "address": "0x00301f3c",
+          "record_name": "Speed",
+          "name_pointer": "0x003d6aa0",
+          "description_pointer": "0x00302000",
+          "price_cake": 4000,
+          "record_hex": "a06a3d0000203000a00f0000a1ff800004014701ca01260294020000",
+          "configuration_tail_hex": "a1ff800004014701ca01260294020000",
+          "known_fields": {
+            "gear_words_s16_0x0c": [
+              -95,
+              128,
+              260,
+              327,
+              458,
+              550,
+              660,
+              0
+            ]
+          }
+        },
+        {
+          "index": 4,
+          "address": "0x00301f58",
+          "record_name": "Wide",
+          "name_pointer": "0x003d6a98",
+          "description_pointer": "0x00301fc8",
+          "price_cake": 7000,
+          "record_hex": "986a3d00c81f3000581b0000a1ff90002c019e011b028702c7020000",
+          "configuration_tail_hex": "a1ff90002c019e011b028702c7020000",
+          "known_fields": {
+            "gear_words_s16_0x0c": [
+              -95,
+              144,
+              300,
+              414,
+              539,
+              647,
+              711,
+              0
+            ]
+          }
+        },
+        {
+          "index": 5,
+          "address": "0x00301f74",
+          "record_name": "Hyper",
+          "name_pointer": "0x003d6a78",
+          "description_pointer": "0x00301f90",
+          "price_cake": 10000,
+          "record_hex": "786a3d00901f300010270000a1ff9c005e01be0126027102ee020000",
+          "configuration_tail_hex": "a1ff9c005e01be0126027102ee020000",
+          "known_fields": {
+            "gear_words_s16_0x0c": [
+              -95,
+              156,
+              350,
+              446,
+              550,
+              625,
+              750,
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "category": 5,
+      "label": "Steering",
+      "table_address": "0x003020a8",
+      "record_stride": 16,
+      "item_count": 4,
+      "known_role": "steering scalar at +0x0c",
+      "selector_write_effect": "no category-specific selector-write side effect beyond selector byte",
+      "items": [
+        {
+          "index": 0,
+          "address": "0x003020a8",
+          "record_name": "Normal",
+          "name_pointer": "0x003d6a58",
+          "description_pointer": "0x00302180",
+          "price_cake": 200,
+          "record_hex": "586a3d0080213000c800000040000000",
+          "configuration_tail_hex": "40000000",
+          "known_fields": {
+            "steering_scalar_u16_0x0c": 64,
+            "raw_u16_0x0e": 0
+          }
+        },
+        {
+          "index": 1,
+          "address": "0x003020b8",
+          "record_name": "Quick",
+          "name_pointer": "0x003d6ab0",
+          "description_pointer": "0x00302158",
+          "price_cake": 500,
+          "record_hex": "b06a3d0058213000f401000060000000",
+          "configuration_tail_hex": "60000000",
+          "known_fields": {
+            "steering_scalar_u16_0x0c": 96,
+            "raw_u16_0x0e": 0
+          }
+        },
+        {
+          "index": 2,
+          "address": "0x003020c8",
+          "record_name": "X2 Quick",
+          "name_pointer": "0x00302148",
+          "description_pointer": "0x00302128",
+          "price_cake": 1000,
+          "record_hex": "4821300028213000e803000080000000",
+          "configuration_tail_hex": "80000000",
+          "known_fields": {
+            "steering_scalar_u16_0x0c": 128,
+            "raw_u16_0x0e": 0
+          }
+        },
+        {
+          "index": 3,
+          "address": "0x003020d8",
+          "record_name": "X3 Quick",
+          "name_pointer": "0x00302118",
+          "description_pointer": "0x003020e8",
+          "price_cake": 2000,
+          "record_hex": "18213000e8203000d0070000a0000000",
+          "configuration_tail_hex": "a0000000",
+          "known_fields": {
+            "steering_scalar_u16_0x0c": 160,
+            "raw_u16_0x0e": 0
+          }
+        }
+      ]
+    },
+    {
+      "category": 6,
+      "label": "Brakes",
+      "table_address": "0x00302190",
+      "record_stride": 44,
+      "item_count": 4,
+      "known_role": "32-update braking curve at +0x0c",
+      "selector_write_effect": "no category-specific selector-write side effect beyond selector byte",
+      "items": [
+        {
+          "index": 0,
+          "address": "0x00302190",
+          "record_name": "Normal Pad",
+          "name_pointer": "0x003022d0",
+          "description_pointer": "0x00302180",
+          "price_cake": 500,
+          "record_hex": "d022300080213000f401000001010101020202020303030303040404050506080a0c0e10121416181a1c1e20",
+          "configuration_tail_hex": "01010101020202020303030303040404050506080a0c0e10121416181a1c1e20",
+          "known_fields": {
+            "brake_curve_u8_0x0c": [
+              1,
+              1,
+              1,
+              1,
+              2,
+              2,
+              2,
+              2,
+              3,
+              3,
+              3,
+              3,
+              3,
+              4,
+              4,
+              4,
+              5,
+              5,
+              6,
+              8,
+              10,
+              12,
+              14,
+              16,
+              18,
+              20,
+              22,
+              24,
+              26,
+              28,
+              30,
+              32
+            ]
+          }
+        },
+        {
+          "index": 1,
+          "address": "0x003021bc",
+          "record_name": "Soft Pad",
+          "name_pointer": "0x003022c0",
+          "description_pointer": "0x003022a0",
+          "price_cake": 1000,
+          "record_hex": "c0223000a0223000e803000004070a0c0e101113141516171819191a1a1b1c1c1c1d1d1e1e1e1f1f1f202020",
+          "configuration_tail_hex": "04070a0c0e101113141516171819191a1a1b1c1c1c1d1d1e1e1e1f1f1f202020",
+          "known_fields": {
+            "brake_curve_u8_0x0c": [
+              4,
+              7,
+              10,
+              12,
+              14,
+              16,
+              17,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              25,
+              26,
+              26,
+              27,
+              28,
+              28,
+              28,
+              29,
+              29,
+              30,
+              30,
+              30,
+              31,
+              31,
+              31,
+              32,
+              32,
+              32
+            ]
+          }
+        },
+        {
+          "index": 2,
+          "address": "0x003021e8",
+          "record_name": "Hard Pad",
+          "name_pointer": "0x00302290",
+          "description_pointer": "0x00302268",
+          "price_cake": 1500,
+          "record_hex": "9022300068223000dc05000000010101010202020303040404050606070808090a0b0c0d0f10121416191c20",
+          "configuration_tail_hex": "00010101010202020303040404050606070808090a0b0c0d0f10121416191c20",
+          "known_fields": {
+            "brake_curve_u8_0x0c": [
+              0,
+              1,
+              1,
+              1,
+              1,
+              2,
+              2,
+              2,
+              3,
+              3,
+              4,
+              4,
+              4,
+              5,
+              6,
+              6,
+              7,
+              8,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              15,
+              16,
+              18,
+              20,
+              22,
+              25,
+              28,
+              32
+            ]
+          }
+        },
+        {
+          "index": 3,
+          "address": "0x00302214",
+          "record_name": "Metal Pad",
+          "name_pointer": "0x00302258",
+          "description_pointer": "0x00302240",
+          "price_cake": 2000,
+          "record_hex": "5822300040223000d0070000010101010202030304050607080a0d101416181a1b1c1d1d1e1e1f1f1f202020",
+          "configuration_tail_hex": "010101010202030304050607080a0d101416181a1b1c1d1d1e1e1f1f1f202020",
+          "known_fields": {
+            "brake_curve_u8_0x0c": [
+              1,
+              1,
+              1,
+              1,
+              2,
+              2,
+              3,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              10,
+              13,
+              16,
+              20,
+              22,
+              24,
+              26,
+              27,
+              28,
+              29,
+              29,
+              30,
+              30,
+              31,
+              31,
+              31,
+              32,
+              32,
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "category": 7,
+      "label": "Wheels",
+      "table_address": "0x00304b98",
+      "record_stride": 12,
+      "item_count": 15,
+      "known_role": "wheel appearance selector; duplicated to configuration byte +0x06",
+      "selector_write_effect": "duplicates selected item to configuration byte +0x06",
+      "items": [
+        {
+          "index": 0,
+          "address": "0x00304b98",
+          "record_name": "Normal",
+          "name_pointer": "0x003d6a58",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 500,
+          "record_hex": "586a3d00606f3d00f4010000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 1,
+          "address": "0x00304ba4",
+          "record_name": "Mesh",
+          "name_pointer": "0x003d6fd0",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 500,
+          "record_hex": "d06f3d00606f3d00f4010000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 2,
+          "address": "0x00304bb0",
+          "record_name": "Spoke 1",
+          "name_pointer": "0x003d6fc8",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 500,
+          "record_hex": "c86f3d00606f3d00f4010000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 3,
+          "address": "0x00304bbc",
+          "record_name": "Spoke 2",
+          "name_pointer": "0x003d6fc0",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 500,
+          "record_hex": "c06f3d00606f3d00f4010000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 4,
+          "address": "0x00304bc8",
+          "record_name": "Flush 1",
+          "name_pointer": "0x003d6fb8",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 500,
+          "record_hex": "b86f3d00606f3d00f4010000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 5,
+          "address": "0x00304bd4",
+          "record_name": "Spoke 3",
+          "name_pointer": "0x003d6fb0",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 500,
+          "record_hex": "b06f3d00606f3d00f4010000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 6,
+          "address": "0x00304be0",
+          "record_name": "Flush 2",
+          "name_pointer": "0x003d6fa8",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 500,
+          "record_hex": "a86f3d00606f3d00f4010000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 7,
+          "address": "0x00304bec",
+          "record_name": "Spoke 4",
+          "name_pointer": "0x003d6fa0",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 500,
+          "record_hex": "a06f3d00606f3d00f4010000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 8,
+          "address": "0x00304bf8",
+          "record_name": "Spoke 5",
+          "name_pointer": "0x003d6f98",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 500,
+          "record_hex": "986f3d00606f3d00f4010000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 9,
+          "address": "0x00304c04",
+          "record_name": "Spoke 6",
+          "name_pointer": "0x003d6f90",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 500,
+          "record_hex": "906f3d00606f3d00f4010000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 10,
+          "address": "0x00304c10",
+          "record_name": "Flush 3",
+          "name_pointer": "0x003d6f88",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 500,
+          "record_hex": "886f3d00606f3d00f4010000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 11,
+          "address": "0x00304c1c",
+          "record_name": "Flush 4",
+          "name_pointer": "0x003d6f80",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 500,
+          "record_hex": "806f3d00606f3d00f4010000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 12,
+          "address": "0x00304c28",
+          "record_name": "Flush 5",
+          "name_pointer": "0x003d6f78",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 500,
+          "record_hex": "786f3d00606f3d00f4010000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 13,
+          "address": "0x00304c34",
+          "record_name": "Spoke 7",
+          "name_pointer": "0x003d6f70",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 500,
+          "record_hex": "706f3d00606f3d00f4010000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 14,
+          "address": "0x00304c40",
+          "record_name": "Spoke 666 ",
+          "name_pointer": "0x00304c50",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 5000,
+          "record_hex": "504c3000606f3d0088130000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        }
+      ]
+    },
+    {
+      "category": 8,
+      "label": "Lights",
+      "table_address": "0x00304b00",
+      "record_stride": 16,
+      "item_count": 3,
+      "known_role": "light equipment selector; nonzero state toggles cfg flag 0x0010",
+      "selector_write_effect": "nonzero selector sets cfg flag 0x0010; zero clears it",
+      "items": [
+        {
+          "index": 0,
+          "address": "0x00304b00",
+          "record_name": "Headlights",
+          "name_pointer": "0x00304b88",
+          "description_pointer": "0x00304b70",
+          "price_cake": 0,
+          "record_hex": "884b3000704b30000000000000000000",
+          "configuration_tail_hex": "00000000",
+          "known_fields": {
+            "raw_u32_0x0c": 0
+          }
+        },
+        {
+          "index": 1,
+          "address": "0x00304b10",
+          "record_name": "Fog Lights",
+          "name_pointer": "0x00304b60",
+          "description_pointer": "0x00304b50",
+          "price_cake": 500,
+          "record_hex": "604b3000504b3000f401000010000400",
+          "configuration_tail_hex": "10000400",
+          "known_fields": {
+            "raw_u32_0x0c": 262160
+          }
+        },
+        {
+          "index": 2,
+          "address": "0x00304b20",
+          "record_name": "Beam Lights",
+          "name_pointer": "0x00304b40",
+          "description_pointer": "0x00304b30",
+          "price_cake": 500,
+          "record_hex": "404b3000304b3000f401000010000400",
+          "configuration_tail_hex": "10000400",
+          "known_fields": {
+            "raw_u32_0x0c": 262160
+          }
+        }
+      ]
+    },
+    {
+      "category": 9,
+      "label": "Wing",
+      "table_address": "0x00304e40",
+      "record_stride": 12,
+      "item_count": 2,
+      "known_role": "wing equipment selector; nonzero state toggles cfg flag 0x1000",
+      "selector_write_effect": "nonzero selector sets cfg flag 0x1000; zero clears it",
+      "items": [
+        {
+          "index": 0,
+          "address": "0x00304e40",
+          "record_name": "None",
+          "name_pointer": "0x003d6fd8",
+          "description_pointer": "0x00304ea0",
+          "price_cake": 0,
+          "record_hex": "d86f3d00a04e300000000000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 1,
+          "address": "0x00304e4c",
+          "record_name": "Wing Set",
+          "name_pointer": "0x00304e90",
+          "description_pointer": "0x00304e58",
+          "price_cake": 3000,
+          "record_hex": "904e3000584e3000b80b0000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        }
+      ]
+    },
+    {
+      "category": 10,
+      "label": "Special Parts",
+      "table_address": "0x00304eb8",
+      "record_stride": 16,
+      "item_count": 3,
+      "known_role": "propulsion equipment; record flag word distinguishes Propeller/Jet Turbine",
+      "selector_write_effect": "clears cfg flags 0x0040/0x2000 then ORs record u16@+0x0c",
+      "items": [
+        {
+          "index": 0,
+          "address": "0x00304eb8",
+          "record_name": "None",
+          "name_pointer": "0x003d6fd8",
+          "description_pointer": "0x00304f80",
+          "price_cake": 0,
+          "record_hex": "d86f3d00804f30000000000000000000",
+          "configuration_tail_hex": "00000000",
+          "known_fields": {
+            "config_flags_u16_0x0c": 0,
+            "raw_u16_0x0e": 0
+          }
+        },
+        {
+          "index": 1,
+          "address": "0x00304ec8",
+          "record_name": "Propeller",
+          "name_pointer": "0x00304f70",
+          "description_pointer": "0x00304f38",
+          "price_cake": 3000,
+          "record_hex": "704f3000384f3000b80b000040000000",
+          "configuration_tail_hex": "40000000",
+          "known_fields": {
+            "config_flags_u16_0x0c": 64,
+            "raw_u16_0x0e": 0
+          }
+        },
+        {
+          "index": 2,
+          "address": "0x00304ed8",
+          "record_name": "Jet Turbine",
+          "name_pointer": "0x00304f28",
+          "description_pointer": "0x00304ee8",
+          "price_cake": 10000,
+          "record_hex": "284f3000e84e30001027000000200000",
+          "configuration_tail_hex": "00200000",
+          "known_fields": {
+            "config_flags_u16_0x0c": 8192,
+            "raw_u16_0x0e": 0
+          }
+        }
+      ]
+    },
+    {
+      "category": 11,
+      "label": "Options",
+      "table_address": "0x00304fa0",
+      "record_stride": 20,
+      "item_count": 9,
+      "known_role": "optional equipment; record flags and variant byte are consumed by selector writer",
+      "selector_write_effect": "clears cfg flags 0x0004/0x0020/0x0100/0x0200, ORs record u16@+0x0c, copies record byte@+0x10 to cfg byte +0x07",
+      "items": [
+        {
+          "index": 0,
+          "address": "0x00304fa0",
+          "record_name": "None",
+          "name_pointer": "0x003d6fd8",
+          "description_pointer": "0x00305260",
+          "price_cake": 0,
+          "record_hex": "d86f3d0060523000000000000000000000000000",
+          "configuration_tail_hex": "0000000000000000",
+          "known_fields": {
+            "config_flags_u16_0x0c": 0,
+            "raw_u16_0x0e": 0,
+            "config_byte_u8_0x10": 0,
+            "raw_bytes_0x11_0x13": "000000"
+          }
+        },
+        {
+          "index": 1,
+          "address": "0x00304fb4",
+          "record_name": "Water Ski",
+          "name_pointer": "0x00305250",
+          "description_pointer": "0x00305208",
+          "price_cake": 3000,
+          "record_hex": "5052300008523000b80b00000001080000000000",
+          "configuration_tail_hex": "0001080000000000",
+          "known_fields": {
+            "config_flags_u16_0x0c": 256,
+            "raw_u16_0x0e": 8,
+            "config_byte_u8_0x10": 0,
+            "raw_bytes_0x11_0x13": "000000"
+          }
+        },
+        {
+          "index": 2,
+          "address": "0x00304fc8",
+          "record_name": "Flight Wing",
+          "name_pointer": "0x003051f8",
+          "description_pointer": "0x003051d0",
+          "price_cake": 50000,
+          "record_hex": "f8513000d051300050c300000400020000000000",
+          "configuration_tail_hex": "0400020000000000",
+          "known_fields": {
+            "config_flags_u16_0x0c": 4,
+            "raw_u16_0x0e": 2,
+            "config_byte_u8_0x10": 0,
+            "raw_bytes_0x11_0x13": "000000"
+          }
+        },
+        {
+          "index": 3,
+          "address": "0x00304fdc",
+          "record_name": "Police Light",
+          "name_pointer": "0x003051c0",
+          "description_pointer": "0x00305198",
+          "price_cake": 1000,
+          "record_hex": "c051300098513000e80300002000050000000000",
+          "configuration_tail_hex": "2000050000000000",
+          "known_fields": {
+            "config_flags_u16_0x0c": 32,
+            "raw_u16_0x0e": 5,
+            "config_byte_u8_0x10": 0,
+            "raw_bytes_0x11_0x13": "000000"
+          }
+        },
+        {
+          "index": 4,
+          "address": "0x00304ff0",
+          "record_name": "Billboard",
+          "name_pointer": "0x00305188",
+          "description_pointer": "0x00305150",
+          "price_cake": 0,
+          "record_hex": "8851300050513000000000000002090000000000",
+          "configuration_tail_hex": "0002090000000000",
+          "known_fields": {
+            "config_flags_u16_0x0c": 512,
+            "raw_u16_0x0e": 9,
+            "config_byte_u8_0x10": 0,
+            "raw_bytes_0x11_0x13": "000000"
+          }
+        },
+        {
+          "index": 5,
+          "address": "0x00305004",
+          "record_name": "Billboard",
+          "name_pointer": "0x00305188",
+          "description_pointer": "0x00305110",
+          "price_cake": 0,
+          "record_hex": "8851300010513000000000000002090001000000",
+          "configuration_tail_hex": "0002090001000000",
+          "known_fields": {
+            "config_flags_u16_0x0c": 512,
+            "raw_u16_0x0e": 9,
+            "config_byte_u8_0x10": 1,
+            "raw_bytes_0x11_0x13": "000000"
+          }
+        },
+        {
+          "index": 6,
+          "address": "0x00305018",
+          "record_name": "Billboard",
+          "name_pointer": "0x00305188",
+          "description_pointer": "0x003050d8",
+          "price_cake": 0,
+          "record_hex": "88513000d8503000000000000002090002000000",
+          "configuration_tail_hex": "0002090002000000",
+          "known_fields": {
+            "config_flags_u16_0x0c": 512,
+            "raw_u16_0x0e": 9,
+            "config_byte_u8_0x10": 2,
+            "raw_bytes_0x11_0x13": "000000"
+          }
+        },
+        {
+          "index": 7,
+          "address": "0x0030502c",
+          "record_name": "Billboard",
+          "name_pointer": "0x00305188",
+          "description_pointer": "0x00305098",
+          "price_cake": 0,
+          "record_hex": "8851300098503000000000000002090003000000",
+          "configuration_tail_hex": "0002090003000000",
+          "known_fields": {
+            "config_flags_u16_0x0c": 512,
+            "raw_u16_0x0e": 9,
+            "config_byte_u8_0x10": 3,
+            "raw_bytes_0x11_0x13": "000000"
+          }
+        },
+        {
+          "index": 8,
+          "address": "0x00305040",
+          "record_name": "Billboard",
+          "name_pointer": "0x00305188",
+          "description_pointer": "0x00305058",
+          "price_cake": 0,
+          "record_hex": "8851300058503000000000000002090004000000",
+          "configuration_tail_hex": "0002090004000000",
+          "known_fields": {
+            "config_flags_u16_0x0c": 512,
+            "raw_u16_0x0e": 9,
+            "config_byte_u8_0x10": 4,
+            "raw_bytes_0x11_0x13": "000000"
+          }
+        }
+      ]
+    },
+    {
+      "category": 12,
+      "label": "Stickers",
+      "table_address": "0x003053b8",
+      "record_stride": 12,
+      "item_count": 2,
+      "known_role": "sticker equipment; nonzero state toggles cfg flag 0x4000",
+      "selector_write_effect": "nonzero selector sets cfg flag 0x4000; zero clears it",
+      "items": [
+        {
+          "index": 0,
+          "address": "0x003053b8",
+          "record_name": "None",
+          "name_pointer": "0x003d6fd8",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 0,
+          "record_hex": "d86f3d00606f3d0000000000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 1,
+          "address": "0x003053c4",
+          "record_name": "Sticker",
+          "name_pointer": "0x003d6fe0",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 10000,
+          "record_hex": "e06f3d00606f3d0010270000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        }
+      ]
+    },
+    {
+      "category": 13,
+      "label": "Horns",
+      "table_address": "0x00304c60",
+      "record_stride": 16,
+      "item_count": 15,
+      "known_role": "horn selection; audio switching role known, trailing word retained raw",
+      "selector_write_effect": "selector byte only in helper 0x0023df78",
+      "items": [
+        {
+          "index": 0,
+          "address": "0x00304c60",
+          "record_name": "Normal Horn",
+          "name_pointer": "0x00304e30",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 0,
+          "record_hex": "304e3000606f3d00000000003c000000",
+          "configuration_tail_hex": "3c000000",
+          "known_fields": {
+            "raw_u32_0x0c": 60
+          }
+        },
+        {
+          "index": 1,
+          "address": "0x00304c70",
+          "record_name": "Air Horn",
+          "name_pointer": "0x00304e20",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 1000,
+          "record_hex": "204e3000606f3d00e80300003e000000",
+          "configuration_tail_hex": "3e000000",
+          "known_fields": {
+            "raw_u32_0x0c": 62
+          }
+        },
+        {
+          "index": 2,
+          "address": "0x00304c80",
+          "record_name": "Echo Air Horn",
+          "name_pointer": "0x00304e10",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 1000,
+          "record_hex": "104e3000606f3d00e803000040000000",
+          "configuration_tail_hex": "40000000",
+          "known_fields": {
+            "raw_u32_0x0c": 64
+          }
+        },
+        {
+          "index": 3,
+          "address": "0x00304c90",
+          "record_name": "Bus Horn",
+          "name_pointer": "0x00304e00",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 1000,
+          "record_hex": "004e3000606f3d00e803000042000000",
+          "configuration_tail_hex": "42000000",
+          "known_fields": {
+            "raw_u32_0x0c": 66
+          }
+        },
+        {
+          "index": 4,
+          "address": "0x00304ca0",
+          "record_name": "Bicycle Bell",
+          "name_pointer": "0x00304df0",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 1000,
+          "record_hex": "f04d3000606f3d00e803000044000000",
+          "configuration_tail_hex": "44000000",
+          "known_fields": {
+            "raw_u32_0x0c": 68
+          }
+        },
+        {
+          "index": 5,
+          "address": "0x00304cb0",
+          "record_name": "Venus Horn",
+          "name_pointer": "0x00304de0",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 1000,
+          "record_hex": "e04d3000606f3d00e803000046000000",
+          "configuration_tail_hex": "46000000",
+          "known_fields": {
+            "raw_u32_0x0c": 70
+          }
+        },
+        {
+          "index": 6,
+          "address": "0x00304cc0",
+          "record_name": "Chicken Horn",
+          "name_pointer": "0x00304dd0",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 1000,
+          "record_hex": "d04d3000606f3d00e803000048000000",
+          "configuration_tail_hex": "48000000",
+          "known_fields": {
+            "raw_u32_0x0c": 72
+          }
+        },
+        {
+          "index": 7,
+          "address": "0x00304cd0",
+          "record_name": "Fantasy Horn",
+          "name_pointer": "0x00304dc0",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 1000,
+          "record_hex": "c04d3000606f3d00e80300004a000000",
+          "configuration_tail_hex": "4a000000",
+          "known_fields": {
+            "raw_u32_0x0c": 74
+          }
+        },
+        {
+          "index": 8,
+          "address": "0x00304ce0",
+          "record_name": "Trumpet Horn",
+          "name_pointer": "0x00304db0",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 1000,
+          "record_hex": "b04d3000606f3d00e80300004c000000",
+          "configuration_tail_hex": "4c000000",
+          "known_fields": {
+            "raw_u32_0x0c": 76
+          }
+        },
+        {
+          "index": 9,
+          "address": "0x00304cf0",
+          "record_name": "Christmas Horn",
+          "name_pointer": "0x00304da0",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 1000,
+          "record_hex": "a04d3000606f3d00e80300004e000000",
+          "configuration_tail_hex": "4e000000",
+          "known_fields": {
+            "raw_u32_0x0c": 78
+          }
+        },
+        {
+          "index": 10,
+          "address": "0x00304d00",
+          "record_name": "Duck Horn",
+          "name_pointer": "0x00304d90",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 1000,
+          "record_hex": "904d3000606f3d00e803000050000000",
+          "configuration_tail_hex": "50000000",
+          "known_fields": {
+            "raw_u32_0x0c": 80
+          }
+        },
+        {
+          "index": 11,
+          "address": "0x00304d10",
+          "record_name": "Space Horn",
+          "name_pointer": "0x00304d80",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 1000,
+          "record_hex": "804d3000606f3d00e803000052000000",
+          "configuration_tail_hex": "52000000",
+          "known_fields": {
+            "raw_u32_0x0c": 82
+          }
+        },
+        {
+          "index": 12,
+          "address": "0x00304d20",
+          "record_name": "Horse Horn",
+          "name_pointer": "0x00304d70",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 1000,
+          "record_hex": "704d3000606f3d00e803000054000000",
+          "configuration_tail_hex": "54000000",
+          "known_fields": {
+            "raw_u32_0x0c": 84
+          }
+        },
+        {
+          "index": 13,
+          "address": "0x00304d30",
+          "record_name": "Baby Horn",
+          "name_pointer": "0x00304d60",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 1000,
+          "record_hex": "604d3000606f3d00e803000056000000",
+          "configuration_tail_hex": "56000000",
+          "known_fields": {
+            "raw_u32_0x0c": 86
+          }
+        },
+        {
+          "index": 14,
+          "address": "0x00304d40",
+          "record_name": "Train Horn",
+          "name_pointer": "0x00304d50",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 1000,
+          "record_hex": "504d3000606f3d00e803000058000000",
+          "configuration_tail_hex": "58000000",
+          "known_fields": {
+            "raw_u32_0x0c": 88
+          }
+        }
+      ]
+    },
+    {
+      "category": 14,
+      "label": "Meters",
+      "table_address": "0x00305280",
+      "record_stride": 12,
+      "item_count": 11,
+      "known_role": "meter selection; HUD switching role known, no extra selector-writer side effect",
+      "selector_write_effect": "selector byte only in helper 0x0023df78",
+      "items": [
+        {
+          "index": 0,
+          "address": "0x00305280",
+          "record_name": "Normal Meter",
+          "name_pointer": "0x003053a8",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 0,
+          "record_hex": "a8533000606f3d0000000000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 1,
+          "address": "0x0030528c",
+          "record_name": "Chronometer",
+          "name_pointer": "0x00305398",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 100,
+          "record_hex": "98533000606f3d0064000000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 2,
+          "address": "0x00305298",
+          "record_name": "Rainbow Meter",
+          "name_pointer": "0x00305388",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 100,
+          "record_hex": "88533000606f3d0064000000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 3,
+          "address": "0x003052a4",
+          "record_name": "Space Meter",
+          "name_pointer": "0x00305378",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 100,
+          "record_hex": "78533000606f3d0064000000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 4,
+          "address": "0x003052b0",
+          "record_name": "Triangle Meter",
+          "name_pointer": "0x00305368",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 100,
+          "record_hex": "68533000606f3d0064000000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 5,
+          "address": "0x003052bc",
+          "record_name": "Love Sick Meter",
+          "name_pointer": "0x00305358",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 100,
+          "record_hex": "58533000606f3d0064000000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 6,
+          "address": "0x003052c8",
+          "record_name": "Life Meter",
+          "name_pointer": "0x00305348",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 100,
+          "record_hex": "48533000606f3d0064000000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 7,
+          "address": "0x003052d4",
+          "record_name": "Cherry Meter",
+          "name_pointer": "0x00305338",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 100,
+          "record_hex": "38533000606f3d0064000000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 8,
+          "address": "0x003052e0",
+          "record_name": "Duck Meter",
+          "name_pointer": "0x00305328",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 100,
+          "record_hex": "28533000606f3d0064000000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 9,
+          "address": "0x003052ec",
+          "record_name": "Devil Meter",
+          "name_pointer": "0x00305318",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 100,
+          "record_hex": "18533000606f3d0064000000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        },
+        {
+          "index": 10,
+          "address": "0x003052f8",
+          "record_name": "Digital Meter",
+          "name_pointer": "0x00305308",
+          "description_pointer": "0x003d6f60",
+          "price_cake": 100,
+          "record_hex": "08533000606f3d0064000000",
+          "configuration_tail_hex": "",
+          "known_fields": {}
+        }
+      ]
+    }
+  ]
+}
