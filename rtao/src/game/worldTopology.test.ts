@@ -5,6 +5,7 @@ import {
   fieldNumberFromAddress,
   isNearField,
   normalizeRenderPosition,
+  nearbyWorldFieldNumbers,
   relativeRenderTranslation,
   sourceBase,
 } from "./worldTopology";
@@ -47,4 +48,12 @@ describe("HG2 outdoor world topology", () => {
     expect(east.fieldNumber).toBe(222);
     expect(east.localPosition.x).toBe(1);
   });
+  it("returns a wrapped local field ring with the centre first", () => {
+    const fields = nearbyWorldFieldNumbers(223);
+    expect(fields).toHaveLength(9);
+    expect(fields[0]).toBe(223);
+    expect(new Set(fields).size).toBe(9);
+    expect(fields).toContain(221);
+  });
+
 });

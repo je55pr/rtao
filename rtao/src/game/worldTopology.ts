@@ -59,6 +59,23 @@ export function allWorldFieldNumbers(): number[] {
   return output;
 }
 
+export function nearbyWorldFieldNumbers(fieldNumber: number, radius = 1): number[] {
+  if (!Number.isInteger(radius) || radius < 0) throw new Error(`Invalid world-neighbour radius ${radius}.`);
+  const center = addressFromFieldNumber(fieldNumber);
+  const offsets: Array<{ dx: number; dy: number }> = [];
+  for (let dy = -radius; dy <= radius; dy += 1) {
+    for (let dx = -radius; dx <= radius; dx += 1) offsets.push({ dx, dy });
+  }
+  offsets.sort((a, b) =>
+    Math.max(Math.abs(a.dx), Math.abs(a.dy)) - Math.max(Math.abs(b.dx), Math.abs(b.dy))
+    || Math.abs(a.dx) + Math.abs(a.dy) - Math.abs(b.dx) - Math.abs(b.dy)
+    || a.dy - b.dy || a.dx - b.dx);
+  return [...new Set(offsets.map(({ dx, dy }) => fieldNumberFromAddress(
+    positiveModulo(center.column + dx, worldGridWidth),
+    positiveModulo(center.row + dy, worldGridHeight),
+  )))];
+}
+
 export function sourceBase(fieldNumber: number): Vec2 {
   const address = addressFromFieldNumber(fieldNumber);
   return {

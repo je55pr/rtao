@@ -65,7 +65,9 @@ export class ImportController {
         worker.terminate();
         console.info(`RTA import: full local cache finished in ${Math.round(performance.now() - startedAt)} ms.`);
         if (readyShown) {
-          void (showInstalledPromise ?? Promise.resolve()).then(() => this.callbacks.installCompleted?.(message.manifest));
+          void (showInstalledPromise ?? Promise.resolve())
+            .then(() => this.callbacks.installCompleted?.(message.manifest))
+            .catch((error) => this.callbacks.backgroundImportFailed?.(error));
         } else {
           void this.callbacks.showInstalled(message.manifest).catch((error) =>
             this.callbacks.showError("The local install finished, but the outdoor world could not be displayed.", error));

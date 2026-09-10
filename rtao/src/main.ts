@@ -130,6 +130,9 @@ let drivingGame: BrowserDrivingGame | undefined;
 let playerCar: Q62CarModel | undefined;
 let activeDirectory: FileSystemDirectoryHandle | undefined;
 let activeManifest: ImportManifest | undefined;
+const loadedWorldFieldNumbers = new Set<number>();
+const loadingWorldFields = new Map<number, Promise<void>>();
+let lastPrefetchedWorldField: number | undefined;
 let activeExecutableBytes: Uint8Array | undefined;
 let isDriving = false;
 let worldSimulation: BrowserWorldSimulation | undefined;
@@ -177,6 +180,7 @@ let qFactoryLoadGeneration = 0;
 let shopInteriorPreviewLoadGeneration = 0;
 let shopInteriorPreviewLoading = false;
 let residentModelLoadGeneration = 0;
+let residentModelLoadChain: Promise<void> = Promise.resolve();
 let fujiProbeIndex = -1;
 const fujiProbes = [
   { from: 223, to: 221, position: { x: 960.15, y: 31, z: 40 }, yaw: Math.PI, label: "Peach north road" },
@@ -189,9 +193,7 @@ const importController = new ImportController({
   showImport,
   updateProgress,
   showInstalled,
-  installCompleted: (manifest) => {
-    console.info(`Background install complete: ${manifest.fields.length} world sectors and ${manifest.raceCourses?.length ?? 0} race courses cached.`);
-  },
+  installCompleted: hydrateCompletedInstall,
   backgroundImportFailed: (error) => {
     console.warn("Peach Town remains playable, but the background whole-world cache did not finish.", error);
   },
@@ -301,21 +303,34 @@ requiredElement<HTMLButtonElement>("try-again").addEventListener("click", () => 
 });
 
 worldLocation.addEventListener("change", () => {
-  if (!worldView) return;
-  if (worldLocation.value === "world") {
-    worldView.showWorldOverview();
-    requiredElement<HTMLElement>("viewer-title").textContent = "The whole world";
-    return;
-  }
-  const fieldNumber = Number.parseInt(worldLocation.value, 10);
-  if (!worldView.focusField(fieldNumber)) return;
-  requiredElement<HTMLElement>("viewer-title").textContent = ({
-    223: "Peach Town",
-    113: "Fuji City",
-    203: "White Mountain",
-    233: "Papaya Island",
-  } as Record<number, string>)[fieldNumber] ?? `FLD/${fieldNumber.toString().padStart(3, "0")}`;
+  void showWorldLocation(worldLocation.value).catch((error) => showError("That world location could not be loaded.", error));
 });
+
+async function showWorldLocation(value: string): Promise<void> {
+  if (!worldView) return;
+  worldLocation.disabled = true;
+  try {
+    if (value === "world") {
+      requiredElement<HTMLElement>("viewer-title").textContent = "Loading whole world…";
+      await ensureAllWorldFields();
+      worldView.showWorldOverview();
+      requiredElement<HTMLElement>("viewer-title").textContent = "The whole world";
+      return;
+    }
+    const fieldNumber = Number.parseInt(value, 10);
+    await ensureWorldFieldLoaded(fieldNumber);
+    if (!worldView.focusField(fieldNumber)) return;
+    requiredElement<HTMLElement>("viewer-title").textContent = ({
+      223: "Peach Town",
+      113: "Fuji City",
+      203: "White Mountain",
+      233: "Papaya Island",
+    } as Record<number, string>)[fieldNumber] ?? `FLD/${fieldNumber.toString().padStart(3, "0")}`;
+    void ensureNearbyWorldFields(fieldNumber).catch((error) => console.warn("Nearby world prefetch failed.", error));
+  } finally {
+    worldLocation.disabled = isDriving || activeManifest?.installStage === "bootstrap";
+  }
+}
 
 
 worldTime.addEventListener("change", () => {
@@ -399,6 +414,9 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   drivingWorld = undefined;
   activeDirectory = undefined;
   activeManifest = undefined;
+  loadedWorldFieldNumbers.clear();
+  loadingWorldFields.clear();
+  lastPrefetchedWorldField = undefined;
   emptyState.hidden = true;
   importCard.hidden = true;
   errorCard.hidden = true;
@@ -423,10 +441,17 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
         .split(",").map((part) => Number.parseInt(part.trim(), 10)).filter((value) => Number.isInteger(value))
     : [];
   const onlyFieldSet = devOnlyFields.length ? new Set(devOnlyFields) : undefined;
+  const parameters = new URLSearchParams(location.search);
+  const fastNormalStart = !onlyFieldSet
+    && !parameters.has("capture")
+    && !parameters.has("driveProbe")
+    && !parameters.has("interiorProbe")
+    && !parameters.has("dialogueProbe");
+  const startupFieldSet = onlyFieldSet ?? (fastNormalStart ? new Set([223]) : undefined);
   const compiledWorld = [...upgradedManifest.compiledFields]
-    .filter((field) => !onlyFieldSet || onlyFieldSet.has(field.fieldNumber))
+    .filter((field) => !startupFieldSet || startupFieldSet.has(field.fieldNumber))
     .sort((a, b) => a.fieldNumber - b.fieldNumber);
-  if (!onlyFieldSet && !bootstrapInstall && compiledWorld.length !== 64) throw new Error(`The cached install has ${compiledWorld.length}/64 compiled world sectors.`);
+  if (!startupFieldSet && !bootstrapInstall && compiledWorld.length !== 64) throw new Error(`The cached install has ${compiledWorld.length}/64 compiled world sectors.`);
   const directory = await currentImportDirectory(upgradedManifest);
   activeDirectory = directory;
   activeManifest = upgradedManifest;
@@ -482,7 +507,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   // compiled MSCALF-8 mesh. Decode them from the cached raw FLD bytes for the
   // fields that carry an Extra[1] section.
   const dynamicObjectFields = upgradedManifest.fields.filter(
-    (field) => field.sectionCount >= 5 && (!onlyFieldSet || onlyFieldSet.has(field.fieldNumber)),
+    (field) => field.sectionCount >= 5 && (!startupFieldSet || startupFieldSet.has(field.fieldNumber)),
   );
   if (dynamicObjectFields.length > 0) {
     const [{ readFieldObjectAsset, findTurbineAnchors, findPalmCrownAnchors }, { readFieldRenderPrimitives }] = await Promise.all([
@@ -518,12 +543,13 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
     if (dynamicInstances > 0) console.info(`Dynamic field objects: ${dynamicInstances} instances rendered (geometry/texture evidence-backed; animation, facing & scale host-approximated).`);
   }
   const collisionWorld = [...(upgradedManifest.collisionFields ?? [])]
-    .filter((field) => !onlyFieldSet || onlyFieldSet.has(field.fieldNumber))
+    .filter((field) => !startupFieldSet || startupFieldSet.has(field.fieldNumber))
     .sort((a, b) => a.fieldNumber - b.fieldNumber);
-  if (!onlyFieldSet && !bootstrapInstall && collisionWorld.length !== 64) throw new Error(`The cached install has ${collisionWorld.length}/64 collision sectors.`);
+  if (!startupFieldSet && !bootstrapInstall && collisionWorld.length !== 64) throw new Error(`The cached install has ${collisionWorld.length}/64 collision sectors.`);
   requiredElement<HTMLElement>("viewer-title").textContent = "Preparing driving surfaces";
   for (const [index, collision] of collisionWorld.entries()) {
     drivingWorld.addField(collision.fieldNumber, await readBytes(directory, collision.path));
+    loadedWorldFieldNumbers.add(collision.fieldNumber);
     requiredElement<HTMLElement>("field-count").textContent = `${index + 1}/${collisionWorld.length}`;
     if ((index & 7) === 7) await nextFrame();
   }
@@ -536,7 +562,6 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   overworldCatalogue = readOverworldCatalogue(executableBytes);
   console.info(`Persistent fixed interactions: ${overworldCatalogue.interactions.length} authored zones mapped into ${new Set(overworldCatalogue.interactions.map((zone) => zone.fieldNumber)).size} standard world sectors.`);
   await loadDialogueCatalogue(executableBytes);
-  const parameters = new URLSearchParams(location.search);
   const captureId = parameters.get("capture");
   const captureScene = captureId ? captureSceneById(captureId) : undefined;
   if (captureId && !captureScene) {
@@ -554,23 +579,24 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   // start their asynchronous model loads in capture mode: otherwise an actor
   // could attach between the visibility snapshot and the offscreen render.
   if (!captureScene && !onlyFieldSet) {
-    void loadResidentModels(upgradedManifest, directory, simulation, modelLoadGeneration).catch((error) => {
+    void queueResidentModelLoad(upgradedManifest, directory, simulation, modelLoadGeneration).catch((error) => {
       if (modelLoadGeneration === residentModelLoadGeneration) console.error("Resident car models could not finish loading in the background.", error);
     });
   }
-  requiredElement<HTMLElement>("viewer-title").textContent = bootstrapInstall
+  const peachStartup = bootstrapInstall || fastNormalStart;
+  requiredElement<HTMLElement>("viewer-title").textContent = peachStartup
     ? "Peach Town"
     : onlyFieldSet ? `FLD/${devOnlyFields[0]?.toString().padStart(3, "0")}` : "The whole world";
   requiredElement<HTMLElement>("field-count").textContent = String(stats.sectors);
   requiredElement<HTMLElement>("triangle-count").textContent = stats.triangles.toLocaleString();
-  worldLocation.value = bootstrapInstall
+  worldLocation.value = peachStartup
     ? "223"
     : onlyFieldSet && worldLocation.querySelector(`option[value="${devOnlyFields[0]}"]`)
       ? String(devOnlyFields[0])
       : "world";
   worldLocation.disabled = bootstrapInstall;
   driveToggle.disabled = false;
-  if (bootstrapInstall) worldView.focusField(223);
+  if (peachStartup) worldView.focusField(223);
   else if (onlyFieldSet && devOnlyFields[0] !== undefined) worldView.focusField(devOnlyFields[0]);
   if (captureScene) {
     await deterministicCaptureController.run(captureScene);
@@ -603,6 +629,95 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
     }, resident.yaw);
     startResidentDialogue(resident.definition.name, greeting.pages);
   }
+  if (fastNormalStart && !bootstrapInstall) {
+    lastPrefetchedWorldField = 223;
+    void ensureNearbyWorldFields(223).catch((error) => console.warn("Initial nearby world prefetch failed.", error));
+  }
+}
+
+async function ensureWorldFieldLoaded(fieldNumber: number): Promise<void> {
+  if (loadedWorldFieldNumbers.has(fieldNumber)) return;
+  const existing = loadingWorldFields.get(fieldNumber);
+  if (existing) return existing;
+  if (!activeManifest || activeManifest.installStage === "bootstrap" || !activeDirectory || !worldView || !drivingWorld) return;
+  const compiled = activeManifest.compiledFields.find((field) => field.fieldNumber === fieldNumber);
+  const collisionRecord = activeManifest.collisionFields?.find((field) => field.fieldNumber === fieldNumber);
+  if (!compiled || !collisionRecord) throw new Error(`FLD/${fieldNumber.toString().padStart(3, "0")} is not present in the completed local cache.`);
+  const task = (async () => {
+    const [[meshBytes, collisionBytes], { deserializeCompiledField }, { deserializeCompiledCollision }] = await Promise.all([
+      Promise.all([readBytes(activeDirectory!, compiled.path), readBytes(activeDirectory!, collisionRecord.path)]),
+      import("./formats/fieldGeometry"),
+      import("./formats/fieldCollision"),
+    ]);
+    const mesh = deserializeCompiledField(meshBytes);
+    const collision = deserializeCompiledCollision(collisionBytes);
+    const stats = worldView!.addCompiledFieldMesh(fieldNumber, mesh);
+    drivingWorld!.addCompiledFieldSurface(fieldNumber, mesh);
+    drivingWorld!.addCompiledField(fieldNumber, collision);
+    loadedWorldFieldNumbers.add(fieldNumber);
+    await loadLazyFieldDynamicObjects(fieldNumber);
+    requiredElement<HTMLElement>("field-count").textContent = String(stats.sectors);
+    requiredElement<HTMLElement>("triangle-count").textContent = stats.triangles.toLocaleString();
+  })();
+  loadingWorldFields.set(fieldNumber, task);
+  try { await task; } finally { loadingWorldFields.delete(fieldNumber); }
+}
+
+async function loadLazyFieldDynamicObjects(fieldNumber: number): Promise<void> {
+  if (!activeManifest || !activeDirectory || !worldView) return;
+  const field = activeManifest.fields.find((candidate) => candidate.fieldNumber === fieldNumber);
+  if (!field || field.sectionCount < 5) return;
+  const [{ readFieldObjectAsset, findTurbineAnchors, findPalmCrownAnchors }, { readFieldRenderPrimitives }] = await Promise.all([
+    import("./formats/fieldObjects"),
+    import("./formats/fieldGeometry"),
+  ]);
+  const raw = await readBytes(activeDirectory, `game/${field.path}`);
+  const asset = readFieldObjectAsset(raw);
+  if (!asset || (asset.kind !== "turbine-rotor" && asset.kind !== "palm-crown")) return;
+  const primitives = readFieldRenderPrimitives(raw);
+  const anchors = asset.kind === "turbine-rotor" ? findTurbineAnchors(primitives) : findPalmCrownAnchors(primitives);
+  if (anchors.length > 0) worldView.addFieldDynamicObjects(fieldNumber, asset, anchors);
+}
+
+async function syncLoadedWorldResidents(): Promise<void> {
+  if (!activeManifest || !activeDirectory || !overworldCatalogue || !worldSimulation) return;
+  worldSimulation.addDefinitions(
+    overworldCatalogue.residents.filter((resident) => loadedWorldFieldNumbers.has(resident.fieldNumber)),
+  );
+  if (worldSimulation.modelCount >= worldSimulation.residents.length) return;
+  const generation = residentModelLoadGeneration;
+  await queueResidentModelLoad(activeManifest, activeDirectory, worldSimulation, generation);
+}
+
+async function ensureNearbyWorldFields(fieldNumber: number): Promise<void> {
+  if (!activeManifest || activeManifest.installStage === "bootstrap") return;
+  const { nearbyWorldFieldNumbers } = await import("./game/worldTopology");
+  for (const nearby of nearbyWorldFieldNumbers(fieldNumber)) {
+    await ensureWorldFieldLoaded(nearby);
+    await nextFrame();
+  }
+  await syncLoadedWorldResidents();
+}
+
+async function ensureAllWorldFields(): Promise<void> {
+  if (!activeManifest || activeManifest.installStage === "bootstrap") return;
+  for (const compiled of activeManifest.compiledFields) {
+    await ensureWorldFieldLoaded(compiled.fieldNumber);
+    if ((loadedWorldFieldNumbers.size & 1) === 0) await nextFrame();
+  }
+  await syncLoadedWorldResidents();
+}
+
+async function hydrateCompletedInstall(manifest: ImportManifest): Promise<void> {
+  if (activeManifest?.importId !== manifest.importId || activeManifest.installStage !== "bootstrap") return;
+  if (!activeDirectory || !worldView || !drivingWorld) return;
+  activeManifest = manifest;
+  const centre = drivingGame?.controller.state.fieldNumber ?? 223;
+  const startedAt = performance.now();
+  lastPrefetchedWorldField = centre;
+  await ensureNearbyWorldFields(centre);
+  if (!isDriving) worldLocation.disabled = false;
+  console.info(`Background install complete: ${manifest.fields.length} world sectors and ${manifest.raceCourses?.length ?? 0} race courses cached; nearby live ring reached ${loadedWorldFieldNumbers.size} sectors in ${Math.round(performance.now() - startedAt)} ms.`);
 }
 
 async function toggleDriving(): Promise<void> {
@@ -654,6 +769,10 @@ function armFujiProbe(): void {
 function handleDriveState(state: CarState): void {
   updateDriveHud(state);
   accumulateAdvertisingDistance(state);
+  if (activeManifest?.installStage !== "bootstrap" && lastPrefetchedWorldField !== state.fieldNumber) {
+    lastPrefetchedWorldField = state.fieldNumber;
+    void ensureNearbyWorldFields(state.fieldNumber).catch((error) => console.warn("Nearby driving-sector prefetch failed.", error));
+  }
   const probe = fujiProbes[fujiProbeIndex];
   if (!probe || state.fieldNumber !== probe.to) return;
   console.info(`BROWSER FUJI SEAM PASS ${fujiProbeIndex + 1}/${fujiProbes.length}: FLD/${probe.from} -> FLD/${probe.to}.`);
@@ -692,7 +811,7 @@ function stopDrivingSession(): void {
   const nearby = requiredElement<HTMLElement>("nearby-note");
   nearby.hidden = true;
   nearby.textContent = "";
-  if (drivingWorld) requiredElement<HTMLElement>("viewer-title").textContent = activeManifest?.installStage === "bootstrap" ? "Peach Town" : "The whole world";
+  if (drivingWorld) requiredElement<HTMLElement>("viewer-title").textContent = loadedWorldFieldNumbers.size === 64 ? "The whole world" : "Peach Town area";
 }
 
 function updateDriveHud(state: CarState): void {
@@ -2274,6 +2393,17 @@ async function captureQFactory(scene: QFactoryCaptureScene): Promise<Blob> {
   return qFactoryInteriorView.capturePng(scene.size, scene.animationTimeMs);
 }
 
+function queueResidentModelLoad(
+  manifest: ImportManifest,
+  directory: FileSystemDirectoryHandle,
+  simulation: BrowserWorldSimulation,
+  generation: number,
+): Promise<void> {
+  const task = residentModelLoadChain.catch(() => undefined).then(() => loadResidentModels(manifest, directory, simulation, generation));
+  residentModelLoadChain = task;
+  return task;
+}
+
 async function loadResidentModels(
   manifest: ImportManifest,
   directory: FileSystemDirectoryHandle,
@@ -2289,9 +2419,10 @@ async function loadResidentModels(
   const tireBytes = await readBytes(directory, "game/CARS/TIRE.BIN");
   const carBytesByBody = new Map<number, Uint8Array>();
   const { Q62CarModel: CarModelClass } = await import("./game/carView");
-  let loaded = 0;
+  let loaded = simulation.modelCount;
   for (const resident of residents) {
     if (generation !== residentModelLoadGeneration) return;
+    if (simulation.hasModel(resident.state.id)) continue;
     const definition = resident.state.definition;
     const path = carAssetPath(definition.bodyId);
     if (!available.has(path.toUpperCase())) continue;
@@ -2317,6 +2448,7 @@ async function loadResidentModels(
 
 function stopWorldSimulation(): void {
   residentModelLoadGeneration += 1;
+  residentModelLoadChain = Promise.resolve();
   endQFactoryInterior();
   endResidentDialogue();
   worldSimulation?.stop();
