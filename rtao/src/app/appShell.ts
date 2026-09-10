@@ -1,33 +1,45 @@
 const appShellHtml = `
   <section class="shell" aria-label="Road Trip Adventure browser reconstruction">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="Road Trip Adventure home">
+      <a class="brand" href="#" aria-label="Road Trip Adventure Online home">
         <span class="brand-mark" aria-hidden="true">RTA</span>
         <span>
-          <strong>Road Trip Adventure</strong>
+          <strong>Road Trip Adventure Online</strong>
           <small>Browser reconstruction</small>
         </span>
       </a>
-      <div class="local-badge"><span></span> Local-only game data</div>
+      <a class="source-link" href="https://github.com/je55pr/rtao" target="_blank" rel="noreferrer">GitHub</a>
     </header>
 
     <section class="world" id="world">
       <div class="world-copy" id="empty-state">
-        <p class="eyebrow">CLEAN-ROOM WEB PORT · PHASE 02</p>
-        <h1>Your road trip,<br><em>on the open web.</em></h1>
-        <p class="lede">Import your own PAL game image. It is read on this device, installed into private browser storage, and never uploaded.</p>
+        <div class="landing-copy">
+          <p class="eyebrow">ROAD TRIP ADVENTURE ONLINE</p>
+          <h1>Play from your own game copy.</h1>
+          <p class="lede">A clean-room browser reconstruction of <em>Road Trip Adventure</em>. Import your own PAL disc image to explore the world and the features currently reconstructed.</p>
+        </div>
 
         <label class="drop-zone" id="drop-zone">
           <input id="file-input" type="file" accept=".iso,.zip,.bin,.cue" multiple />
-          <span class="drop-icon" aria-hidden="true">↓</span>
-          <span class="drop-primary">Drop an ISO or ZIP here</span>
-          <span class="drop-secondary">or choose an ISO, archived ISO, or archived BIN + CUE</span>
-          <span class="choose-button">Choose game file</span>
+          <span class="drop-icon" aria-hidden="true">↑</span>
+          <span class="drop-primary">Choose your game file</span>
+          <span class="drop-secondary">ISO or ZIP, or select a BIN and CUE together</span>
+          <span class="choose-button">Browse files</span>
         </label>
 
-        <div class="privacy-note">
-          <span aria-hidden="true">◎</span>
-          <p><strong>Nothing leaves your computer.</strong> The browser extracts only the files this reconstruction needs and restores them automatically next time.</p>
+        <div class="landing-info">
+          <section>
+            <h2>How to start</h2>
+            <ol>
+              <li>Use your own PAL copy of Road Trip Adventure.</li>
+              <li>Choose the disc image above. For BIN/CUE, select both files.</li>
+              <li>After the first import, the game can restore from local browser storage.</li>
+            </ol>
+          </section>
+          <section class="privacy-note">
+            <h2>Your files stay local</h2>
+            <p>Game data is processed and stored by your browser on this device. It is not uploaded to this site, and this project does not distribute original game assets.</p>
+          </section>
         </div>
       </div>
 
@@ -222,8 +234,8 @@ const appShellHtml = `
     </section>
 
     <footer class="footer">
-      <span>Three.js + TypeScript persistent world</span>
-      <span>No original game assets are distributed with this project.</span>
+      <span>Fan-made clean-room reconstruction</span>
+      <a href="https://github.com/je55pr/rtao" target="_blank" rel="noreferrer">Source on GitHub</a>
     </footer>
   </section>
 `;
