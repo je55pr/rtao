@@ -179,6 +179,27 @@ function session(carCount: number, elapsedUpdates = 200): OrdinaryRaceSession {
     expect(state.surfaces).toEqual([0, 0, 0, 0, 0, 0, 0]);
   });
 
+  test("applies the recovered ordinary-AI yaw write before the frame consumer", () => {
+    const race = session(2);
+    race.step({
+      sceneTime: 0,
+      shortFinalPhase: false,
+      commandSource: (car) => ({
+        commands: 0,
+        nativeYaw: car.entrant.carIndex === 1 ? 0x3456 : undefined,
+        navigationOutput: 1,
+        navigationDistance: car.entrant.carIndex,
+      }),
+    });
+    expect(race.entrant(1).state.vehicle.yaw).toBe(0x3456);
+    expect(race.entrant(0).state.vehicle.yaw).toBe(0);
+    expect(() => race.step({
+      sceneTime: 1,
+      shortFinalPhase: false,
+      commandSource: () => ({ commands: 0, nativeYaw: 0x1_0000 }),
+    })).toThrow(/unsigned halfword/);
+  });
+
   test("owns the evidenced countdown-to-drive boundary deterministically", () => {
     const race = session(2, 199);
     const idle = () => ({ commands: 20, navigationOutput: 1, navigationDistance: 1 });

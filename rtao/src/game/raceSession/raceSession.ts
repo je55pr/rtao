@@ -60,6 +60,8 @@ export interface OrdinaryRaceSessionConfig {
 
 export interface OrdinaryRaceSessionCommand {
   readonly commands: number;
+  /** Direct yaw write performed by the recovered ordinary-AI callback before the frame consumer. */
+  readonly nativeYaw?: number;
   readonly navigationOutput?: number;
   readonly navigationDistance?: number;
 }
@@ -261,7 +263,11 @@ export class OrdinaryRaceSession {
       const command = input.commandSource(viewOf(car));
       validateCommand(command);
       if (command.navigationOutput !== undefined) car.navigationOutput = command.navigationOutput;
-      if (command.navigationDistance !== undefined) car.navigationDistance = command.navigationDistance;      const frame = this.frameAdvance({
+      if (command.navigationDistance !== undefined) car.navigationDistance = command.navigationDistance;
+      if (command.nativeYaw !== undefined) {
+        car.state = { ...car.state, vehicle: { ...car.state.vehicle, yaw: command.nativeYaw } };
+      }
+      const frame = this.frameAdvance({
         state: car.state,
         equipment: car.equipment,
         equipmentFlags: car.equipmentFlags,
@@ -395,6 +401,10 @@ function rewardOrder(entrant: OrdinaryRaceEntrant): number {
 function validateCommand(command: OrdinaryRaceSessionCommand): void {
   if (!Number.isInteger(command.commands) || (command.commands | 0) !== command.commands) {
     throw new RangeError("Race commands must retain a signed 32-bit mask.");
+  }
+  if (command.nativeYaw !== undefined &&
+      (!Number.isInteger(command.nativeYaw) || command.nativeYaw < 0 || command.nativeYaw > 0xffff)) {
+    throw new RangeError("Race AI yaw write must retain the native unsigned halfword.");
   }
   if (command.navigationOutput !== undefined &&
       (!Number.isInteger(command.navigationOutput) || command.navigationOutput < 0 || command.navigationOutput > 0xff)) {
