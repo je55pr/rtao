@@ -17,8 +17,11 @@ import {
   captureSceneById,
   captureScenes,
   type FieldOverviewCaptureScene,
+  type PeachRaceCaptureScene,
   type QFactoryCaptureScene,
   type WorldOverviewCaptureScene,
+  peachRaceCaptureSceneById,
+  peachRaceCaptureScenes,
 } from "./game/captureScenes";
 import type { Q62CarModel } from "./game/carView";
 import {
@@ -590,6 +593,11 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   if (captureId && !captureScene) {
     throw new Error(`Unknown deterministic capture '${captureId}'. Available captures: ${captureScenes.map((candidate) => candidate.id).join(", ")}.`);
   }
+  const raceCaptureId = parameters.get("raceCapture");
+  const raceCaptureScene = raceCaptureId ? peachRaceCaptureSceneById(raceCaptureId) : undefined;
+  if (raceCaptureId && !raceCaptureScene) {
+    throw new Error(`Unknown Peach race capture '${raceCaptureId}'. Available captures: ${peachRaceCaptureScenes.map((candidate) => candidate.id).join(", ")}.`);
+  }
   const { BrowserWorldSimulation: BrowserWorldSimulationClass } = await import("./game/worldSimulation");
   const loadedFieldNumbers = new Set(compiledWorld.map((field) => field.fieldNumber));
   const residentDefinitions = overworldCatalogue.residents.filter((resident) => loadedFieldNumbers.has(resident.fieldNumber));
@@ -601,7 +609,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   // Canonical captures deliberately exclude roaming residents. Do not even
   // start their asynchronous model loads in capture mode: otherwise an actor
   // could attach between the visibility snapshot and the offscreen render.
-  if (!captureScene && !onlyFieldSet) {
+  if (!captureScene && !raceCaptureScene && !onlyFieldSet) {
     void queueResidentModelLoad(upgradedManifest, directory, simulation, modelLoadGeneration).catch((error) => {
       if (modelLoadGeneration === residentModelLoadGeneration) console.error("Resident car models could not finish loading in the background.", error);
     });
@@ -621,7 +629,9 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   driveToggle.disabled = false;
   if (peachStartup) worldView.focusField(223);
   else if (onlyFieldSet && devOnlyFields[0] !== undefined) worldView.focusField(devOnlyFields[0]);
-  if (captureScene) {
+  if (raceCaptureScene) {
+    await runDeterministicPeachRaceCapture(raceCaptureScene);
+  } else if (captureScene) {
     await deterministicCaptureController.run(captureScene);
   } else if (parameters.get("driveProbe") === "fuji") {
     await toggleDriving();
@@ -758,7 +768,7 @@ function updatePeachRaceAvailability(): void {
   raceToggle.textContent = ready ? "Race Peach Raceway" : "Peach Raceway loadingâ€¦";
 }
 
-async function startPeachRace(): Promise<void> {
+async function startPeachRace(scheduleAnimation = true): Promise<void> {
   if (!activeDirectory || !activeManifest || !activeExecutableBytes) throw new Error("The installed PAL data is not ready.");
   const compiled = activeManifest.compiledRaceCourses?.find((record) => record.courseId === 0);
   const collision = activeManifest.raceCourseCollisions?.find((record) => record.courseId === 0);
@@ -859,7 +869,58 @@ async function startPeachRace(): Promise<void> {
   updatePeachRaceAvailability();
   updatePeachRaceHud();
   coordinator.syncView(view);
-  peachRaceFrame = requestAnimationFrame(runPeachRaceFrame);
+  if (scheduleAnimation) peachRaceFrame = requestAnimationFrame(runPeachRaceFrame);
+}
+
+async function runDeterministicPeachRaceCapture(scene: PeachRaceCaptureScene): Promise<void> {
+  await startPeachRace(false);
+  const coordinator = peachRaceCoordinator;
+  const view = peachRaceView;
+  if (!coordinator || !view) throw new Error("Peach race capture could not acquire the live race runtime.");
+  const playerStart = coordinator.runtime.session.entrant(0).state.coordinates;
+  for (let update = 0; update < scene.updates; update += 1) {
+    coordinator.step({ sceneTime: update, playerCommands: scene.playerCommands });
+  }
+  coordinator.syncView(view);
+  updatePeachRaceHud();
+  const playerEnd = coordinator.runtime.session.entrant(0).state.coordinates;
+  const movement = Math.hypot(playerEnd[0] - playerStart[0], playerEnd[2] - playerStart[2]);
+  if (!(movement > 0.01)) throw new Error(`Deterministic Peach race capture did not move the player after ${scene.updates} updates.`);
+
+  const blob = await view.capturePng(scene.size);
+  const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
+  const digestHex = [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join("");
+  document.querySelector(".capture-result")?.remove();
+  app.dataset.captureMode = "true";
+  const objectUrl = URL.createObjectURL(blob);
+  const root = document.createElement("section");
+  root.className = "capture-result";
+  const header = document.createElement("header");
+  const heading = document.createElement("div");
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "eyebrow";
+  eyebrow.textContent = "DETERMINISTIC RACE CAPTURE";
+  const title = document.createElement("h1");
+  title.textContent = scene.label;
+  const metadata = document.createElement("p");
+  metadata.className = "capture-metadata";
+  metadata.textContent = `${scene.size.width}Ã—${scene.size.height} Â· tick ${scene.updates} Â· moved ${movement.toFixed(3)} Â· SHA-256 ${digestHex}`;
+  heading.append(eyebrow, title, metadata);
+  const download = document.createElement("a");
+  download.className = "primary-button capture-download";
+  download.href = objectUrl;
+  download.download = `rta-${scene.id}-${scene.size.width}x${scene.size.height}.png`;
+  download.textContent = "Save PNG";
+  header.append(heading, download);
+  const image = document.createElement("img");
+  image.className = "capture-image";
+  image.src = objectUrl;
+  image.width = scene.size.width;
+  image.height = scene.size.height;
+  image.alt = `${scene.label} PAL-backed deterministic browser-port capture`;
+  root.append(header, image);
+  app.append(root);
+  console.info(`Deterministic Peach race capture '${scene.id}': tick ${scene.updates}, player moved ${movement.toFixed(3)} course units, SHA-256 ${digestHex}.`);
 }
 
 function runPeachRaceFrame(timestamp: number): void {
