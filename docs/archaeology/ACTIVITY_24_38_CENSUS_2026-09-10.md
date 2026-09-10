@@ -44,6 +44,25 @@ The 12-entry selector table at `0x002C0078` contains only two entries from this 
 
 Activity 24 also has a separately traced mode-8 launch path at `0x00210AD0..0x00210C3C`. Its opponent-construction loop at `0x00210BA0` is the already-documented Roulette/special path and must not be reused as an ordinary-race roster algorithm.
 
+### Fixed-interior host gates and stamp effects
+
+A second payload-free pass correlates the activity names with the retained PAL-derived fixed-interior census. These are **owner/registration host gates**, not proofs that the listed `SHOP/` package is the gameplay scene package. Post-text action `0x03` is traced at `0x0023D0A0`; its operand becomes a host-action parameter, so values such as 44 or 53 are preserved as host parameters and are not relabelled as activity IDs. Post-text action `0x0D` is separately proven to call stamp helper `0x0023E408` for each nonzero operand.
+
+| ID | Activity | Fixed-interior owner | Host package | action `03` parameter | action `0D` stamp IDs |
+|---:|---|---|---|---:|---|
+| 24 | Roulette | Roulette Registration, area 3 slot 8 | `SHOP/T02.BIN` | 44 | 29 |
+| 25 | Figure 8 | Figure 8 Registration, area 3 slot 6 | `SHOP/T02.BIN` | 45 | - |
+| 26 | Football | Football Registration, area 3 slot 7 | `SHOP/T02.BIN` | 46 | 37, 38 |
+| 28 | Tunnel Race | Akiban, area 9 slot 18 | `SHOP/T08.BIN` | 38 | 43, 44 |
+| 29 | Obstacle Course | Obstacle Course registration, area 7 slot 5 | `SHOP/T06.BIN` | 48 | 75, 76 |
+| 30 | Which-way? Race | Dayan, area 9 slot 10 | `SHOP/T08.BIN` | 49 | 47 |
+| 32 | Curling | Curling Registration, area 6 slot 18 | `SHOP/T05.BIN` | 51 | 69, 70 |
+| 35 | Ski Jumping | Ski Jumping Registration, area 6 slot 7 | `SHOP/T05.BIN` | 53 | 66 |
+| 36 | Fishing | Shimisa, area 7 slot 15 | `SHOP/T06.BIN` | 54 | 82 |
+| 37 | Beach Flag | Micky, area 7 slot 13 | `SHOP/T06.BIN` | 39 | 78 |
+
+The stamp IDs prove that the owning dialogue contains native stamp-award paths; this census does not claim that every listed stamp is awarded solely by completing the named activity without re-tracing the surrounding branch. Exact-name correlation finds no fixed-`SHOP` owner for IDs 27 Rainbow Jump, 31 Volcano Course, 33 Barrel Dodging, 34 Cloud Hill or 38 Single Lap Race. Their launch owners therefore remain unresolved rather than inferred from nearby NPCs or activity names.
+
 ## Scene/package dependencies and known effects
 
 Only one payload dependency in this range is currently closed strongly enough to name: the existing Roulette archaeology traces its physical wheel/car action to `ACTION/A19.BIN`, with update `0x002637E8`, wager host `0x00264318`, debit callback `0x00264604`, result matcher `0x00265048`, and payout callback `0x00264AD0`. Those facts remain a separate physical-action boundary; descriptor byte 0 (`0x11`) is not relabelled as `A19`.
@@ -58,9 +77,10 @@ Run from the repository root:
 
 ```text
 python tools/activities/activity_24_38_probe.py C:\path\to\SLES_513.56 --json docs/evidence/activities/activity-24-38-census.json
+python tools/activities/activity_registration_gate_probe.py docs/evidence/activities/activity-24-38-census.json docs/archaeology/SHOP_INTERIOR_DEPENDENCY_CENSUS_2026-09-01.json --json docs/evidence/activities/activity-registration-gates.json
 ```
 
-The probe verifies five dispatch instructions before emitting output: descriptor split `0x002106B8`, handler-B read `0x00210730`, mode-8 branch constant `0x00210AD0`, handler-A read `0x00210D80`, and ordinary-progression bound `0x00238D54`. The JSON records the input executable SHA-256 plus names, raw descriptor bytes, raw settings words, callbacks and selector ranges. It can therefore be regenerated without retaining copyrighted executable bytes.
+The executable probe verifies five dispatch instructions before emitting output: descriptor split `0x002106B8`, handler-B read `0x00210730`, mode-8 branch constant `0x00210AD0`, handler-A read `0x00210D80`, and ordinary-progression bound `0x00238D54`. The executable JSON records the input executable SHA-256 plus names, raw descriptor bytes, raw settings words, callbacks and selector ranges. The registration-gate JSON records hashes of both derived inputs and emits only fixed-interior metadata, host parameters and stamp IDs. Both can therefore be regenerated without retaining copyrighted executable or game-asset bytes.
 
 ## Remaining archaeology
 
