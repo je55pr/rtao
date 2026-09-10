@@ -8,9 +8,9 @@ import {
 } from "./formats/fieldGeometry";
 import { compileFieldCollision } from "./formats/fieldCollision";
 import { readCollisionChunkDirectory, readFieldHeader, readRenderChunkDirectory } from "./formats/field";
-import { expectedEuropeanExecutable, readGameIdentity, type GameIdentity } from "./formats/gameIdentity";
+import { expectedEuropeanExecutable } from "./formats/gameIdentity";
 import { Elf32AddressSpace } from "./formats/elf32";
-import { DialogueFlow, DialogueRuntimeState, inspectDialogueEntity, readDialogueEntityAtIndex, type DialogueEntity, type DialogueEntityInspection } from "./formats/dialogue";
+import { DialogueFlow, DialogueRuntimeState, inspectDialogueEntity, readDialogueEntityAtIndex, type DialogueEntity } from "./formats/dialogue";
 import { readFixedInteractionAtIndex, readOverworldCatalogue, type FixedInteractionDefinition } from "./formats/overworld";
 import { nativeRaceStartSeed, ordinaryRaceEntrants, readRaceCatalogue, readRaceFinishGateSets, readRaceNavigationCourses, readRaceStartAnchors } from "./formats/raceCatalogue";
 import { decodeSkyTextureSet } from "./formats/skyTexture";
@@ -18,7 +18,7 @@ import { readShopInteriorBackdrop, shopInteriorPackagePath, shopInteriorSlotCoun
 import { captureSceneById, type CaptureScene, type CarVisualCaptureScene, type FieldOverviewCaptureScene, type WorldOverviewCaptureScene } from "./game/captureScenes";
 import { Q62CarModel } from "./game/carView";
 import { RaceCourseGridSampler } from "./game/raceCourseGrid";
-import { readOrdinaryRaceSpeedProfiles, stepOrdinaryRaceAi, type NativeRaceAiOutput } from "./game/raceAi";
+import { readOrdinaryRaceSpeedProfiles, stepOrdinaryRaceAi } from "./game/raceAi";
 import { browserCompatibilityPaintWord, decodeNativeBodyPaint, nativeWheelPaintColor, nativeWheelPaintIndex } from "./game/paintShop";
 import { aggregatePartsAppearance, applyKnownNativeEquipmentSelectors, defaultPartLoadout } from "./game/parts";
 import { applyRecoveredDialogueHostAction } from "./game/dialogueProgress";
@@ -29,328 +29,10 @@ import { openDirectImportSource } from "./importer/directSource";
 
 declare const __RTA_DEV_FIXTURE_COMPILER_FINGERPRINT__: string;
 
-export interface SandboxCaptureInputFile {
-  readonly name: string;
-  readonly bytes: ArrayBuffer | Uint8Array;
-  readonly type?: string;
-}
-
-export interface SandboxCarVisualState {
-  /** Native first-loadout selector bytes. Unmapped selectors remain visually neutral. */
-  readonly equipmentSelectors?: readonly number[];
-  /** Native packed RGB444 body/two-tone word. Omit to use the established Q62 fallback paint. */
-  readonly paintWord?: number;
-}
-
-export interface SandboxCaptureRequest {
-  readonly sceneId: string;
-  readonly files: readonly SandboxCaptureInputFile[];
-  readonly carVisualState?: SandboxCarVisualState;
-  /**
-   * True by default so field-overview captures match the normal browser world,
-   * including neighbouring sectors when they are visible near the edges.
-   */
-  readonly loadFullWorld?: boolean;
-}
-
-export interface SandboxPreparedWorldInfo {
-  readonly fieldNumbers: readonly number[];
-  readonly triangleCount: number;
-  readonly sourceKind: string;
-  readonly bootExecutable: string;
-}
-
-export interface SandboxFieldSurfaceSummary {
-  readonly fieldNumber: number;
-  readonly collisionTriangleCount: number;
-  readonly collisionFlags: readonly { readonly value: number; readonly count: number }[];
-  readonly nativeTyreSurfaces: readonly {
-    readonly code: number;
-    readonly name: "dry" | "offroad" | "wet" | "grass" | "snow" | "ice" | "unknown";
-    readonly count: number;
-    readonly representative: readonly [number, number, number];
-  }[];
-  readonly renderedTriangleCount: number;
-  readonly renderedTextureBasePointers: readonly { readonly value: number; readonly count: number; readonly averageRgb: readonly [number, number, number]; readonly visibleAlphaFraction: number }[];
-  readonly collisionFlagTextureMatches: readonly { readonly flag: number; readonly textureBasePointer: number; readonly count: number }[];
-  readonly unmatchedCollisionTriangles: number;
-  readonly roadTriangleCount: number;
-  readonly pavedRoadTriangleCount: number;
-  readonly dirtRoadTriangleCount: number;
-}
-
-export interface SandboxDevFixtureSourceInfo {
-  readonly fieldNumbers: readonly number[];
-  readonly compiledFieldCacheVersion: number;
-  readonly sourceKind: string;
-  readonly bootExecutable: string;
-}
-
-export interface SandboxDevFixtureAssetInfo {
-  readonly filename: string;
-  readonly byteLength: number;
-}
-
-export interface SandboxDevFixtureManifest {
-  readonly schemaVersion: 1;
-  readonly compiledFieldCacheVersion: number;
-  readonly compilerFingerprint: string;
-  readonly bootExecutable: string;
-  readonly fieldNumbers: readonly number[];
-}
-
-export interface SandboxCaptureResult {
-  readonly sceneId: string;
-  readonly label: string;
-  readonly width: number;
-  readonly height: number;
-  readonly sha256: string;
-  readonly pngBytes: number[];
-  readonly fieldNumbers: readonly number[];
-  readonly triangleCount: number;
-  readonly sourceKind: string;
-  readonly bootExecutable: string;
-}
-
-export interface SandboxShopInteriorDialogueInfo {
-  readonly areaIndex: number;
-  readonly slotIndex: number;
-  readonly interactionName: string;
-  readonly entityName: string;
-  readonly entityIndex: number;
-  readonly currentSlot: number;
-  readonly pages: readonly string[];
-  readonly choices: readonly { text: string; targetSlot: number; isDefault: boolean }[];
-  readonly externalAction?: { opcode: number; operands: readonly number[] };
-  readonly variantCount: number;
-  readonly actionShapes: readonly { opcode: number; operands: readonly number[] }[];
-  readonly controlShapes: readonly { opcode: number; operands: readonly number[] }[];
-  readonly controlOpcodes: readonly number[];
-  readonly remainingIndexedFlags: readonly (readonly [number, number])[];
-  readonly stamps: readonly number[];
-  readonly quickPicPhotos: readonly number[];
-  readonly metFixedInteractions: readonly (readonly [number, number])[];
-}
-
-export interface SandboxShopInteriorDialogueState {
-  readonly startSlot?: number;
-  readonly indexedFlags?: readonly (readonly [number, number])[];
-  readonly stamps?: readonly number[];
-  readonly quickPicPhotos?: readonly number[];
-  readonly metFixedInteractions?: readonly (readonly [number, number])[];
-  readonly applyExternalAction?: boolean;
-}
-
-export interface SandboxShopInteriorCensusEntry {
-  readonly areaIndex: number;
-  readonly fieldNumber: number;
-  readonly slotIndex: number;
-  readonly interactionName: string;
-  readonly packagePath: string;
-  readonly staffBodyId: number;
-  readonly entityName?: string;
-  readonly entityIndex?: number;
-  readonly variantCount?: number;
-  readonly entrySlot?: number;
-  readonly entryPages?: readonly string[];
-  readonly entryChoices?: readonly { text: string; targetSlot: number; isDefault: boolean }[];
-  readonly entryExternalAction?: { opcode: number; operands: readonly number[] };
-  readonly actionShapes?: readonly { opcode: number; operands: readonly number[] }[];
-  readonly controlShapes?: readonly { opcode: number; operands: readonly number[] }[];
-  readonly controlOpcodes?: readonly number[];
-  readonly dialogueError?: string;
-}
-
-export interface SandboxShopInteriorDialogueEntityTrace extends DialogueEntityInspection {
-  readonly slotIndex: number;
-  readonly interactionName: string;
-}
-
-export interface SandboxCaptureApi {
-  runCapture(request: SandboxCaptureRequest): Promise<SandboxCaptureResult>;
-  runCaptureFromBrowserFiles(sceneId: string, files: readonly File[], loadFullWorld?: boolean, carVisualState?: SandboxCarVisualState): Promise<SandboxCaptureResult>;
-  /** Fast one-field Q62 regression path for native paint/equipment comparisons. */
-  captureCarVisualFromBrowserFiles(sceneId: string, files: readonly File[], state?: SandboxCarVisualState): Promise<SandboxCaptureResult>;
-  /** Same fast car path without serialising PNG bytes into a JS number array. */
-  captureCarVisualDataUrlFromBrowserFiles(sceneId: string, files: readonly File[], state?: SandboxCarVisualState): Promise<string>;
-  /** Prepare one car-visual field + Q62 assets once for cheap multi-angle/multi-lighting captures. */
-  prepareCarVisualFromBrowserFiles(sceneId: string, files: readonly File[], state?: SandboxCarVisualState): Promise<SandboxPreparedWorldInfo>;
-  capturePreparedCarVisualDataUrl(sceneId: string, state?: SandboxCarVisualState): Promise<string>;
-  disposePreparedCarVisual(): void;
-  prepareOutdoorFromBrowserFiles(files: readonly File[], loadFullWorld?: boolean, requestedFieldNumbers?: readonly number[]): Promise<SandboxPreparedWorldInfo>;
-  /**
-   * Low-memory regression path: load SORA.GSL + serialized RTAFLD*.mesh files
-   * without opening the PAL disc or invoking the field compiler.
-   */
-  prepareOutdoorFromFixtureBrowserFiles(files: readonly File[]): Promise<SandboxPreparedWorldInfo>;
-  capturePreparedOutdoor(sceneId: string): Promise<SandboxCaptureResult>;
-  /** Fast path for sandbox automation: avoids serialising ~1M PNG bytes as a JS number array. */
-  capturePreparedOutdoorDataUrl(sceneId: string): Promise<string>;
-  disposePreparedOutdoor(): void;
-  /**
-   * One-time fixture builder. Keeps the PAL disc open but exports one asset per
-   * call so automation never serializes several compiled fields at once.
-   */
-  prepareDevFixtureSourceFromBrowserFiles(files: readonly File[]): Promise<SandboxDevFixtureSourceInfo>;
-  devFixtureManifest(fieldNumbers: readonly number[]): SandboxDevFixtureManifest;
-  downloadPreparedDevFixtureSky(): Promise<SandboxDevFixtureAssetInfo>;
-  downloadPreparedDevFixtureField(fieldNumber: number): Promise<SandboxDevFixtureAssetInfo>;
-  disposePreparedDevFixtureSource(): Promise<void>;
-  /** Decode every fixed SHOP slot for one area into a labelled contact sheet. */
-  captureShopPackageContactSheetDataUrl(areaIndex: number, files: readonly File[]): Promise<string>;
-  /** Render one SHOP slot through the shared fixed-camera floor/scenery composition. */
-  captureShopInteriorRoomDataUrl(areaIndex: number, slotIndex: number, files: readonly File[]): Promise<string>;
-  /** Return the complete authored 0x3F000-byte SHOP slot, including currently unrendered packets. */
-  readShopInteriorSlotDataUrl(areaIndex: number, slotIndex: number, files: readonly File[]): Promise<string>;
-  /** Decode the executable interaction/dialogue boundary paired with one SHOP slot. */
-  inspectShopInteriorDialogue(areaIndex: number, slotIndex: number, files: readonly File[], choicePath?: readonly number[], state?: SandboxShopInteriorDialogueState): Promise<SandboxShopInteriorDialogueInfo>;
-  /** Decode every executable-mapped fixed interaction in one source session. */
-  inspectShopInteriorCensus(files: readonly File[]): Promise<readonly SandboxShopInteriorCensusEntry[]>;
-  /** Dump selected executable dialogue entities with ordered tokens and raw bytes. */
-  inspectShopInteriorDialogueEntities(requests: readonly { areaIndex: number; slotIndex: number }[], files: readonly File[]): Promise<readonly SandboxShopInteriorDialogueEntityTrace[]>;
-  /** Summarise raw PAL collision flags and rendered field material pointers for driving-surface archaeology. */
-  inspectFieldSurfaceMetadata(fieldNumbers: readonly number[], files: readonly File[]): Promise<readonly SandboxFieldSurfaceSummary[]>;
-  /** Read a bounded file-backed PAL executable virtual-address range. */
-  inspectExecutableVirtualBytes(address: number, byteLength: number, files: readonly File[]): Promise<readonly number[]>;
-  /** Decode the executable-owned race/activity descriptors and area selector ranges. */
-  inspectRaceCatalogue(files: readonly File[]): Promise<SandboxRaceCatalogueSummary>;
-  /** Compile one PAL COURSE/Cxx package through the shared field geometry/collision readers. */
-  inspectRaceCourse(courseId: number, files: readonly File[]): Promise<SandboxRaceCourseSummary>;
-  /** Deterministic native grid/body/paint inspection; no simulated race movement. */
-  captureRaceGridFromBrowserFiles(activityId: number, files: readonly File[]): Promise<SandboxRaceGridCapture>;
-}
-
-export interface SandboxRaceGridCapture {
-  readonly activityId: number;
-  readonly activityName: string;
-  readonly courseId: number;
-  readonly dataUrl: string;
-  readonly sha256: string;
-  readonly entrants: readonly {
-    readonly carIndex: number;
-    readonly name: string;
-    readonly startIndex: number;
-    readonly position: { readonly x: number; readonly y: number; readonly z: number };
-    readonly yaw: number;
-    readonly ai: NativeRaceAiOutput | null;
-  }[];
-  readonly visualEquipment: string;
-}
-
-export interface SandboxRaceCatalogueSummary {
-  readonly selectorRanges: readonly { readonly areaIndex: number; readonly firstActivityId: number; readonly activityCount: number }[];
-  readonly finishGates: readonly {
-    readonly courseId: number;
-    readonly strips: readonly { readonly minimumX: number; readonly minimumZ: number; readonly maximumX: number; readonly maximumZ: number }[];
-  }[];
-  readonly startAnchors: readonly {
-    readonly courseId: number;
-    readonly nativeX: number;
-    readonly nativeY: number;
-    readonly nativeZ: number;
-    readonly headingQuarterTurns: number;
-    readonly lateralPolarity: number;
-    readonly firstSixSeeds: readonly {
-      readonly startIndex: number;
-      readonly nativeX: number;
-      readonly nativeY: number;
-      readonly nativeZ: number;
-      readonly nativeYaw: number;
-    }[];
-  }[];
-  readonly navigationCourses: readonly {
-    readonly courseId: number;
-    readonly gateTableAddress: number;
-    readonly recordTableAddress: number;
-    readonly gateCount: number;
-    readonly recordCount: number;
-    readonly firstForwardBoundaryGateIndex: number;
-  }[];
-  readonly activities: readonly {
-    readonly activityId: number;
-    readonly name: string;
-    readonly ordinaryRace: boolean;
-    readonly descriptorAddress: number;
-    readonly sceneId: number;
-    readonly rawParameter1: number;
-    readonly rawParameter2: number;
-    readonly variantId: number;
-    readonly settingsAddress: number;
-    readonly participantListAddress: number;
-    readonly participants: readonly { readonly areaIndex: number; readonly residentIndex: number }[];
-    readonly soloEntrants?: readonly {
-      readonly kind: "player" | "teammate" | "opponent";
-      readonly carIndex: number;
-      readonly configPointerIndex: number;
-      readonly participantIndex?: number;
-      readonly startIndex: number;
-      readonly packedCreationFlags: number;
-      readonly controlSource: "human-input" | "ordinary-ai";
-      readonly controllerIndex: 0 | null;
-      readonly seed: {
-        readonly courseId: number;
-        readonly startIndex: number;
-        readonly nativeX: number;
-        readonly nativeY: number;
-        readonly nativeZ: number;
-        readonly nativeYaw: number;
-      };
-    }[];
-    readonly rawSettings: readonly number[];
-    readonly handlerAAddress: number;
-    readonly handlerBAddress: number;
-  }[];
-}
-
-export interface SandboxRaceCourseSummary {
-  readonly courseId: number;
-  readonly path: string;
-  readonly byteLength: number;
-  readonly sectionOffsets: readonly number[];
-  readonly renderChunkCount: number;
-  readonly populatedRenderChunkCount: number;
-  readonly collisionChunkCount: number;
-  readonly populatedCollisionChunkCount: number;
-  readonly vertexCount: number;
-  readonly triangleCount: number;
-  readonly primitiveCount: number;
-  readonly textureCount: number;
-  readonly batchCount: number;
-  readonly collisionTriangleCount: number;
-  readonly navigation: {
-    readonly gateTableAddress: number;
-    readonly recordTableAddress: number;
-    readonly gates: readonly {
-      readonly gateIndex: number;
-      readonly endpointA: { readonly nativeX: number; readonly nativeZ: number };
-      readonly endpointB: { readonly nativeX: number; readonly nativeZ: number };
-      readonly branchPoint: { readonly nativeX: number; readonly nativeZ: number };
-    }[];
-    readonly records: readonly {
-      readonly recordIndex: number;
-      readonly backwardBoundaryGateIndex: number;
-      readonly forwardBoundaryGateIndex: number;
-      readonly backwardRecordIndices: readonly [number, number];
-      readonly forwardRecordIndices: readonly [number, number];
-      readonly selectorOutput: number;
-      readonly reservedByte: number;
-    }[];
-  };
-  readonly groundedStartGrid: readonly {
-    readonly courseId: number;
-    readonly startIndex: number;
-    readonly position: { readonly x: number; readonly y: number; readonly z: number };
-    readonly yaw: number;
-    readonly surfaceFlags: number;
-  }[];
-}
-
-declare global {
-  interface Window {
-    __rtaSandboxCapture?: SandboxCaptureApi;
-  }
-}
-
+import type { SandboxCaptureInputFile, SandboxCarVisualState, SandboxCaptureRequest, SandboxPreparedWorldInfo, SandboxFieldSurfaceSummary, SandboxDevFixtureSourceInfo, SandboxDevFixtureAssetInfo, SandboxDevFixtureManifest, SandboxCaptureResult, SandboxShopInteriorDialogueInfo, SandboxShopInteriorDialogueState, SandboxShopInteriorCensusEntry, SandboxShopInteriorDialogueEntityTrace, SandboxRaceGridCapture, SandboxRaceCatalogueSummary, SandboxRaceCourseSummary } from "./sandbox/api";
+import { blobDataUrl, cloneBytes, ensureHost, sha256Hex } from "./sandbox/browserHelpers";
+import { readSupportedIdentity, type DirectImportSource } from "./sandbox/source";
+import { captureRaceGridFromBrowserFiles, inspectRaceCatalogue, inspectRaceCourse } from "./sandbox/raceTools";
 interface PreparedOutdoorWorld extends SandboxPreparedWorldInfo {
   readonly worldView: WorldView;
 }
@@ -364,8 +46,6 @@ interface PreparedCarVisualWorld extends SandboxPreparedWorldInfo {
   car: Q62CarModel;
 }
 
-type DirectImportSource = Awaited<ReturnType<typeof openDirectImportSource>>;
-
 interface PreparedDevFixtureSource extends SandboxDevFixtureSourceInfo {
   readonly source: DirectImportSource;
 }
@@ -374,28 +54,6 @@ let preparedOutdoor: PreparedOutdoorWorld | undefined;
 let preparedCarVisual: PreparedCarVisualWorld | undefined;
 let preparedDevFixtureSource: PreparedDevFixtureSource | undefined;
 const devFixtureDownloadUrls = new DeferredObjectUrls();
-
-function ensureHost(size: { width: number; height: number }, id = "rta-sandbox-capture-host"): HTMLDivElement {
-  const existing = document.getElementById(id);
-  existing?.remove();
-  const host = document.createElement("div");
-  host.id = id;
-  host.style.width = `${size.width}px`;
-  host.style.height = `${size.height}px`;
-  host.style.position = "fixed";
-  host.style.left = "0";
-  host.style.top = "0";
-  host.style.pointerEvents = "none";
-  host.style.opacity = "0";
-  document.body.append(host);
-  return host;
-}
-
-function cloneBytes(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
-  const clone = new Uint8Array(new ArrayBuffer(bytes.byteLength));
-  clone.set(bytes);
-  return clone;
-}
 
 function makeBrowserFile(input: SandboxCaptureInputFile): File {
   const bytes = input.bytes instanceof Uint8Array ? input.bytes : new Uint8Array(input.bytes);
@@ -412,14 +70,6 @@ function guessMimeType(path: string): string {
     case "zip": return "application/zip";
     default: return "application/octet-stream";
   }
-}
-
-async function sha256Hex(bytes: Uint8Array): Promise<string> {
-  const subtle = globalThis.crypto?.subtle;
-  if (!subtle) return "unavailable-in-browser-context";
-  const exact = cloneBytes(bytes);
-  const digest = await subtle.digest("SHA-256", exact);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function randomId(): string {
@@ -473,12 +123,6 @@ async function allStandardFieldNumbers(disc: Awaited<ReturnType<typeof openDirec
     .sort((a, b) => a - b);
   if (numbers.length !== 64) throw new Error(`Expected 64 standard FLD sectors; found ${numbers.length}.`);
   return numbers;
-}
-
-async function readSupportedIdentity(source: Awaited<ReturnType<typeof openDirectImportSource>>): Promise<GameIdentity> {
-  const identity = await readGameIdentity(source.disc);
-  if (!identity.supported) throw new Error(`Expected PAL ${expectedEuropeanExecutable}; found '${identity.bootExecutable}'.`);
-  return identity;
 }
 
 async function captureCarVisualBlobFromBrowserFiles(
@@ -870,15 +514,6 @@ async function capturePreparedOutdoorDataUrl(sceneId: string): Promise<string> {
   }
   const pngBlob = await prepared.worldView.capturePng(scene);
   return await blobDataUrl(pngBlob);
-}
-
-async function blobDataUrl(blob: Blob): Promise<string> {
-  return await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error ?? new Error("Could not encode capture PNG."));
-    reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Capture PNG did not encode as a data URL."));
-    reader.readAsDataURL(blob);
-  });
 }
 
 function disposePreparedOutdoor(): void {
@@ -1356,160 +991,6 @@ async function inspectExecutableVirtualBytes(
     const executableBytes = await source.disc.readFile(identity.bootExecutable);
     return [...new Elf32AddressSpace(executableBytes).bytes(address, byteLength)];
   } finally {
-    await source.cleanup();
-  }
-}
-
-async function inspectRaceCatalogue(files: readonly File[]): Promise<SandboxRaceCatalogueSummary> {
-  if (files.length === 0) throw new Error("Provide an ISO, BIN, or BIN/CUE pair.");
-  const source = await openDirectImportSource([...files]);
-  try {
-    const identity = await readSupportedIdentity(source);
-    const executableBytes = await source.disc.readFile(identity.bootExecutable);
-    const catalogue = readRaceCatalogue(executableBytes);
-    const startAnchors = readRaceStartAnchors(executableBytes);
-    const navigationCourses = readRaceNavigationCourses(executableBytes);
-    return {
-      selectorRanges: catalogue.selectorRanges,
-      finishGates: readRaceFinishGateSets(executableBytes),
-      startAnchors: startAnchors.map((anchor) => ({
-        ...anchor,
-        firstSixSeeds: Array.from({ length: 6 }, (_, startIndex) => nativeRaceStartSeed(anchor, startIndex)),
-      })),
-      navigationCourses: navigationCourses.map((course) => ({
-        courseId: course.courseId,
-        gateTableAddress: course.gateTableAddress,
-        recordTableAddress: course.recordTableAddress,
-        gateCount: course.gates.length,
-        recordCount: course.records.length,
-        firstForwardBoundaryGateIndex: course.records[0]!.forwardBoundaryGateIndex,
-      })),
-      activities: catalogue.activities.map((activity) => ({
-        ...activity,
-        rawSettings: [...activity.rawSettings],
-        soloEntrants: activity.ordinaryRace
-          ? ordinaryRaceEntrants(activity, startAnchors[activity.sceneId]!).map((entrant) => ({
-              kind: entrant.kind,
-              carIndex: entrant.carIndex,
-              configPointerIndex: entrant.configPointerIndex,
-              participantIndex: entrant.kind === "opponent" ? entrant.participantIndex : undefined,
-              startIndex: entrant.startIndex,
-              packedCreationFlags: entrant.packedCreationFlags,
-              controlSource: entrant.controlSource,
-              controllerIndex: entrant.controllerIndex,
-              seed: entrant.seed,
-            }))
-          : undefined,
-      })),
-    };
-  } finally {
-    await source.cleanup();
-  }
-}
-
-async function inspectRaceCourse(courseId: number, files: readonly File[]): Promise<SandboxRaceCourseSummary> {
-  if (files.length === 0) throw new Error("Provide an ISO, BIN, or BIN/CUE pair.");
-  if (!Number.isInteger(courseId) || courseId < 0 || courseId > 99) {
-    throw new RangeError("Race course inspection requires an integer course ID from 0 through 99.");
-  }
-  const source = await openDirectImportSource([...files]);
-  try {
-    const identity = await readSupportedIdentity(source);
-    const path = `COURSE/C${courseId.toString().padStart(2, "0")}.BIN`;
-    const bytes = await source.disc.readFile(path);
-    const executableBytes = await source.disc.readFile(identity.bootExecutable);
-    const header = readFieldHeader(bytes);
-    const render = readRenderChunkDirectory(bytes, header);
-    const collision = readCollisionChunkDirectory(bytes, header);
-    const mesh = compileFieldVertexColorMesh(bytes);
-    const compiledCollision = compileFieldCollision(bytes);
-    const anchor = readRaceStartAnchors(executableBytes)[courseId];
-    if (!anchor) throw new Error(`PAL executable has no ordinary-race start anchor for C${courseId.toString().padStart(2, "0")}.`);
-    const navigation = readRaceNavigationCourses(executableBytes)[courseId];
-    if (!navigation) throw new Error(`PAL executable has no ordinary-race navigation table for C${courseId.toString().padStart(2, "0")}.`);
-    const grid = new RaceCourseGridSampler(compiledCollision);
-    return {
-      courseId,
-      path,
-      byteLength: bytes.byteLength,
-      sectionOffsets: header.offsets,
-      renderChunkCount: render.totalChunkCount,
-      populatedRenderChunkCount: render.chunks.filter((chunk) => chunk.declaredPacketCount > 0).length,
-      collisionChunkCount: collision.totalChunkCount,
-      populatedCollisionChunkCount: collision.chunks.filter((chunk) => chunk.declaredPacketCount > 0).length,
-      vertexCount: mesh.vertexCount,
-      triangleCount: mesh.triangleCount,
-      primitiveCount: mesh.primitiveCount,
-      textureCount: mesh.textures.length,
-      batchCount: mesh.batches.length,
-      collisionTriangleCount: compiledCollision.triangleCount,
-      navigation: {
-        gateTableAddress: navigation.gateTableAddress,
-        recordTableAddress: navigation.recordTableAddress,
-        gates: navigation.gates,
-        records: navigation.records,
-      },
-      groundedStartGrid: Array.from({ length: 24 }, (_, startIndex) => grid.ground(nativeRaceStartSeed(anchor, startIndex))),
-    };
-  } finally {
-    await source.cleanup();
-  }
-}
-
-async function captureRaceGridFromBrowserFiles(activityId: number, files: readonly File[]): Promise<SandboxRaceGridCapture> {
-  const source = await openDirectImportSource([...files]);
-  let world: WorldView | undefined;
-  const models: Q62CarModel[] = [];
-  try {
-    const identity = await readSupportedIdentity(source);
-    const executable = await source.disc.readFile(identity.bootExecutable);
-    const activity = readRaceCatalogue(executable).ordinaryRaces[activityId];
-    if (!activity) throw new RangeError("Race grid capture requires an ordinary activity ID 0..23.");
-    const anchor = readRaceStartAnchors(executable)[activity.sceneId]!;
-    const navigation = readRaceNavigationCourses(executable)[activity.sceneId]!;
-    const profile = readOrdinaryRaceSpeedProfiles(executable)[activityId]!;
-    const courseBytes = await source.disc.readFile(`COURSE/C${activity.sceneId.toString().padStart(2, "0")}.BIN`);
-    const grid = new RaceCourseGridSampler(compileFieldCollision(courseBytes));
-    const entrants = ordinaryRaceEntrants(activity, anchor);
-    const size = { width: 1280, height: 960 };
-    world = new WorldView(ensureHost(size, "rta-sandbox-race-grid"));
-    world.startWorld();
-    // Isolated render slot: no overworld topology or race scene-ID equivalence is implied.
-    world.addCompiledFieldMesh(223, compileFieldVertexColorMesh(courseBytes));
-    world.finishWorld();
-    const tireBytes = await source.disc.readFile("CARS/TIRE.BIN");
-    const wheelBytes = await source.disc.readFile("CARS/WHEEL.BIN");
-    const bodyBytes = new Map<number, Uint8Array>();
-    const summaries: SandboxRaceGridCapture["entrants"][number][] = [];
-    for (const entrant of entrants) {
-      const bodyId = entrant.kind === "opponent" ? entrant.participant.bodyId : 62;
-      const name = entrant.kind === "opponent" ? entrant.participant.name : "Player Q62";
-      const paintWord = entrant.kind === "opponent" ? entrant.participant.packedPaint : browserCompatibilityPaintWord;
-      if (!bodyBytes.has(bodyId)) bodyBytes.set(bodyId, await source.disc.readFile(carAssetPath(bodyId)));
-      const model = new Q62CarModel(bodyBytes.get(bodyId)!, tireBytes, { name, wheelBytes, ...carVisualPaintOptions({ paintWord }) });
-      models.push(model);
-      const grounded = grid.ground(entrant.seed);
-      world.addWorldActor(`race-car-${entrant.carIndex}`, model, 223, grounded.position, grounded.yaw);
-      const ai = entrant.controlSource === "ordinary-ai" ? stepOrdinaryRaceAi(navigation, {
-        ...entrant.seed, nativeSpeed: 0, configPointerIndex: entrant.configPointerIndex,
-        currentRecordIndex: 0, steeringEnabled: true, speedLimit: 0,
-      }, { sceneFlags: 4, updateSpeedFeedback: false }, { speedTargets: profile.slice(), speedFeedback: new Uint8Array(256) }) : null;
-      summaries.push({ carIndex: entrant.carIndex, name, startIndex: entrant.startIndex, position: grounded.position, yaw: grounded.yaw, ai });
-    }
-    const player = summaries[0]!;
-    const forwardX = Math.sin(player.yaw), forwardZ = Math.cos(player.yaw);
-    const blob = await world.capturePng({ id: `race-grid-${activityId}`, label: `${activity.name} — native grid inspection`,
-      kind: "field-overview", fieldNumber: 223, size, visibilityMode: "unlimited",
-      camera: { position: [player.position.x - forwardX * 10, player.position.y + 4.8, player.position.z - forwardZ * 10],
-        target: [player.position.x + forwardX * 16, player.position.y + 1, player.position.z + forwardZ * 16] },
-    }, size, true);
-    return { activityId, activityName: activity.name, courseId: activity.sceneId, entrants: summaries,
-      dataUrl: await blobDataUrl(blob), sha256: await sha256Hex(new Uint8Array(await blob.arrayBuffer())),
-      visualEquipment: "Existing neutral wheel preview; native opponent equipment configuration is not asserted by this capture." };
-  } finally {
-    world?.dispose();
-    models.forEach((model) => model.dispose());
-    document.getElementById("rta-sandbox-race-grid")?.remove();
     await source.cleanup();
   }
 }
