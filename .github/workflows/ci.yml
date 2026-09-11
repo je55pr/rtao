@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
+  # Every pull request, whatever it targets: normal work integrates into dev,
+  # and a stacked PR is based on another task branch rather than on dev.
   pull_request:
-    branches: [main]
 
 concurrency:
   group: rtao-${{ github.workflow }}-${{ github.ref }}
