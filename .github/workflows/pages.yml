@@ -2,11 +2,18 @@ name: Deploy GitHub Pages
 
 # A repository has a single Pages site and each deployment replaces it whole, so
 # both published builds are assembled in one run: the public build at the root
-# and the DEV player at /dev/. A push to either branch therefore republishes
-# both from their current tips.
+# and the DEV player at /dev/, each from its branch's current tip.
+#
+# Deploying is deliberately limited to main. The github-pages environment allows
+# deployments from main only, so a dev push reaches the deploy job and is
+# rejected there. Publishing on every dev push would mean granting that
+# environment to dev, which also grants control over what lands at the root URL,
+# because a push runs that branch's own copy of this workflow. Until that trade
+# is decided, the DEV player refreshes whenever the public build is published;
+# workflow_dispatch from main republishes both on demand.
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
