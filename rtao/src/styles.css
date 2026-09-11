@@ -222,6 +222,22 @@ h1 em { color: var(--red); font-style: normal; }
 .race-canvas { position: absolute; inset: 0; z-index: 2; display: block; width: 100%; height: 100%; }
 .panel-settings-button { width: 100%; margin-top: 14px; }
 
+/* Presentation-only fade between town, interiors and races. */
+.scene-fade {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  background: #12101a;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 170ms ease;
+}
+.scene-fade.covered { opacity: 1; }
+.scene-fade.instant { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .scene-fade { transition: none; }
+}
+
 /* Game-facing HUD: normal play shows game state only. */
 .game-hud {
   position: absolute;

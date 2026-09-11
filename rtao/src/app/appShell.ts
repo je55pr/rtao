@@ -82,6 +82,8 @@ const appShellHtml = `
         <button class="quiet-button panel-settings-button" id="open-pause" type="button">Settings · Esc</button>
       </aside>
 
+      <div class="scene-fade" id="scene-fade" aria-hidden="true"></div>
+
       <section class="game-hud" id="game-hud" hidden>
         <p class="game-hud-location" id="hud-location">Peach Town</p>
         <p class="game-hud-cake" id="hud-cake">0 Cake</p>
