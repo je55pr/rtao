@@ -4,6 +4,10 @@ Clean-room browser reimplementation of the European PS2 release of **Road Trip A
 
 **Play the latest public build:** https://je55pr.github.io/rtao/
 
+**DEV player** (current `dev` integration branch, expect rough edges): https://je55pr.github.io/rtao/dev/
+
+Both are published from the same Pages site. They keep separate browser storage, so importing your disc into one does not install it for the other.
+
 The GitHub repository is the canonical development source. The project intentionally contains **no original game assets**; the hosted game shell likewise contains none. Supply your own PAL BIN/CUE, cooked ISO, or extracted disc data at runtime.
 
 ## Repository map
