@@ -42,6 +42,7 @@ import { applyRecoveredDialogueHostAction } from "./game/dialogueProgress";
 import type { BrowserDrivingGame, CarState } from "./game/drivingGame";
 import { applyRecoveredEquipmentHostAction, fitOwnedNativeEquipmentPart, type RecoveredEquipmentState } from "./game/equipmentProgress";
 import { findNearestFixedInteraction } from "./game/fixedInteractionProximity";
+import { ContactEdgeTracker } from "./game/interactionContact";
 import {
   defaultChoiceIndex,
   describeFixedInteriorHostAction,
@@ -95,7 +96,7 @@ import {
   shopPartCategoryLabels,
 } from "./game/shopCatalog";
 import type { DrivingWorld } from "./game/worldCollision";
-import type { BrowserWorldSimulation } from "./game/worldSimulation";
+import type { BrowserWorldSimulation, ResidentState } from "./game/worldSimulation";
 import type { WorldView } from "./game/worldView";
 import { classifyImportSelection, describeImportFailure, type ImportProblem } from "./importer/importDiagnostics";
 import {
@@ -243,6 +244,7 @@ let bodyShopSession: BodyShopCatalogueSession | undefined;
 let paintShopSession: PaintShopSession | undefined;
 let quickPicPhotoSession: { action: DialogueActionToken; photoNumber: number; objectUrl: string } | undefined;
 const advertisingDistanceTracker = new AdvertisingDistanceTracker();
+const interactionContactTracker = new ContactEdgeTracker();
 type PaintShopCursor = { kind: "body"; tone: NativePaintTone; channel: NativePaintChannel } | { kind: "wheel" };
 let paintShopCursor: PaintShopCursor = { kind: "body", tone: 0, channel: 0 };
 let shopInteriorPlayerBytes: Uint8Array | undefined;
@@ -1193,6 +1195,7 @@ async function toggleDriving(): Promise<void> {
   drivingGame.setNativeTyreSelector(playerEquipmentState?.selectedItem(0, 1) ?? 0);
   drivingGame.setNativeBrakeSelector(playerEquipmentState?.selectedItem(0, 6) ?? 0);
   advertisingDistanceTracker.reset();
+  interactionContactTracker.clear();
   drivingGame.start();
   const spawn = drivingGame.controller.state;
   console.info(`Q62 spawn: FLD/${spawn.fieldNumber.toString().padStart(3, "0")} (${spawn.position.x.toFixed(2)}, ${spawn.position.y.toFixed(2)}, ${spawn.position.z.toFixed(2)}).`);
@@ -1222,6 +1225,7 @@ function armFujiProbe(): void {
 function handleDriveState(state: CarState): void {
   refreshGameHud(state);
   accumulateAdvertisingDistance(state);
+  handleAutomaticInteractionContact(state);
   if (activeManifest?.installStage !== "bootstrap" && lastPrefetchedWorldField !== state.fieldNumber) {
     lastPrefetchedWorldField = state.fieldNumber;
     void ensureNearbyWorldFields(state.fieldNumber).catch((error) => console.warn("Nearby driving-sector prefetch failed.", error));
@@ -1252,6 +1256,7 @@ function stopDrivingSession(): void {
   queueRecoveredProgressSave();
   drivingGame?.stop();
   drivingGame = undefined;
+  interactionContactTracker.clear();
   fujiProbeIndex = -1;
   isDriving = false;
   driveToggle.textContent = "Start driving Q62";
@@ -1260,6 +1265,57 @@ function stopDrivingSession(): void {
   requiredElement<HTMLElement>("viewer-help").textContent = "Drag to orbit · Scroll to zoom · Right-drag to pan";
   if (drivingWorld) requiredElement<HTMLElement>("viewer-title").textContent = loadedWorldFieldNumbers.size === 64 ? "The whole world" : "Peach Town area";
   refreshGameHud();
+}
+
+type OverworldInteractionTarget =
+  | { readonly key: string; readonly resident: ResidentState }
+  | { readonly key: string; readonly interaction: FixedInteractionDefinition };
+
+function contactInteractionTargets(state: CarState): OverworldInteractionTarget[] {
+  if (!playerCar) return [];
+  const residentTargets = (worldSimulation?.contacts(state.fieldNumber, state.position, state.yaw, playerCar.localBounds) ?? [])
+    .filter((resident) => residentGreetings.get(resident.definition.name.toLowerCase())?.pages.length)
+    .map((resident) => ({ key: `resident:${resident.id}`, resident }));
+  const fixed = findNearestFixedInteraction(overworldCatalogue?.interactions ?? [], state.fieldNumber, state.position, 0)?.interaction;
+  return fixed
+    ? [...residentTargets, { key: `fixed:${fixed.areaIndex}:${fixed.localIndex}`, interaction: fixed }]
+    : residentTargets;
+}
+
+function overworldInteractionUiBusy(): boolean {
+  return Boolean(activeDialogue || qFactorySession || shopInteriorSession || shopInteriorPreviewInteraction
+    || shopInteriorPreviewLoading || qFactoryLoading || pauseMenuOpen || peachRaceCoordinator);
+}
+
+function activateOverworldInteraction(target: OverworldInteractionTarget): boolean {
+  if ("resident" in target) {
+    const greeting = residentGreetings.get(target.resident.definition.name.toLowerCase());
+    if (!greeting?.pages.length) return false;
+    startResidentDialogue(target.resident.definition.name, greeting.pages);
+    return true;
+  }
+  if (target.interaction.areaIndex === 1 && target.interaction.localIndex === 0) {
+    void startQFactoryInterior(target.interaction).catch((error) => showError("Q's Factory could not be opened.", error));
+  } else {
+    void startShopInteriorPreview(target.interaction).catch((error) => showError(`${target.interaction.name} interior atlas could not be opened.`, error));
+  }
+  return true;
+}
+
+function handleAutomaticInteractionContact(state: CarState): void {
+  if (!isDriving) return;
+  const contacts = contactInteractionTargets(state);
+  const entered = interactionContactTracker.update(contacts.map((target) => target.key));
+  if (overworldInteractionUiBusy() || entered.length === 0) return;
+  const target = contacts.find((candidate) => candidate.key === entered[0]);
+  if (target) activateOverworldInteraction(target);
+}
+
+function manualInteractionTarget(state: CarState): OverworldInteractionTarget | undefined {
+  const resident = worldSimulation?.nearest(state.fieldNumber, state.position, 5);
+  if (resident) return { key: `resident:${resident.id}`, resident };
+  const interaction = findNearestFixedInteraction(overworldCatalogue?.interactions ?? [], state.fieldNumber, state.position)?.interaction;
+  return interaction ? { key: `fixed:${interaction.areaIndex}:${interaction.localIndex}`, interaction } : undefined;
 }
 
 function nearbyPrompt(state: CarState): string | undefined {
@@ -1632,24 +1688,10 @@ function handleDialogueKey(event: KeyboardEvent): void {
     else if (event.code === "Escape") { event.preventDefault(); endResidentDialogue(); }
     return;
   }
-  if (event.code !== "KeyE" || !isDriving || !drivingGame || Math.abs(drivingGame.controller.state.speed) > 5.6) return;
-  const state = drivingGame.controller.state;
-  const resident = worldSimulation?.nearest(state.fieldNumber, state.position, 5);
-  if (resident) {
-    const greeting = residentGreetings.get(resident.definition.name.toLowerCase());
-    if (!greeting?.pages.length) return;
-    event.preventDefault();
-    startResidentDialogue(resident.definition.name, greeting.pages);
-    return;
-  }
-  const interaction = findNearestFixedInteraction(overworldCatalogue?.interactions ?? [], state.fieldNumber, state.position)?.interaction;
-  if (!interaction) return;
-  event.preventDefault();
-  if (interaction.areaIndex === 1 && interaction.localIndex === 0) {
-    void startQFactoryInterior(interaction).catch((error) => showError("Q's Factory could not be opened.", error));
-  } else {
-    void startShopInteriorPreview(interaction).catch((error) => showError(`${interaction.name} interior atlas could not be opened.`, error));
-  }
+  if (event.code !== "KeyE" || !isDriving || !drivingGame) return;
+  const target = manualInteractionTarget(drivingGame.controller.state);
+  if (!target) return;
+  if (activateOverworldInteraction(target)) event.preventDefault();
 }
 
 function startResidentDialogue(speaker: string, pages: string[]): void {

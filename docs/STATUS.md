@@ -23,6 +23,8 @@ The first ordinary-race vertical slice is integrated on `dev`. Verified foundati
 
 Primary race write-ups remain `PAL_NATIVE_RACE_FRAME_2026-09-05.md`, `PAL_NATIVE_RACE_MATH_2026-09-05.md`, `PAL_NATIVE_RACE_CONTACT_2026-09-05.md`, and `PAL_NATIVE_RACE_COLLISION_2026-09-05.md`. Supporting 2026-09-10 activity, interaction and equipment censuses are retained under `docs/archaeology/` and `docs/evidence/`.
 
+Overworld interaction activation is explicit browser host policy: manual NPC/door interaction has no speed limit, while physical NPC-body contact and entry into an authored fixed-interaction polygon auto-activate once per contact episode. This convenience behavior is not claimed as recovered PAL semantics.
+
 ## Immediate work
 
 1. Continue the race-facing UX/presentation tranche and deterministic course validation on `dev`.

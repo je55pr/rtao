@@ -34,3 +34,27 @@ test("resident simulation can add newly loaded field definitions without duplica
   expect(simulation.addDefinitions([definition, neighbour])).toBe(1);
   expect(simulation.residents.map((resident) => resident.state.definition.name)).toEqual(["Peach", "Neighbour"]);
 });
+
+test("resident contact uses attached model bounds rather than the manual proximity radius", () => {
+  const world = new DrivingWorld();
+  for (const field of allWorldFieldNumbers()) world.addCompiledField(field, flatFieldCollision(3));
+  const definition: OutdoorResidentDefinition = {
+    areaIndex: 1, fieldNumber: 223, localIndex: 1, name: "Contact", bodyId: 62,
+    paint: { primary: { r: 100, g: 100, b: 100 }, secondary: { r: 80, g: 80, b: 80 } },
+    spawn: { x: 600, y: 3, z: 500, rawOrientation: 0 },
+    route: [],
+  };
+  const view = { addWorldActor() {}, clearWorldActors() {}, updateWorldActor() {} } as never;
+  const simulation = new BrowserWorldSimulation([definition], world, view);
+  const bounds = { minimum: [-1, -0.5, -2], maximum: [1, 1, 2] } as const;
+  expect(simulation.contacts(223, { x: 1000, y: 3, z: 503.9 }, 0, bounds)).toEqual([]);
+  const model = {
+    localBounds: bounds,
+    setWheelState() {},
+    dispose() {},
+  } as never;
+  simulation.attachModel("A01-01", model);
+  expect(simulation.contacts(223, { x: 1000, y: 3, z: 503.9 }, 0, bounds).map((resident) => resident.definition.name))
+    .toEqual(["Contact"]);
+  expect(simulation.contacts(223, { x: 1000, y: 3, z: 504.2 }, 0, bounds)).toEqual([]);
+});
