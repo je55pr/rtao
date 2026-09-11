@@ -24,6 +24,16 @@ export interface AppDomBindings {
   hudSpeed: HTMLElement;
   hudStatus: HTMLElement;
   hudHint: HTMLElement;
+  raceStartSignal: HTMLElement;
+  raceStartStatus: HTMLElement;
+  raceResultsOverlay: HTMLElement;
+  raceResultsTitle: HTMLElement;
+  raceResultsPlaces: HTMLElement;
+  raceResultsPrize: HTMLElement;
+  raceResultsBalance: HTMLElement;
+  raceResultsBest: HTMLElement;
+  raceResultsPromotion: HTMLElement;
+  raceResultsReturn: HTMLButtonElement;
   debugOverlay: HTMLElement;
   debugLiveRows: HTMLElement;
   pauseOverlay: HTMLElement;
@@ -56,6 +66,16 @@ export function bindAppDom(): AppDomBindings {
     hudSpeed: requiredElement<HTMLElement>("hud-speed"),
     hudStatus: requiredElement<HTMLElement>("hud-status"),
     hudHint: requiredElement<HTMLElement>("hud-hint"),
+    raceStartSignal: requiredElement<HTMLElement>("race-start-signal"),
+    raceStartStatus: requiredElement<HTMLElement>("race-start-status"),
+    raceResultsOverlay: requiredElement<HTMLElement>("race-results-overlay"),
+    raceResultsTitle: requiredElement<HTMLElement>("race-results-title"),
+    raceResultsPlaces: requiredElement<HTMLElement>("race-results-places"),
+    raceResultsPrize: requiredElement<HTMLElement>("race-results-prize"),
+    raceResultsBalance: requiredElement<HTMLElement>("race-results-balance"),
+    raceResultsBest: requiredElement<HTMLElement>("race-results-best"),
+    raceResultsPromotion: requiredElement<HTMLElement>("race-results-promotion"),
+    raceResultsReturn: requiredElement<HTMLButtonElement>("race-results-return"),
     debugOverlay: requiredElement<HTMLElement>("debug-overlay"),
     debugLiveRows: requiredElement<HTMLElement>("debug-live-rows"),
     pauseOverlay: requiredElement<HTMLElement>("pause-overlay"),

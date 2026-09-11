@@ -94,6 +94,34 @@ const appShellHtml = `
         <p class="game-hud-hint" id="hud-hint">Esc · pause and settings</p>
       </section>
 
+      <section class="race-start-signal" id="race-start-signal" hidden aria-live="polite" aria-atomic="true">
+        <div class="race-start-gantry" aria-hidden="true">
+          <div class="race-start-lights race-start-ready" data-race-start-ready>
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <div class="race-start-lights race-start-release" data-race-start-release>
+            <span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+        <p class="sr-only" id="race-start-status"></p>
+      </section>
+
+      <section class="race-results-overlay" id="race-results-overlay" hidden>
+        <div class="race-results-panel" role="dialog" aria-modal="true" aria-labelledby="race-results-title">
+          <p class="eyebrow">RACE COMPLETE</p>
+          <h2 id="race-results-title">Peach Raceway</h2>
+          <div class="race-results-places" id="race-results-places"></div>
+          <div class="race-results-reward">
+            <span>Prize</span>
+            <strong id="race-results-prize">+0 Cake</strong>
+            <small id="race-results-balance">0 Cake total</small>
+          </div>
+          <p class="race-results-best" id="race-results-best"></p>
+          <p class="race-results-promotion" id="race-results-promotion" hidden></p>
+          <button class="primary-button" id="race-results-return" type="button">Return to town</button>
+        </div>
+      </section>
+
       <aside class="debug-overlay" id="debug-overlay" hidden aria-label="Developer diagnostics">
         <header class="debug-overlay-header">
           <p class="eyebrow">DEVELOPER DIAGNOSTICS</p>

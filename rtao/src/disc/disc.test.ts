@@ -5,6 +5,25 @@ import { MemorySource, RawMode2SectorSource } from "./randomAccess";
 import { readGameIdentity } from "../formats/gameIdentity";
 
 describe("CUE parsing", () => {
+  it("reads TRACK 01 and ignores the INDEX lines of trailing CDDA tracks", () => {
+    const cue = parseCueSheet(`FILE "Road Trip Adventure.bin" BINARY
+  TRACK 01 MODE2/2352
+    INDEX 01 00:00:00
+  TRACK 02 AUDIO
+    INDEX 00 10:00:00
+    INDEX 01 10:02:00
+  TRACK 03 AUDIO
+    INDEX 01 20:00:00
+`);
+    expect(cue).toEqual({ binFileName: "Road Trip Adventure.bin", firstSector: 0 });
+  });
+
+  it("rejects a CUE whose first track is not the MODE2/2352 data track", () => {
+    expect(() => parseCueSheet(`FILE "game.bin" BINARY
+TRACK 02 MODE2/2352
+INDEX 01 00:00:00`)).toThrow(/TRACK 01/);
+  });
+
   it("reads the single MODE2 track used by the PAL disc", () => {
     const cue = parseCueSheet(`FILE "Road Trip Adventure.bin" BINARY\r\n  TRACK 01 MODE2/2352\r\n    INDEX 01 00:02:00\r\n`);
     expect(cue).toEqual({ binFileName: "Road Trip Adventure.bin", firstSector: 150 });

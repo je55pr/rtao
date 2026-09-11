@@ -75,56 +75,60 @@ async function openZip(file: File, importId: string, progress: Progress): Promis
     checkOverlappingEntry: true,
     checkSignature: true,
   });
-  const entries = await reader.getEntries();
-  const safeFiles = entries.filter((entry): entry is Entry & { directory: false } => !entry.directory && safeArchiveName(entry.filename));
-  if (safeFiles.some((entry) => entry.encrypted)) {
-    await reader.close();
-    throw new Error("Password-protected ZIP files are not supported yet.");
-  }
-
-  const iso = safeFiles.find((entry) => extension(entry.filename) === "iso");
-  const cue = safeFiles.find((entry) => extension(entry.filename) === "cue");
-  let sourceEntry: Entry & { directory: false };
+  // Every exit closes the reader, including the throwing ones: a malformed CUE
+  // or a failed extraction used to leave it open.
+  let importDirectory: FileSystemDirectoryHandle;
+  let temporaryPath: string;
   let cueSheet: ReturnType<typeof parseCueSheet> | undefined;
   let kind: SourceKind;
-  if (iso) {
-    sourceEntry = iso;
-    kind = "zip-iso";
-  } else if (cue) {
-    const cueText = await cue.getData(new TextWriter());
-    cueSheet = parseCueSheet(cueText);
-    const binEntries = safeFiles.filter((entry) => extension(entry.filename) === "bin");
-    const resolvedName = resolveCueBinName(cueSheet.binFileName, binEntries.map((entry) => entry.filename));
-    const referenced = resolvedName === undefined
-      ? undefined
-      : binEntries.find((entry) => entry.filename === resolvedName);
-    if (!referenced) {
-      await reader.close();
-      throw new Error(`ZIP CUE references '${cueSheet.binFileName}', but it cannot be matched unambiguously to a BIN in the archive.`);
+  try {
+    const entries = await reader.getEntries();
+    const safeFiles = entries.filter((entry): entry is Entry & { directory: false } => !entry.directory && safeArchiveName(entry.filename));
+    if (safeFiles.some((entry) => entry.encrypted)) {
+      throw new Error("Password-protected ZIP files are not supported yet.");
     }
-    sourceEntry = referenced;
-    kind = "zip-bin-cue";
-  } else {
-    const bin = safeFiles.find((entry) => extension(entry.filename) === "bin");
-    if (!bin) {
-      await reader.close();
-      throw new Error("ZIP contains neither an ISO nor a BIN/CUE game image.");
-    }
-    sourceEntry = bin;
-    kind = "zip-bin-cue";
-  }
 
-  await assertStorageHeadroom(sourceEntry.uncompressedSize);
-  const importDirectory = await createImportDirectory(importId);
-  const temporaryPath = `temporary/${kind === "zip-iso" ? "game.iso" : "game.bin"}`;
-  progress("archive", `Extracting ${basename(sourceEntry.filename)} locally`, 0, sourceEntry.uncompressedSize);
-  await writeFile(importDirectory, temporaryPath, async (destination) => {
-    await sourceEntry.getData(destination, {
-      checkCrc32: true,
-      onprogress: (completed, total) => progress("archive", `Extracting ${basename(sourceEntry.filename)} locally`, completed, total),
+    const iso = safeFiles.find((entry) => extension(entry.filename) === "iso");
+    const cue = safeFiles.find((entry) => extension(entry.filename) === "cue");
+    let sourceEntry: Entry & { directory: false };
+    if (iso) {
+      sourceEntry = iso;
+      kind = "zip-iso";
+    } else if (cue) {
+      const cueText = await cue.getData(new TextWriter());
+      cueSheet = parseCueSheet(cueText);
+      const binEntries = safeFiles.filter((entry) => extension(entry.filename) === "bin");
+      const resolvedName = resolveCueBinName(cueSheet.binFileName, binEntries.map((entry) => entry.filename));
+      const referenced = resolvedName === undefined
+        ? undefined
+        : binEntries.find((entry) => entry.filename === resolvedName);
+      if (!referenced) {
+        throw new Error(`ZIP CUE references '${cueSheet.binFileName}', but it cannot be matched unambiguously to a BIN in the archive.`);
+      }
+      sourceEntry = referenced;
+      kind = "zip-bin-cue";
+    } else {
+      const bin = safeFiles.find((entry) => extension(entry.filename) === "bin");
+      if (!bin) {
+        throw new Error("ZIP contains neither an ISO nor a BIN/CUE game image.");
+      }
+      sourceEntry = bin;
+      kind = "zip-bin-cue";
+    }
+
+    await assertStorageHeadroom(sourceEntry.uncompressedSize);
+    importDirectory = await createImportDirectory(importId);
+    temporaryPath = `temporary/${kind === "zip-iso" ? "game.iso" : "game.bin"}`;
+    progress("archive", `Extracting ${basename(sourceEntry.filename)} locally`, 0, sourceEntry.uncompressedSize);
+    await writeFile(importDirectory, temporaryPath, async (destination) => {
+      await sourceEntry.getData(destination, {
+        checkCrc32: true,
+        onprogress: (completed, total) => progress("archive", `Extracting ${basename(sourceEntry.filename)} locally`, completed, total),
+      });
     });
-  });
-  await reader.close();
+  } finally {
+    await reader.close().catch(() => undefined);
+  }
 
   const stored = await fileSource(importDirectory, temporaryPath);
   const sectors: RandomAccessSource = kind === "zip-iso"
