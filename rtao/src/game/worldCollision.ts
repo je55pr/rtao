@@ -49,8 +49,12 @@ export class FieldCollisionSampler {
     let best: GroundSample | undefined;
     let bestDistance = Number.POSITIVE_INFINITY;
     for (let dz = -1; dz <= 1; dz += 1) {
+      const neighbourZ = chunkZ + dz;
+      if (neighbourZ < 0 || neighbourZ >= gridSize) continue;
       for (let dx = -1; dx <= 1; dx += 1) {
-        const triangles = this.triangleIndicesByChunk.get(chunkKey(chunkX + dx, chunkZ + dz));
+        const neighbourX = chunkX + dx;
+        if (neighbourX < 0 || neighbourX >= gridSize) continue;
+        const triangles = this.triangleIndicesByChunk.get(chunkKey(neighbourX, neighbourZ));
         if (!triangles) continue;
         for (const triangleIndex of triangles) {
           const y = this.sampleTriangleY(triangleIndex, x, z);
@@ -71,8 +75,12 @@ export class FieldCollisionSampler {
     const chunkZ = clampChunk(Math.floor(z / chunkSize));
     let best: GroundSample | undefined;
     for (let dz = -1; dz <= 1; dz += 1) {
+      const neighbourZ = chunkZ + dz;
+      if (neighbourZ < 0 || neighbourZ >= gridSize) continue;
       for (let dx = -1; dx <= 1; dx += 1) {
-        const triangles = this.triangleIndicesByChunk.get(chunkKey(chunkX + dx, chunkZ + dz));
+        const neighbourX = chunkX + dx;
+        if (neighbourX < 0 || neighbourX >= gridSize) continue;
+        const triangles = this.triangleIndicesByChunk.get(chunkKey(neighbourX, neighbourZ));
         if (!triangles) continue;
         for (const triangleIndex of triangles) {
           const y = this.sampleTriangleY(triangleIndex, x, z);
@@ -245,7 +253,9 @@ class FieldDrivingSurfaceSampler {
     const chunkX = Math.max(0, Math.min(7, Math.floor(x / 200))), chunkZ = Math.max(0, Math.min(7, Math.floor(z / 200)));
     let bestTexture: number | undefined, bestDistance = Number.POSITIVE_INFINITY;
     for (let dz = -1; dz <= 1; dz += 1) for (let dx = -1; dx <= 1; dx += 1) {
-      for (const batch of this.batchesByChunk.get(chunkX + dx + (chunkZ + dz) * 8) ?? []) {
+      const neighbourX = chunkX + dx, neighbourZ = chunkZ + dz;
+      if (neighbourX < 0 || neighbourX >= 8 || neighbourZ < 0 || neighbourZ >= 8) continue;
+      for (const batch of this.batchesByChunk.get(neighbourX + neighbourZ * 8) ?? []) {
         const positions = batch.positions;
         for (let offset = 0; offset + 8 < positions.length; offset += 9) {
           const y = sampleExpandedTriangleY(positions, offset, x, z);
@@ -283,6 +293,11 @@ function containsTriangle2d(ax: number, az: number, bx: number, bz: number, cx: 
   return u >= -0.01 && v >= -0.01 && u + v <= 1.01;
 }
 
+/**
+ * Flat grid key. Only injective while both axes are inside the grid: an
+ * unclamped `x - 1` at column 0 aliases the last column of the previous row, so
+ * every caller must range-check the neighbour before looking it up.
+ */
 function chunkKey(x: number, z: number): number {
   return x + z * gridSize;
 }
