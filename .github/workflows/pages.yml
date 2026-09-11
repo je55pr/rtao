@@ -1,8 +1,16 @@
 name: Deploy GitHub Pages
 
+# A repository has a single Pages site and each deployment replaces it whole, so
+# both published builds are assembled in one run: the public build at the root
+# and the DEV player at /dev/, each from its branch's current tip. A push to
+# either branch therefore republishes both.
+#
+# Both branches are listed in the github-pages environment's deployment branch
+# policy. Note what that means: a push runs that branch's own copy of this
+# workflow, so a change here on dev can decide what lands at the root URL too.
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   workflow_dispatch:
 
 permissions:
@@ -18,26 +26,55 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout public branch
         uses: actions/checkout@v7
+        with:
+          ref: main
+          path: public
+      - name: Checkout dev branch
+        uses: actions/checkout@v7
+        with:
+          ref: dev
+          path: dev
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: 22.12.0
           cache: npm
-          cache-dependency-path: rtao/package-lock.json
+          cache-dependency-path: |
+            public/rtao/package-lock.json
+            dev/rtao/package-lock.json
       - name: Configure Pages
         uses: actions/configure-pages@v5
-      - name: Install dependencies
-        working-directory: rtao
+
+      - name: Install public dependencies
+        working-directory: public/rtao
         run: npm ci
       - name: Build public game
-        working-directory: rtao
+        working-directory: public/rtao
         run: npm run build
+
+      - name: Install dev dependencies
+        working-directory: dev/rtao
+        run: npm ci
+      - name: Build DEV player
+        working-directory: dev/rtao
+        # Keeps the DEV player's browser storage separate from the public
+        # build's; both are served from one origin. See src/storage/storageChannel.ts.
+        env:
+          VITE_RTA_CHANNEL: dev
+        run: npm run build
+
+      - name: Assemble site
+        run: |
+          mkdir -p site
+          cp -r public/rtao/dist/. site/
+          mkdir -p site/dev
+          cp -r dev/rtao/dist/. site/dev/
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: rtao/dist
+          path: site
 
   deploy:
     needs: build

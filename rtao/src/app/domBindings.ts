@@ -18,6 +18,17 @@ export interface AppDomBindings {
   worldTime: HTMLSelectElement;
   worldVisibility: HTMLSelectElement;
   driveToggle: HTMLButtonElement;
+  gameHud: HTMLElement;
+  hudLocation: HTMLElement;
+  hudCake: HTMLElement;
+  hudSpeed: HTMLElement;
+  hudStatus: HTMLElement;
+  hudHint: HTMLElement;
+  debugOverlay: HTMLElement;
+  debugLiveRows: HTMLElement;
+  pauseOverlay: HTMLElement;
+  pauseStopDriving: HTMLButtonElement;
+  pauseResume: HTMLButtonElement;
 }
 
 export function bindAppDom(): AppDomBindings {
@@ -39,5 +50,16 @@ export function bindAppDom(): AppDomBindings {
     worldTime: requiredElement<HTMLSelectElement>("world-time"),
     worldVisibility: requiredElement<HTMLSelectElement>("world-visibility"),
     driveToggle: requiredElement<HTMLButtonElement>("drive-toggle"),
+    gameHud: requiredElement<HTMLElement>("game-hud"),
+    hudLocation: requiredElement<HTMLElement>("hud-location"),
+    hudCake: requiredElement<HTMLElement>("hud-cake"),
+    hudSpeed: requiredElement<HTMLElement>("hud-speed"),
+    hudStatus: requiredElement<HTMLElement>("hud-status"),
+    hudHint: requiredElement<HTMLElement>("hud-hint"),
+    debugOverlay: requiredElement<HTMLElement>("debug-overlay"),
+    debugLiveRows: requiredElement<HTMLElement>("debug-live-rows"),
+    pauseOverlay: requiredElement<HTMLElement>("pause-overlay"),
+    pauseStopDriving: requiredElement<HTMLButtonElement>("pause-stop-driving"),
+    pauseResume: requiredElement<HTMLButtonElement>("pause-resume"),
   };
 }
