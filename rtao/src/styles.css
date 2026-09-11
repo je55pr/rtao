@@ -927,6 +927,8 @@ h1 em { color: var(--red); font-style: normal; }
 
 .error-card h2 { margin: 0 0 12px; font-size: 28px; letter-spacing: -.04em; }
 .error-card > p:not(.eyebrow) { color: #6f6877; line-height: 1.5; overflow-wrap: anywhere; }
+.error-card .error-hint { margin-top: 12px; padding-left: 12px; border-left: 3px solid var(--orange); color: var(--ink); }
+.error-card .error-privacy { margin-top: 14px; font-size: 12px; }
 .primary-button { cursor: pointer; }
 
 .capture-result {
