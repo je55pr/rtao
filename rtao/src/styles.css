@@ -1178,3 +1178,64 @@ h1 em { color: var(--red); font-style: normal; }
   .drop-zone { min-height: 180px; margin-top: 0; }
   .footer span { display: block !important; }
 }
+
+/* Race completion uses already-applied progression truth; this layer is presentation only. */
+.race-results-overlay {
+  position: absolute;
+  z-index: 9;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(24, 22, 32, .68);
+  backdrop-filter: blur(4px);
+}
+.race-results-panel {
+  width: min(430px, 100%);
+  padding: 26px 28px 24px;
+  color: var(--ink);
+  background: rgba(246, 240, 228, .98);
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 7px 7px 0 rgba(39, 34, 52, .78);
+}
+.race-results-panel .eyebrow { margin: 0 0 4px; color: #a84c25; }
+.race-results-panel h2 {
+  margin: 0 0 18px;
+  font-size: clamp(30px, 5vw, 42px);
+  line-height: .95;
+  letter-spacing: -.055em;
+}
+.race-results-places {
+  margin-bottom: 18px;
+  border-top: 1px solid rgba(39, 34, 52, .18);
+}
+.race-results-place {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(39, 34, 52, .14);
+}
+.race-results-place span { color: #645d6c; font-size: 14px; }
+.race-results-place strong { font-size: 20px; }
+.race-results-reward {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 2px 16px;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  background: rgba(245, 201, 77, .32);
+  border-radius: 8px;
+}
+.race-results-reward > span { color: #645d6c; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.race-results-reward strong { font-size: 22px; }
+.race-results-reward small { grid-column: 2; color: #645d6c; font: 11px Consolas, "Courier New", monospace; }
+.race-results-best,
+.race-results-promotion { margin: 8px 0; font-size: 14px; font-weight: 600; }
+.race-results-best.updated { color: #a84c25; }
+.race-results-promotion { padding: 8px 10px; background: rgba(39, 34, 52, .08); border-radius: 6px; }
+.race-results-panel > .primary-button { width: 100%; margin-top: 14px; padding: 11px 14px; }
