@@ -8,6 +8,7 @@ import { fieldDisplayName, type GameHudState, gameHudView, raceStatusText } from
 import { ImportController } from "./app/importController";
 import { canOpenPauseMenu } from "./app/pauseState";
 import { RecoveredProgressStore } from "./app/recoveredProgressStore";
+import { SceneFade } from "./app/sceneTransition";
 import { carAssetPath } from "./formats/carPath";
 import type { DialogueActionToken, DialogueEntity, DialogueFlow, DialogueRuntimeState, DialogueVariant } from "./formats/dialogue";
 import type { FixedInteractionDefinition, OverworldCatalogue } from "./formats/overworld";
@@ -148,6 +149,23 @@ const {
   pauseResume,
 } = bindAppDom();
 const raceToggle = requiredElement<HTMLButtonElement>("race-toggle");
+const sceneFadeElement = requiredElement<HTMLElement>("scene-fade");
+const sceneFade = new SceneFade(
+  {
+    setCovered: (covered, instant) => {
+      sceneFadeElement.classList.toggle("instant", instant);
+      sceneFadeElement.classList.toggle("covered", covered);
+    },
+  },
+  // The cover must be committed before the classes that fade it away are
+  // removed, or the transition has nothing to run from. A timer rather than
+  // requestAnimationFrame: a backgrounded tab stops issuing frames, and a
+  // reveal that never arrives would leave the scene stuck behind black.
+  (reveal) => {
+    void sceneFadeElement.offsetHeight;
+    setTimeout(reveal, 16);
+  },
+);
 let worldView: WorldView | undefined;
 let drivingWorld: DrivingWorld | undefined;
 let drivingGame: BrowserDrivingGame | undefined;
@@ -364,12 +382,14 @@ async function showWorldLocation(value: string): Promise<void> {
       requiredElement<HTMLElement>("viewer-title").textContent = "Loading whole world…";
       await ensureAllWorldFields();
       worldView.showWorldOverview();
+      sceneFade.flash();
       requiredElement<HTMLElement>("viewer-title").textContent = "The whole world";
       return;
     }
     const fieldNumber = Number.parseInt(value, 10);
     await ensureWorldFieldLoaded(fieldNumber);
     if (!worldView.focusField(fieldNumber)) return;
+    sceneFade.flash();
     requiredElement<HTMLElement>("viewer-title").textContent = ({
       223: "Peach Town",
       113: "Fuji City",
@@ -645,6 +665,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   if (raceCaptureId && !raceCaptureScene) {
     throw new Error(`Unknown Peach race capture '${raceCaptureId}'. Available captures: ${peachRaceCaptureScenes.map((candidate) => candidate.id).join(", ")}.`);
   }
+  sceneFade.setEnabled(!captureScene && !raceCaptureScene);
   const { BrowserWorldSimulation: BrowserWorldSimulationClass } = await import("./game/worldSimulation");
   const loadedFieldNumbers = new Set(compiledWorld.map((field) => field.fieldNumber));
   const residentDefinitions = overworldCatalogue.residents.filter((resident) => loadedFieldNumbers.has(resident.fieldNumber));
@@ -929,6 +950,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
   updatePeachRaceAvailability();
   refreshGameHud();
   coordinator.syncView(view);
+  sceneFade.flash();
   if (scheduleAnimation) peachRaceFrame = requestAnimationFrame(runPeachRaceFrame);
 }
 
@@ -1064,6 +1086,7 @@ function stopPeachRace(): void {
     refreshGameHud();
   }
   updatePeachRaceAvailability();
+  sceneFade.flash();
 }
 
 async function toggleDriving(): Promise<void> {
@@ -1602,6 +1625,7 @@ async function startShopInteriorPreview(interaction: FixedInteractionDefinition)
   requiredElement<HTMLButtonElement>("factory-return").hidden = true;
   requiredElement<HTMLButtonElement>("factory-leave").textContent = "Return to town";
   sizeFactoryStage();
+  sceneFade.flash();
 
   try {
     const { readShopInteriorBackdrop, shopInteriorPackagePath, shopInteriorSlotCount } = await import("./formats/shopInterior");
@@ -1726,6 +1750,7 @@ function endShopInteriorPreview(): void {
   delete root.dataset.dialogueSlot;
   drivingGame?.setPaused(false);
   worldSimulation?.setPaused(false);
+  sceneFade.flash();
   console.info(`${name} fixed interior closed; outdoor state resumed.`);
 }
 
@@ -2481,6 +2506,7 @@ async function startQFactoryInterior(interaction: FixedInteractionDefinition): P
   requiredElement<HTMLButtonElement>("factory-continue").hidden = true;
   requiredElement<HTMLButtonElement>("factory-return").hidden = true;
   sizeFactoryStage();
+  sceneFade.flash();
   try {
     const [{ readShopInteriorBackdrop }, { DialogueFlow: DialogueFlowClass }, { QFactoryInteriorView: InteriorViewClass }, { Q62CarModel: CarModelClass }, shopBytes, tireBytes, wheelBytes, playerBytes, staffBytes] = await Promise.all([
       import("./formats/shopInterior"),
@@ -2911,6 +2937,7 @@ function endQFactoryInterior(): void {
   delete root.dataset.dialogueSlot;
   drivingGame?.setPaused(false);
   worldSimulation?.setPaused(false);
+  sceneFade.flash();
   console.info(`Q's Factory end: ${name}; outdoor player and resident state resumed.`);
 }
 
