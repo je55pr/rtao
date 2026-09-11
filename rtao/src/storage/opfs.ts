@@ -97,6 +97,11 @@ export async function createImportDirectory(importId: string): Promise<FileSyste
   return imports.getDirectoryHandle(safeComponent(importId), { create: true });
 }
 
+/**
+ * `write` owns the stream and must close it. If it throws instead, the stream is
+ * aborted here: an abandoned writable keeps the OPFS file handle locked, so the
+ * next `createWritable` for that path would fail with NoModificationAllowedError.
+ */
 export async function writeFile(
   root: FileSystemDirectoryHandle,
   path: string,
@@ -105,7 +110,12 @@ export async function writeFile(
   const { directory, name } = await resolveParent(root, path, true);
   const handle = await directory.getFileHandle(name, { create: true });
   const writable = await handle.createWritable();
-  await write(writable as unknown as WritableStream<Uint8Array>);
+  try {
+    await write(writable as unknown as WritableStream<Uint8Array>);
+  } catch (error) {
+    await writable.abort().catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function writeBytes(root: FileSystemDirectoryHandle, path: string, bytes: Uint8Array): Promise<void> {
@@ -157,6 +167,13 @@ export async function readCurrentManifest(): Promise<ImportManifest | undefined>
     return manifest.schemaVersion === cacheSchemaVersion ? manifest : undefined;
   } catch (error) {
     if (isNotFoundError(error)) return undefined;
+    // A pointer or manifest truncated by a crash mid-write is a storage problem,
+    // not a bad game image. Treat it as "nothing installed" so the first-run
+    // screen offers a re-import instead of an import-failure card.
+    if (error instanceof SyntaxError) {
+      console.warn("The browser install pointer was unreadable; treating this origin as empty.", error);
+      return undefined;
+    }
     throw error;
   }
 }

@@ -59,7 +59,7 @@ export function gameHudView(state: GameHudState): GameHudView {
 }
 
 export interface RaceHudStatus {
-  readonly countdownComplete: boolean;
+  readonly raceReleased: boolean;
   readonly finishIndex: number | null;
   readonly completedLaps: number;
   readonly entrantCount: number;
@@ -81,7 +81,7 @@ export function placeOrdinal(place: number): string {
 }
 
 export function raceStatusText(status: RaceHudStatus): string {
-  if (!status.countdownComplete) return "Starting grid";
+  if (!status.raceReleased) return "Starting grid";
   const place = status.finishIndex ?? status.positionIndex;
   const standing = place === undefined ? undefined : `${placeOrdinal(place + 1)} of ${status.entrantCount}`;
   if (status.finishIndex !== null) {

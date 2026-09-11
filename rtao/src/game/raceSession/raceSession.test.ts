@@ -212,6 +212,8 @@ function session(carCount: number, elapsedUpdates = 200): OrdinaryRaceSession {
       phase: "racing",
       countdown: { elapsedUpdates: 200, sceneFlags: 4, completed: false },
     });
+    expect(race.isRaceReleased).toBe(true);
+    expect(race.isCountdownComplete).toBe(false);
     for (let tick = 201; tick <= 300; tick += 1) {
       race.step({ sceneTime: tick, shortFinalPhase: false, commandSource: idle });
     }

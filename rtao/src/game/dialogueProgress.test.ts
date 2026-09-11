@@ -11,6 +11,8 @@ import {
 import {
   applyRecoveredDialogueHostAction,
   createRecoveredDialogueStateSave,
+  isRestorableRecoveredSave,
+  recoveredSaveSchemaVersion,
   restoreRecoveredDialogueStateSave,
 } from "./dialogueProgress";
 import { purchaseIndexedItem, RecoveredCommerceState } from "./commerceProgress";
@@ -18,10 +20,10 @@ import { applyRecoveredEquipmentHostAction, RecoveredEquipmentState } from "./eq
 import { RecoveredRaceState } from "./raceProgress";
 
 describe("recovered dialogue progress", () => {
-  test("round-trips sorted indexed flags and rejects malformed entries", () => {
+  test("round-trips sorted indexed ownership and rejects malformed entries", () => {
     const restored = restoreRecoveredDialogueStateSave({
-      schemaVersion: 1,
-      indexedFlags: [[15, 39], [0, 150], [-1, 2], [15, 256], [15], "bad"],
+      schemaVersion: 10,
+      indexedOwnership: [[15, 39, 1], [0, 150, 1], [-1, 2, 1], [15, 256, 1], [15, 39], [1, 2, 0], [1, 2, 6], "bad"],
     }, new DialogueRuntimeState());
     expect(restored.indexedFlagEntries()).toEqual([[0, 150], [15, 39]]);
     expect(createRecoveredDialogueStateSave(restored, "2026-09-01T00:00:00.000Z")).toEqual({
@@ -39,6 +41,23 @@ describe("recovered dialogue progress", () => {
       raceLicenseClass: 0,
       ordinaryRaceFinishIndices: Array(24).fill(0xff),
     });
+  });
+
+  test("refuses any save that is not the current schema", () => {
+    for (const schemaVersion of [1, 3, 9, 11, "10", undefined]) {
+      const state = new DialogueRuntimeState();
+      const commerce = new RecoveredCommerceState();
+      restoreRecoveredDialogueStateSave(
+        { schemaVersion, indexedFlags: [[15, 39]], indexedOwnership: [[15, 39, 1]], stamps: [31], cake: 500 },
+        state,
+        commerce,
+      );
+      expect(state.indexedFlagEntries()).toEqual([]);
+      expect(state.stampEntries()).toEqual([]);
+      expect(commerce.cake).toBe(1_000);
+    }
+    expect(isRestorableRecoveredSave({ schemaVersion: recoveredSaveSchemaVersion, indexedOwnership: [] })).toBe(true);
+    expect(isRestorableRecoveredSave({ schemaVersion: recoveredSaveSchemaVersion })).toBe(false);
   });
 
   test("applies action 07 exactly once to the executable-selected bank and bit", () => {
@@ -64,12 +83,6 @@ describe("recovered dialogue progress", () => {
     expect(state.stampEntries()).toEqual([21, 22]);
     const restored = restoreRecoveredDialogueStateSave(createRecoveredDialogueStateSave(state), new DialogueRuntimeState());
     expect(restored.stampEntries()).toEqual([21, 22]);
-  });
-
-  test("migrates v1 indexed saves without inventing stamps", () => {
-    const restored = restoreRecoveredDialogueStateSave({ schemaVersion: 1, indexedFlags: [[15, 39]] }, new DialogueRuntimeState());
-    expect(restored.indexedFlagEntries()).toEqual([[15, 39]]);
-    expect(restored.stampEntries()).toEqual([]);
   });
 
   test("persists Cake and namespace-zero Body Shop ownership across reload", () => {
@@ -166,15 +179,7 @@ describe("recovered dialogue progress", () => {
     expect(restoredCommerce.cake).toBe(600);
   });
 
-  test("migrates schema-v3 equipment flags as one owned copy", () => {
-    const state = new DialogueRuntimeState();
-    const commerce = new RecoveredCommerceState();
-    restoreRecoveredDialogueStateSave({ schemaVersion: 3, indexedFlags: [[1, 6]], stamps: [], cake: 500 }, state, commerce);
-    expect(state.indexedFlagCount(1, 6)).toBe(1);
-    expect(commerce.cake).toBe(500);
-  });
-
-  test("persists all three native equipment selector blocks and migrates schema 4", () => {
+  test("persists all three native equipment selector blocks and tolerates a save without them", () => {
     const state = new DialogueRuntimeState();
     const commerce = new RecoveredCommerceState();
     const equipment = new RecoveredEquipmentState();
@@ -190,9 +195,9 @@ describe("recovered dialogue progress", () => {
     expect(restored.selectedItem(2, 14)).toBe(1);
     expect(restored.revision).toBe(0);
 
-    const migrated = new RecoveredEquipmentState();
-    restoreRecoveredDialogueStateSave({ schemaVersion: 4, indexedFlags: [], indexedOwnership: [], stamps: [], cake: 1_000 }, new DialogueRuntimeState(), new RecoveredCommerceState(), migrated);
-    expect(migrated.selectorEntries()).toEqual(Array.from({ length: 3 }, () => Array(15).fill(0)));
+    const withoutSelectors = new RecoveredEquipmentState();
+    restoreRecoveredDialogueStateSave({ schemaVersion: 10, indexedFlags: [], indexedOwnership: [], stamps: [], cake: 1_000 }, new DialogueRuntimeState(), new RecoveredCommerceState(), withoutSelectors);
+    expect(withoutSelectors.selectorEntries()).toEqual(Array.from({ length: 3 }, () => Array(15).fill(0)));
   });
 
   test("persists the native packed paint word and leaves schema 5 colour-compatible", () => {
@@ -295,15 +300,6 @@ describe("recovered dialogue progress", () => {
 
     const restored = restoreRecoveredDialogueStateSave(saved, new DialogueRuntimeState());
     expect(restored.metFixedInteractionEntries()).toEqual([[6, 9], [6, 16]]);
-  });
-
-  test("migrates schema-v2 stamp saves without replacing the proven starting Cake", () => {
-    const state = new DialogueRuntimeState();
-    const commerce = new RecoveredCommerceState();
-    restoreRecoveredDialogueStateSave({ schemaVersion: 2, indexedFlags: [[15, 39]], stamps: [31] }, state, commerce);
-    expect(state.hasIndexedFlag(15, 39)).toBe(true);
-    expect(state.stampEntries()).toEqual([31]);
-    expect(commerce.cake).toBe(1_000);
   });
 
   test("carries a granted football through a save and consumes it in the PAL-style branch", () => {
