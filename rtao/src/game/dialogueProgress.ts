@@ -9,7 +9,7 @@ const grantStampsAction = 0x0d;
 const recordQuickPicPhotoAction = 0x11;
 
 export interface RecoveredDialogueStateSave {
-  readonly schemaVersion: 10;
+  readonly schemaVersion: typeof recoveredSaveSchemaVersion;
   readonly savedAt: string;
   readonly indexedFlags: readonly (readonly [number, number])[];
   readonly indexedOwnership: readonly (readonly [number, number, number])[];
@@ -24,15 +24,27 @@ export interface RecoveredDialogueStateSave {
   readonly ordinaryRaceFinishIndices: readonly number[];
 }
 
+/** The only recovered-progress schema this build reads or writes. */
+export const recoveredSaveSchemaVersion = 10;
+
+/**
+ * A save the current build can restore. Callers seed a fresh recovered state
+ * when this is false, so seeding and restoring stay mutually exclusive.
+ */
+export function isRestorableRecoveredSave(value: unknown): value is RecoveredDialogueStateSave {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Partial<RecoveredDialogueStateSave>;
+  return record.schemaVersion === recoveredSaveSchemaVersion && Array.isArray(record.indexedOwnership);
+}
+
 /**
  * Serialises only recovered executable-backed progress: indexed ownership and
- * flags, stamps, Cake, and native car configuration. Schema 4 introduced
- * five-copy ownership; schema 5 added the three persisted 15-byte selector
- * blocks; schema 6 adds the native packed paint word; schema 7 adds the
- * executable's 100 Quick-Pic completion bits; schema 8 adds the inverse of the
- * native fixed-interaction first-meeting bitfield; schema 9 adds the five
- * executable advertising-distance counters; schema 10 adds the native licence
- * class and 24 ordinary-race best-finish bytes.
+ * flags, stamps, Cake, native car configuration, Quick-Pic completion bits,
+ * fixed-interaction first meetings, advertising counters, and the native licence
+ * class with its 24 ordinary-race best-finish bytes.
+ *
+ * Only the current schema is readable. Earlier schemas are deliberately not
+ * migrated: an unreadable save starts a fresh recovered state instead.
  */
 export function createRecoveredDialogueStateSave(
   state: DialogueRuntimeState,
@@ -42,7 +54,7 @@ export function createRecoveredDialogueStateSave(
   races = new RecoveredRaceState(),
 ): RecoveredDialogueStateSave {
   return {
-    schemaVersion: 10,
+    schemaVersion: recoveredSaveSchemaVersion,
     savedAt,
     indexedFlags: state.indexedFlagEntries(),
     indexedOwnership: state.indexedOwnershipEntries(),
@@ -65,38 +77,25 @@ export function restoreRecoveredDialogueStateSave(
   equipment = new RecoveredEquipmentState(),
   races = new RecoveredRaceState(),
 ): DialogueRuntimeState {
-  if (!value || typeof value !== "object") return state;
-  const record = value as Partial<RecoveredDialogueStateSave>;
-  const schemaVersion = (record as { schemaVersion?: unknown }).schemaVersion;
-  if (!Number.isInteger(schemaVersion) || (schemaVersion as number) < 1 || (schemaVersion as number) > 10 || !Array.isArray(record.indexedFlags)) return state;
-  const version = schemaVersion as number;
-  const ownership = (record as Partial<RecoveredDialogueStateSave>).indexedOwnership;
-  if (version >= 4 && Array.isArray(ownership)) {
-    for (const candidate of ownership) {
-      if (!Array.isArray(candidate) || candidate.length !== 3) continue;
-      const [namespace, index, count] = candidate;
-      if (!isByte(namespace) || !isByte(index) || !Number.isInteger(count) || count < 1 || count > 5) continue;
-      const copies = namespace >= 1 && namespace <= 14 ? count : 1;
-      for (let copy = 0; copy < copies; copy += 1) state.setIndexedFlag(namespace, index);
-    }
-  } else {
-    for (const candidate of record.indexedFlags) {
-      if (!Array.isArray(candidate) || candidate.length !== 2) continue;
-      const [namespace, index] = candidate;
-      if (!isByte(namespace) || !isByte(index)) continue;
-      state.setIndexedFlag(namespace, index);
-    }
+  if (!isRestorableRecoveredSave(value)) return state;
+  const record = value;
+  for (const candidate of record.indexedOwnership) {
+    if (!Array.isArray(candidate) || candidate.length !== 3) continue;
+    const [namespace, index, count] = candidate;
+    if (!isByte(namespace) || !isByte(index) || !Number.isInteger(count) || count < 1 || count > 5) continue;
+    const copies = namespace >= 1 && namespace <= 14 ? count : 1;
+    for (let copy = 0; copy < copies; copy += 1) state.setIndexedFlag(namespace, index);
   }
-  if (version >= 2 && Array.isArray(record.stamps)) {
+  if (Array.isArray(record.stamps)) {
     for (const stampId of record.stamps) if (isByte(stampId) && stampId > 0) state.addStamp(stampId);
   }
-  if (version >= 3 && typeof record.cake === "number") commerce.restoreCake(record.cake);
-  if (version >= 5) equipment.restoreSelectors(record.equipmentSelectors);
-  if (version >= 6 && typeof record.paintWord === "number") equipment.restorePaintWord(record.paintWord);
-  if (version >= 7 && Array.isArray(record.quickPicPhotos)) {
+  if (typeof record.cake === "number") commerce.restoreCake(record.cake);
+  equipment.restoreSelectors(record.equipmentSelectors);
+  if (typeof record.paintWord === "number") equipment.restorePaintWord(record.paintWord);
+  if (Array.isArray(record.quickPicPhotos)) {
     for (const photoNumber of record.quickPicPhotos) if (isQuickPicPhotoNumber(photoNumber)) state.addQuickPicPhoto(photoNumber);
   }
-  if (version >= 8 && Array.isArray(record.metFixedInteractions)) {
+  if (Array.isArray(record.metFixedInteractions)) {
     for (const candidate of record.metFixedInteractions) {
       if (!Array.isArray(candidate) || candidate.length !== 2) continue;
       const [areaIndex, localIndex] = candidate;
@@ -105,8 +104,8 @@ export function restoreRecoveredDialogueStateSave(
       state.markFixedInteractionMet(areaIndex, localIndex);
     }
   }
-  if (version >= 9) commerce.restoreAdvertisingDistanceUnits(record.advertisingDistanceUnits);
-  if (version >= 10) races.restore(record.raceLicenseClass, record.ordinaryRaceFinishIndices);
+  commerce.restoreAdvertisingDistanceUnits(record.advertisingDistanceUnits);
+  races.restore(record.raceLicenseClass, record.ordinaryRaceFinishIndices);
   return state;
 }
 

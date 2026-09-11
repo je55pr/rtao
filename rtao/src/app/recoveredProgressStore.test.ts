@@ -31,6 +31,19 @@ describe("RecoveredProgressStore", () => {
     expect((writes[0] as RecoveredDialogueStateSave).cake).toBe(900);
   });
 
+  test("seeds instead of stacking when the stored save is not the current schema", async () => {
+    // A seeded part and a restored part used to be granted together, leaving three
+    // copies of a part the save recorded one of.
+    const legacy = { schemaVersion: 3, indexedFlags: [[1, 0]], indexedOwnership: [[1, 0, 1]], stamps: [], cake: 500 };
+    const store = await RecoveredProgressStore.restore(directory, {
+      read: async () => legacy,
+      write: async () => undefined,
+    });
+
+    expect(store.dialogueState.indexedFlagCount(1, 0)).toBe(2);
+    expect(store.commerceState.cake).toBe(1_000);
+  });
+
   test("restores the complete schema-10 player progress bundle", async () => {
     const saved: RecoveredDialogueStateSave = {
       schemaVersion: 10,
