@@ -94,6 +94,18 @@ const appShellHtml = `
         <p class="game-hud-hint" id="hud-hint">Esc · pause and settings</p>
       </section>
 
+      <section class="race-start-signal" id="race-start-signal" hidden aria-live="polite" aria-atomic="true">
+        <div class="race-start-gantry" aria-hidden="true">
+          <div class="race-start-lights race-start-ready" data-race-start-ready>
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <div class="race-start-lights race-start-release" data-race-start-release>
+            <span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+        <p class="sr-only" id="race-start-status"></p>
+      </section>
+
       <section class="race-results-overlay" id="race-results-overlay" hidden>
         <div class="race-results-panel" role="dialog" aria-modal="true" aria-labelledby="race-results-title">
           <p class="eyebrow">RACE COMPLETE</p>

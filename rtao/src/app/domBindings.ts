@@ -24,6 +24,8 @@ export interface AppDomBindings {
   hudSpeed: HTMLElement;
   hudStatus: HTMLElement;
   hudHint: HTMLElement;
+  raceStartSignal: HTMLElement;
+  raceStartStatus: HTMLElement;
   raceResultsOverlay: HTMLElement;
   raceResultsTitle: HTMLElement;
   raceResultsPlaces: HTMLElement;
@@ -64,6 +66,8 @@ export function bindAppDom(): AppDomBindings {
     hudSpeed: requiredElement<HTMLElement>("hud-speed"),
     hudStatus: requiredElement<HTMLElement>("hud-status"),
     hudHint: requiredElement<HTMLElement>("hud-hint"),
+    raceStartSignal: requiredElement<HTMLElement>("race-start-signal"),
+    raceStartStatus: requiredElement<HTMLElement>("race-start-status"),
     raceResultsOverlay: requiredElement<HTMLElement>("race-results-overlay"),
     raceResultsTitle: requiredElement<HTMLElement>("race-results-title"),
     raceResultsPlaces: requiredElement<HTMLElement>("race-results-places"),
