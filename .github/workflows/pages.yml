@@ -45,7 +45,7 @@ jobs:
             public/rtao/package-lock.json
             dev/rtao/package-lock.json
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Install public dependencies
         working-directory: public/rtao
