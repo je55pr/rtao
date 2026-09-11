@@ -18,7 +18,7 @@ The first ordinary-race vertical slice is integrated on `dev`. Verified foundati
 - Q's Factory's executable-backed race selector and `StartRace` handoff, currently launching only validated activity 0 / Peach Raceway;
 - recovered player equipment selectors passed into the Q's Factory-launched race;
 - deterministic finish/reward state, Cake credit, best-finish/licence updates and recovered-progress persistence;
-- game-facing race HUD plus a dedicated completion panel that presents the already-applied player/team places, exact Cake credit, best result and licence promotion without recalculating progression;
+- game-facing race HUD plus a native-timed start signal driven by PAL widget states 2–6 and scene flag `0x4`, followed by a dedicated completion panel that presents the already-applied player/team places, exact Cake credit, best result and licence promotion without recalculating progression;
 - race exit restores the suspended live town-driving session instead of rebuilding a synthetic return state.
 
 Primary race write-ups remain `PAL_NATIVE_RACE_FRAME_2026-09-05.md`, `PAL_NATIVE_RACE_MATH_2026-09-05.md`, `PAL_NATIVE_RACE_CONTACT_2026-09-05.md`, and `PAL_NATIVE_RACE_COLLISION_2026-09-05.md`. Supporting 2026-09-10 activity, interaction and equipment censuses are retained under `docs/archaeology/` and `docs/evidence/`.
@@ -33,6 +33,7 @@ Primary race write-ups remain `PAL_NATIVE_RACE_FRAME_2026-09-05.md`, `PAL_NATIVE
 - Q's Factory post-race dialogue/result branching whose native `resultCode` mapping has not yet been proven;
 - launching Peach Raceway II, Temple Raceway or any other unvalidated ordinary course from the selector;
 - complete native scene initialization and reset/debug paths;
+- exact original race-start widget sprites/colours, countdown cue-45 playback semantics and the separate 64-update fade appearance;
 - live race position ordering: `OrdinaryRaceSession.livePositions()` implements the native ranking sort, but the Peach coordinator supplies no navigation output/distance for any car, and the human-driven car 0 runs no navigation at all, so the session reports `navigation-metrics-required` and the race HUD shows lap and finish state without a live place;
 - outdoor/scene-28 behavior;
 - equipment path `0x300C`;

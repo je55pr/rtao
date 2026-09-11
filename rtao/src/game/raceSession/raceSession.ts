@@ -245,6 +245,11 @@ export class OrdinaryRaceSession {
     return this.countdownCompleted;
   }
 
+  /** Native drive-release boundary set by start callback 0x0022F068. */
+  get isRaceReleased(): boolean {
+    return (this.sceneFlags & 4) !== 0;
+  }
+
   entrant(carIndex: number): OrdinaryRaceSessionCarView {
     return viewOf(this.requireCar(carIndex));
   }

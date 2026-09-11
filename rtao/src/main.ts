@@ -9,6 +9,7 @@ import { ImportController } from "./app/importController";
 import { canOpenPauseMenu } from "./app/pauseState";
 import { RecoveredProgressStore } from "./app/recoveredProgressStore";
 import { raceResultsView } from "./app/raceResultsModel";
+import { raceStartSignalView } from "./app/raceStartPresentation";
 import { SceneFade } from "./app/sceneTransition";
 import { carAssetPath } from "./formats/carPath";
 import type { DialogueActionToken, DialogueEntity, DialogueFlow, DialogueRuntimeState, DialogueVariant } from "./formats/dialogue";
@@ -144,6 +145,8 @@ const {
   hudSpeed,
   hudStatus,
   hudHint,
+  raceStartSignal,
+  raceStartStatus,
   raceResultsOverlay,
   raceResultsTitle,
   raceResultsPlaces,
@@ -158,6 +161,9 @@ const {
   pauseStopDriving,
   pauseResume,
 } = bindAppDom();
+const raceStartReadyLights = [...raceStartSignal.querySelectorAll<HTMLElement>("[data-race-start-ready] span")];
+const raceStartReleaseLights = [...raceStartSignal.querySelectorAll<HTMLElement>("[data-race-start-release] span")];
+if (raceStartReadyLights.length !== 4 || raceStartReleaseLights.length !== 4) throw new Error("Race start signal requires two native four-slot groups.");
 const raceToggle = requiredElement<HTMLButtonElement>("race-toggle");
 const sceneFadeElement = requiredElement<HTMLElement>("scene-fade");
 const sceneFade = new SceneFade(
@@ -958,6 +964,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
   peachRaceAccumulatorMs = 0;
   peachRaceRewardApplied = false;
   hidePeachRaceResults();
+  renderPeachRaceStartSignal(0);
   peachRaceKeys.clear();
   viewerHost.querySelector<HTMLElement>(".world-canvas")?.style.setProperty("visibility", "hidden");
   requiredElement<HTMLElement>("viewer-title").textContent = "Peach Raceway";
@@ -1026,7 +1033,8 @@ function runPeachRaceFrame(timestamp: number): void {
   peachRaceAccumulatorMs += Math.min(100, Math.max(0, timestamp - peachRaceLastTimestamp));
   peachRaceLastTimestamp = timestamp;
   while (peachRaceAccumulatorMs >= 20) {
-    peachRaceCoordinator.step({ sceneTime: peachRaceSceneTime++, playerCommands: peachRaceCommandMask() });
+    const step = peachRaceCoordinator.step({ sceneTime: peachRaceSceneTime++, playerCommands: peachRaceCommandMask() });
+    applyPeachRaceStartUiStates(step.session.countdown?.uiStateIndices ?? []);
     peachRaceAccumulatorMs -= 20;
     applyPeachRaceResultIfReady();
     if (peachRaceResultOpen) {
@@ -1041,6 +1049,18 @@ function runPeachRaceFrame(timestamp: number): void {
     return;
   }
   peachRaceFrame = requestAnimationFrame(runPeachRaceFrame);
+}
+
+function renderPeachRaceStartSignal(nativeState: number): void {
+  const view = raceStartSignalView(nativeState);
+  raceStartSignal.hidden = !view.visible;
+  raceStartStatus.textContent = view.announcement;
+  raceStartReadyLights.forEach((light, index) => light.classList.toggle("active", view.readyActive[index] ?? false));
+  raceStartReleaseLights.forEach((light, index) => light.classList.toggle("active", view.releaseActive[index] ?? false));
+}
+
+function applyPeachRaceStartUiStates(states: readonly number[]): void {
+  for (const state of states) renderPeachRaceStartSignal(state);
 }
 
 function peachRaceCommandMask(): number {
@@ -1111,6 +1131,7 @@ function showPeachRaceResults(result: RaceCompletionResult, nativeFinishIndices:
   raceResultsPromotion.textContent = view.promotion;
   raceResultsPromotion.hidden = !view.promotionVisible;
   peachRaceResultOpen = true;
+  renderPeachRaceStartSignal(0);
   raceResultsOverlay.hidden = false;
   gameHud.hidden = true;
   raceResultsReturn.focus();
@@ -1125,6 +1146,7 @@ function hidePeachRaceResults(): void {
 function stopPeachRace(): void {
   const resumeTownSession = peachRaceSuspendedTownSession && !!drivingGame && isDriving;
   hidePeachRaceResults();
+  renderPeachRaceStartSignal(0);
   peachRaceSuspendedTownSession = false;
   if (peachRaceFrame) cancelAnimationFrame(peachRaceFrame);
   peachRaceFrame = 0;
@@ -1258,7 +1280,7 @@ function currentGameHudState(driveState?: CarState): GameHudState {
       cake,
       location: "Peach Raceway",
       raceStatus: raceStatusText({
-        countdownComplete: session.isCountdownComplete,
+        raceReleased: session.isRaceReleased,
         finishIndex: player.finishIndex,
         completedLaps: player.completedLaps,
         entrantCount: session.entrantCount,

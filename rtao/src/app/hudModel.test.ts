@@ -61,10 +61,10 @@ describe("place ordinals", () => {
 });
 
 describe("race status text", () => {
-  const base = { countdownComplete: true, finishIndex: null, completedLaps: 0, entrantCount: 24, requiredLaps: 3, rewardSaved: false };
+  const base = { raceReleased: true, finishIndex: null, completedLaps: 0, entrantCount: 24, requiredLaps: 3, rewardSaved: false };
 
   test("reports the starting grid before the countdown completes", () => {
-    expect(raceStatusText({ ...base, countdownComplete: false })).toBe("Starting grid");
+    expect(raceStatusText({ ...base, raceReleased: false })).toBe("Starting grid");
   });
 
   test("counts laps from the native completed-lap count", () => {
