@@ -230,6 +230,15 @@ export class OrdinaryRaceSession {
     return this.activity.activityId;
   }
 
+  /** Recovered descriptor lap count the native finish gate counts up to. */
+  get requiredLaps(): number {
+    return this.activity.rawParameter2;
+  }
+
+  get entrantCount(): number {
+    return this.cars.length;
+  }
+
   get currentSceneFlags(): number {
     return this.sceneFlags;
   }  get isCountdownComplete(): boolean {

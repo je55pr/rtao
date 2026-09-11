@@ -63,14 +63,30 @@ export interface RaceHudStatus {
   readonly finishIndex: number | null;
   readonly completedLaps: number;
   readonly entrantCount: number;
-  readonly totalLaps: number;
+  readonly requiredLaps: number;
   readonly rewardSaved: boolean;
+  /**
+   * Live native place. Undefined while the session cannot rank the field yet —
+   * the HUD then shows the lap alone rather than inventing an order.
+   */
+  readonly positionIndex?: number;
+}
+
+const ordinalSuffixes = ["th", "st", "nd", "rd"] as const;
+
+export function placeOrdinal(place: number): string {
+  const teen = place % 100;
+  const suffix = teen >= 11 && teen <= 13 ? "th" : ordinalSuffixes[place % 10] ?? "th";
+  return `${place}${suffix}`;
 }
 
 export function raceStatusText(status: RaceHudStatus): string {
-  if (!status.countdownComplete) return "Peach Raceway · starting grid";
+  if (!status.countdownComplete) return "Starting grid";
+  const place = status.finishIndex ?? status.positionIndex;
+  const standing = place === undefined ? undefined : `${placeOrdinal(place + 1)} of ${status.entrantCount}`;
   if (status.finishIndex !== null) {
-    return `Finished · native place ${status.finishIndex + 1}/${status.entrantCount}${status.rewardSaved ? " · reward saved" : ""}`;
+    return `Finished ${standing}${status.rewardSaved ? " · reward saved" : ""}`;
   }
-  return `Peach Raceway · lap ${Math.min(status.totalLaps, status.completedLaps + 1)}/${status.totalLaps}`;
+  const lap = `Lap ${Math.min(status.requiredLaps, status.completedLaps + 1)}/${status.requiredLaps}`;
+  return standing ? `${lap} · ${standing}` : lap;
 }

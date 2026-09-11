@@ -1165,6 +1165,7 @@ function currentGameHudState(driveState?: CarState): GameHudState {
   if (peachRaceCoordinator) {
     const session = peachRaceCoordinator.runtime.session;
     const player = session.entrant(0);
+    const live = session.livePositions();
     return {
       mode: "race",
       cake,
@@ -1173,9 +1174,12 @@ function currentGameHudState(driveState?: CarState): GameHudState {
         countdownComplete: session.isCountdownComplete,
         finishIndex: player.finishIndex,
         completedLaps: player.completedLaps,
-        entrantCount: peachRaceCoordinator.runtime.initialCommands.length,
-        totalLaps: 3,
+        entrantCount: session.entrantCount,
+        requiredLaps: session.requiredLaps,
         rewardSaved: peachRaceRewardApplied,
+        positionIndex: live.status === "available"
+          ? live.positions.find((entry) => entry.carIndex === 0)?.positionIndex
+          : undefined,
       }),
     };
   }

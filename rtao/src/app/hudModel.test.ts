@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { fieldDisplayName, gameHudView, raceStatusText } from "./hudModel";
+import { fieldDisplayName, gameHudView, placeOrdinal, raceStatusText } from "./hudModel";
 
 describe("field display name", () => {
   test("prefers the authored place name", () => {
@@ -50,24 +50,48 @@ describe("game-facing HUD", () => {
   });
 });
 
+describe("place ordinals", () => {
+  test("suffixes ordinary places", () => {
+    expect([1, 2, 3, 4, 21, 22, 23].map(placeOrdinal)).toEqual(["1st", "2nd", "3rd", "4th", "21st", "22nd", "23rd"]);
+  });
+
+  test("keeps the teens on th", () => {
+    expect([11, 12, 13].map(placeOrdinal)).toEqual(["11th", "12th", "13th"]);
+  });
+});
+
 describe("race status text", () => {
-  const base = { countdownComplete: true, finishIndex: null, completedLaps: 0, entrantCount: 24, totalLaps: 3, rewardSaved: false };
+  const base = { countdownComplete: true, finishIndex: null, completedLaps: 0, entrantCount: 24, requiredLaps: 3, rewardSaved: false };
 
   test("reports the starting grid before the countdown completes", () => {
-    expect(raceStatusText({ ...base, countdownComplete: false })).toBe("Peach Raceway · starting grid");
+    expect(raceStatusText({ ...base, countdownComplete: false })).toBe("Starting grid");
   });
 
   test("counts laps from the native completed-lap count", () => {
-    expect(raceStatusText(base)).toBe("Peach Raceway · lap 1/3");
-    expect(raceStatusText({ ...base, completedLaps: 1 })).toBe("Peach Raceway · lap 2/3");
+    expect(raceStatusText(base)).toBe("Lap 1/3");
+    expect(raceStatusText({ ...base, completedLaps: 1 })).toBe("Lap 2/3");
   });
 
-  test("clamps the displayed lap to the race length", () => {
-    expect(raceStatusText({ ...base, completedLaps: 5 })).toBe("Peach Raceway · lap 3/3");
+  test("clamps the displayed lap to the recovered descriptor lap count", () => {
+    expect(raceStatusText({ ...base, completedLaps: 5 })).toBe("Lap 3/3");
+    expect(raceStatusText({ ...base, completedLaps: 3, requiredLaps: 5 })).toBe("Lap 4/5");
   });
 
-  test("reports the native finishing place and whether the reward was saved", () => {
-    expect(raceStatusText({ ...base, finishIndex: 0 })).toBe("Finished · native place 1/24");
-    expect(raceStatusText({ ...base, finishIndex: 7, rewardSaved: true })).toBe("Finished · native place 8/24 · reward saved");
+  test("adds the live place once the session can rank the field", () => {
+    expect(raceStatusText({ ...base, completedLaps: 1, positionIndex: 3 })).toBe("Lap 2/3 · 4th of 24");
+    expect(raceStatusText({ ...base, positionIndex: 0 })).toBe("Lap 1/3 · 1st of 24");
+  });
+
+  test("shows the lap alone rather than inventing an order the session cannot supply", () => {
+    expect(raceStatusText({ ...base, completedLaps: 1 })).toBe("Lap 2/3");
+  });
+
+  test("reports the finishing place and whether the reward was saved", () => {
+    expect(raceStatusText({ ...base, finishIndex: 0 })).toBe("Finished 1st of 24");
+    expect(raceStatusText({ ...base, finishIndex: 7, rewardSaved: true })).toBe("Finished 8th of 24 · reward saved");
+  });
+
+  test("prefers the awarded finishing place over the live ranking", () => {
+    expect(raceStatusText({ ...base, finishIndex: 2, positionIndex: 9 })).toBe("Finished 3rd of 24");
   });
 });
