@@ -20,7 +20,7 @@
     "test:smoke": "node scripts/production-smoke.mjs"
   },
   "dependencies": {
-    "@zip.js/zip.js": "2.8.57",
+    "@zip.js/zip.js": "2.11.2",
     "three": "0.185.1"
   },
   "devDependencies": {
@@ -29,6 +29,6 @@
     "playwright-core": "1.63.0",
     "typescript": "7.0.2",
     "vite": "8.2.2",
-    "vitest": "4.1.11"
+    "vitest": "5.0.0"
   }
 }
