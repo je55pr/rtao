@@ -1,15 +1,5 @@
 const appShellHtml = `
   <section class="shell" aria-label="Road Trip Adventure browser reconstruction">
-    <header class="topbar">
-      <a class="brand" href="#" aria-label="Road Trip Adventure Online home">
-        <span class="brand-mark" aria-hidden="true">RTA</span>
-        <span>
-          <strong>Road Trip Adventure Online</strong>
-          <small>Browser reconstruction</small>
-        </span>
-      </a>
-      <a class="source-link" href="https://github.com/je55pr/rtao" target="_blank" rel="noreferrer">GitHub</a>
-    </header>
 
     <section class="world" id="world">
       <div class="world-copy" id="empty-state">
@@ -115,6 +105,7 @@ const appShellHtml = `
           </label>
         </div>
         <button class="primary-button drive-button" id="drive-toggle" type="button" disabled>Start driving Q62</button>
+        <button class="quiet-button race-button" id="race-toggle" type="button" disabled>Peach Raceway loadingâ€¦</button>
         <p class="nearby-note" id="nearby-note" hidden></p>
         <p class="viewer-help" id="viewer-help">Drag to orbit · Scroll to zoom · Right-drag to pan</p>
         <button class="quiet-button" id="remove-install" type="button">Remove local install</button>
@@ -232,11 +223,6 @@ const appShellHtml = `
         </div>
       </section>
     </section>
-
-    <footer class="footer">
-      <span>Fan-made clean-room reconstruction</span>
-      <a href="https://github.com/je55pr/rtao" target="_blank" rel="noreferrer">Source on GitHub</a>
-    </footer>
   </section>
 `;
 

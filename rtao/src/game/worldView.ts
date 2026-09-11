@@ -351,7 +351,7 @@ export class WorldView {
     dayTexture.needsUpdate = true;
     this.sky = new THREE.Mesh(
       buildSkyHemisphere(),
-      new THREE.MeshBasicMaterial({ map: dayTexture, transparent: true, side: THREE.DoubleSide, depthWrite: false, depthTest: false, fog: false }),
+      new THREE.MeshBasicMaterial({ map: dayTexture, transparent: true, side: THREE.DoubleSide, depthWrite: false, depthTest: true, fog: false }),
     );
     this.sky.name = "SYS/SORA.GSL daytime sky";
     this.sky.renderOrder = -10_000;
@@ -367,7 +367,7 @@ export class WorldView {
     nightTexture.needsUpdate = true;
     this.nightSky = new THREE.Mesh(
       buildNightSkyBand(),
-      new THREE.MeshBasicMaterial({ map: nightTexture, transparent: true, alphaTest: 0.25, side: THREE.DoubleSide, depthWrite: false, depthTest: false, fog: false }),
+      new THREE.MeshBasicMaterial({ map: nightTexture, transparent: true, alphaTest: 0.25, side: THREE.DoubleSide, depthWrite: false, depthTest: true, fog: false }),
     );
     this.nightSky.name = "SYS/SORA.GSL star/moon strip";
     this.nightSky.renderOrder = -9_999;

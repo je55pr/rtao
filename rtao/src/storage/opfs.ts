@@ -66,6 +66,8 @@ export interface ImportManifest {
   readonly identity: GameIdentity;
   readonly files: CachedFileRecord[];
   readonly totalBytes: number;
+  /** A bootstrap install is already playable in Peach Town while the worker fills the remaining cache. */
+  readonly installStage?: "bootstrap" | "complete";
   readonly fields: FieldSummaryRecord[];
   readonly compiledFields: CompiledFieldRecord[];
   readonly collisionFields?: CompiledCollisionRecord[];

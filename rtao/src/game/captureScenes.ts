@@ -59,9 +59,31 @@ export interface QFactoryCaptureScene {
   readonly size: CaptureSize;
 }
 
+export interface PeachRaceCaptureScene {
+  readonly id: string;
+  readonly label: string;
+  readonly kind: "peach-race";
+  /** Exact native 50 Hz updates advanced before the frame is frozen for capture. */
+  readonly updates: number;
+  /** Signed 32-bit player command mask held for every deterministic update. */
+  readonly playerCommands: number;
+  readonly size: CaptureSize;
+}
+
 export type CaptureScene = WorldOverviewCaptureScene | FieldOverviewCaptureScene | CarVisualCaptureScene | QFactoryCaptureScene;
 
 const comparisonSize = { width: 1280, height: 960 } as const;
+
+export const peachRaceCaptureScenes: readonly PeachRaceCaptureScene[] = [
+  {
+    id: "peach-race-moving",
+    label: "Peach Raceway - deterministic moving frame",
+    kind: "peach-race",
+    updates: 420,
+    playerCommands: 1,
+    size: comparisonSize,
+  },
+] as const;
 
 /**
  * Small canonical catalogue used by URL-driven visual regression captures.
@@ -262,4 +284,11 @@ export function captureSceneFromSearch(search: string): CaptureScene | undefined
 
 export function captureFilename(scene: CaptureScene): string {
   return `rta-${scene.id}-${scene.size.width}x${scene.size.height}.png`;
+}
+
+const peachRaceScenesById = new Map(peachRaceCaptureScenes.map((scene) => [scene.id, scene]));
+
+export function peachRaceCaptureSceneById(id: string | null | undefined): PeachRaceCaptureScene | undefined {
+  if (!id) return undefined;
+  return peachRaceScenesById.get(id.trim().toLowerCase());
 }

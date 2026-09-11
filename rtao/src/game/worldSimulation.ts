@@ -90,7 +90,7 @@ export class ResidentMover {
 }
 
 export class BrowserWorldSimulation {
-  readonly residents: ResidentMover[];
+  readonly residents: ResidentMover[] = [];
   private readonly models = new Map<string, Q62CarModel>();
   private frameHandle = 0;
   private lastTime = 0;
@@ -98,9 +98,25 @@ export class BrowserWorldSimulation {
   private running = false;
   private paused = false;
 
-  constructor(definitions: OutdoorResidentDefinition[], world: DrivingWorld, private readonly view: WorldView) {
-    this.residents = definitions.map((definition) => new ResidentMover(definition, world));
+  constructor(definitions: OutdoorResidentDefinition[], private readonly world: DrivingWorld, private readonly view: WorldView) {
+    this.addDefinitions(definitions);
   }
+
+  addDefinitions(definitions: readonly OutdoorResidentDefinition[]): number {
+    const existing = new Set(this.residents.map((resident) => resident.state.id));
+    let added = 0;
+    for (const definition of definitions) {
+      const resident = new ResidentMover(definition, this.world);
+      if (existing.has(resident.state.id)) continue;
+      existing.add(resident.state.id);
+      this.residents.push(resident);
+      added += 1;
+    }
+    return added;
+  }
+
+  hasModel(residentId: string): boolean { return this.models.has(residentId); }
+  get modelCount(): number { return this.models.size; }
 
   start(): void {
     if (this.running) return;

@@ -11,16 +11,21 @@ worker.addEventListener("message", (event: MessageEvent<ImportWorkerRequest>) =>
 });
 
 async function runImport(files: File[], importId: string, devOnlyFields?: readonly number[]): Promise<void> {
+  let ready = false;
   try {
     const manifest = await importGame(files, (phase, detail, completed, total) => {
       post({ type: "progress", phase, detail, completed, total });
-    }, importId, devOnlyFields);
+    }, importId, devOnlyFields, (bootstrapManifest) => {
+      ready = true;
+      post({ type: "ready", manifest: bootstrapManifest });
+    });
     post({ type: "complete", manifest });
   } catch (error) {
     post({
       type: "error",
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
+      background: ready,
     });
   }
 }

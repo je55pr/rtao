@@ -10,6 +10,8 @@ export interface ImportControllerCallbacks {
   showImport(): void;
   updateProgress(phase: string, detail: string, completed: number, total: number): void;
   showInstalled(manifest: ImportManifest): Promise<void>;
+  installCompleted?(manifest: ImportManifest): void | Promise<void>;
+  backgroundImportFailed?(error: unknown): void;
   showError(title: string, error: unknown): void;
 }
 
@@ -43,22 +45,40 @@ export class ImportController {
     const importId = crypto.randomUUID();
     this.activeWorker = worker;
     this.activeImportId = importId;
+    const startedAt = performance.now();
+    let readyShown = false;
+    let showInstalledPromise: Promise<void> | undefined;
 
     worker.addEventListener("message", (event: MessageEvent<ImportWorkerResponse>) => {
       const message = event.data;
       if (message.type === "progress") {
-        this.callbacks.updateProgress(message.phase, message.detail, message.completed, message.total);
+        if (!readyShown) this.callbacks.updateProgress(message.phase, message.detail, message.completed, message.total);
+      } else if (message.type === "ready") {
+        readyShown = true;
+        console.info(`RTA import: Peach Town cache ready in ${Math.round(performance.now() - startedAt)} ms; background install continues.`);
+        showInstalledPromise = this.callbacks.showInstalled(message.manifest).catch((error) => {
+          this.callbacks.showError("Peach Town was cached, but the playable world could not be displayed.", error);
+        });
       } else if (message.type === "complete") {
         this.activeWorker = undefined;
         this.activeImportId = undefined;
         worker.terminate();
-        void this.callbacks.showInstalled(message.manifest).catch((error) =>
-          this.callbacks.showError("The local install finished, but the outdoor world could not be displayed.", error));
+        console.info(`RTA import: full local cache finished in ${Math.round(performance.now() - startedAt)} ms.`);
+        if (readyShown) {
+          void (showInstalledPromise ?? Promise.resolve())
+            .then(() => this.callbacks.installCompleted?.(message.manifest))
+            .catch((error) => this.callbacks.backgroundImportFailed?.(error));
+        } else {
+          void this.callbacks.showInstalled(message.manifest).catch((error) =>
+            this.callbacks.showError("The local install finished, but the outdoor world could not be displayed.", error));
+        }
       } else {
         this.activeWorker = undefined;
         this.activeImportId = undefined;
         worker.terminate();
-        this.callbacks.showError("That game image could not be imported.", new Error(message.message));
+        const error = new Error(message.message);
+        if (message.background && readyShown) this.callbacks.backgroundImportFailed?.(error);
+        else this.callbacks.showError("That game image could not be imported.", error);
       }
     });
 
@@ -67,8 +87,10 @@ export class ImportController {
       this.activeWorker = undefined;
       this.activeImportId = undefined;
       worker.terminate();
-      if (failedImportId) void removeImportDirectory(failedImportId).catch(() => undefined);
-      this.callbacks.showError("The local import worker stopped unexpectedly.", new Error(event.message));
+      if (failedImportId && !readyShown) void removeImportDirectory(failedImportId).catch(() => undefined);
+      const error = new Error(event.message);
+      if (readyShown) this.callbacks.backgroundImportFailed?.(error);
+      else this.callbacks.showError("The local import worker stopped unexpectedly.", error);
     });
 
     worker.postMessage({ type: "import", importId, files, devOnlyFields });

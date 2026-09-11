@@ -6,7 +6,7 @@ import { expectedEuropeanExecutable, readGameIdentity } from "../formats/gameIde
 import { carAssetPath } from "../formats/carPath";
 import { readOverworldCatalogue, type OverworldCatalogue } from "../formats/overworld";
 import { ordinaryRaceCourseIds as selectOrdinaryRaceCourseIds, readRaceCatalogue } from "../formats/raceCatalogue";
-import { bodyShopBodyIds } from "../game/bodyCatalog";
+import { bodyShopBodyIds, peachBodyShopStock } from "../game/bodyCatalog";
 import {
   cacheSchemaVersion,
   createImportDirectory,
@@ -28,6 +28,7 @@ import {
 import { openImportSource } from "./source";
 
 type Progress = (phase: string, detail: string, completed: number, total: number) => void;
+type BootstrapReady = (manifest: ImportManifest) => void | Promise<void>;
 
 const explicitlyRequired = [
   "SYSTEM.CNF",
@@ -42,10 +43,12 @@ export async function importGame(
   progress: Progress,
   importId: string = crypto.randomUUID(),
   devOnlyFields?: readonly number[],
+  bootstrapReady?: BootstrapReady,
 ): Promise<ImportManifest> {
   const previousImport = await readCurrentManifest();
   const importDirectory = await createImportDirectory(importId);
   let source: Awaited<ReturnType<typeof openImportSource>> | undefined;
+  let bootstrapPublished = false;
   try {
     source = await openImportSource(files, importId, progress);
     const sourceKind = source.kind;
@@ -57,6 +60,7 @@ export async function importGame(
 
     const executableBytes = await source.disc.readFile(identity.bootExecutable);
     let runtimeCarBodyIds: readonly number[] | undefined;
+    let bootstrapCarBodyIds: readonly number[] = [62, ...bodyShopBodyIds];
     let ordinaryRaceCourseIds: readonly number[] | undefined;
     try {
       const overworld = readOverworldCatalogue(executableBytes);
@@ -71,6 +75,7 @@ export async function importGame(
         // safe resident/shop selection remains sufficient for fixture tests.
       }
       runtimeCarBodyIds = browserRuntimeCarBodyIds(overworld, raceParticipantBodyIds);
+      bootstrapCarBodyIds = browserBootstrapCarBodyIds(overworld);
     } catch {
       // Synthetic archaeology fixtures and future executable revisions may not
       // expose the current PAL tables. Retain the safe full-bank fallback.
@@ -86,6 +91,13 @@ export async function importGame(
       devFieldSet ? undefined : ordinaryRaceCourseIds,
       devFieldSet,
     );
+    const bootstrapPathSet = new Set([
+      "SYSTEM.CNF", identity.bootExecutable, ...explicitlyRequired, "FLD/223.BIN",
+      ...bootstrapCarBodyIds.map(carAssetPath),
+    ].map((path) => path.toUpperCase()));
+    const bootstrapEntries = devFieldSet ? [] : selected.filter((entry) => bootstrapPathSet.has(entry.path.toUpperCase()));
+    const deferredEntries = devFieldSet ? selected : selected.filter((entry) => !bootstrapPathSet.has(entry.path.toUpperCase()));
+    const orderedEntries = devFieldSet ? selected : [...bootstrapEntries, ...deferredEntries];
     const totalBytes = selected.reduce((sum, entry) => sum + entry.size, 0);
     await assertCacheHeadroom(totalBytes);
     const cachedFiles: CachedFileRecord[] = [];
@@ -100,8 +112,26 @@ export async function importGame(
     let compiledFieldCount = 0;
     let compiledRaceCourseCount = 0;
     let completedBytes = 0;
+    const makeManifest = (installStage: "bootstrap" | "complete", cachedByteCount: number): ImportManifest => ({
+      schemaVersion: cacheSchemaVersion,
+      importId,
+      importedAt: new Date().toISOString(),
+      sourceLabel: files.map((file) => file.name).join(" + "),
+      sourceKind,
+      identity,
+      files: [...cachedFiles],
+      totalBytes: cachedByteCount,
+      installStage,
+      fields: [...fields].sort((a, b) => a.fieldNumber - b.fieldNumber),
+      compiledFields: [...compiledFields].sort((a, b) => a.fieldNumber - b.fieldNumber),
+      collisionFields: [...collisionFields].sort((a, b) => a.fieldNumber - b.fieldNumber),
+      raceCourses: [...raceCourses].sort((a, b) => a.courseId - b.courseId),
+      compiledRaceCourses: [...compiledRaceCourses].sort((a, b) => a.courseId - b.courseId),
+      raceCourseCollisions: [...raceCourseCollisions].sort((a, b) => a.courseId - b.courseId),
+      ...(devFieldSet ? { devPartialFields: [...devFieldSet].sort((a, b) => a - b) } : {}),
+    });
 
-    for (const entry of selected) {
+    for (const [entryIndex, entry] of orderedEntries.entries()) {
       const label = `Caching ${entry.path}`;
       const isField = /^FLD\/\d{3}\.BIN$/i.test(entry.path);
       const isRaceCourse = /^COURSE\/C\d{2}\.BIN$/i.test(entry.path);
@@ -170,27 +200,19 @@ export async function importGame(
         completedBytes += entry.size;
       }
       cachedFiles.push({ path: entry.path, size: entry.size });
+      if (!devFieldSet && !bootstrapPublished && entryIndex + 1 === bootstrapEntries.length) {
+        const bootstrapManifest = makeManifest("bootstrap", completedBytes);
+        await writeJson(importDirectory, "manifest.json", bootstrapManifest);
+        await publishImport(bootstrapManifest);
+        bootstrapPublished = true;
+        progress("ready", "Peach Town is ready; finishing the world in the background", completedBytes, totalBytes);
+        await bootstrapReady?.(bootstrapManifest);
+      }
     }
 
     await source.cleanup();
     source = undefined;
-    const manifest: ImportManifest = {
-      schemaVersion: cacheSchemaVersion,
-      importId,
-      importedAt: new Date().toISOString(),
-      sourceLabel: files.map((file) => file.name).join(" + "),
-      sourceKind,
-      identity,
-      files: cachedFiles,
-      totalBytes,
-      fields: fields.sort((a, b) => a.fieldNumber - b.fieldNumber),
-      compiledFields: compiledFields.sort((a, b) => a.fieldNumber - b.fieldNumber),
-      collisionFields: collisionFields.sort((a, b) => a.fieldNumber - b.fieldNumber),
-      raceCourses: raceCourses.sort((a, b) => a.courseId - b.courseId),
-      compiledRaceCourses: compiledRaceCourses.sort((a, b) => a.courseId - b.courseId),
-      raceCourseCollisions: raceCourseCollisions.sort((a, b) => a.courseId - b.courseId),
-      ...(devFieldSet ? { devPartialFields: [...devFieldSet].sort((a, b) => a - b) } : {}),
-    };
+    const manifest = makeManifest("complete", totalBytes);
     await writeJson(importDirectory, "manifest.json", manifest);
     await publishImport(manifest);
     if (previousImport && previousImport.importId !== importId) {
@@ -200,7 +222,7 @@ export async function importGame(
     return manifest;
   } catch (error) {
     await source?.cleanup().catch(() => undefined);
-    await removeImportDirectory(importId).catch(() => undefined);
+    if (!bootstrapPublished) await removeImportDirectory(importId).catch(() => undefined);
     throw error;
   }
 }
@@ -281,6 +303,13 @@ async function selectRuntimeFiles(
     throw new Error(`Expected 64 standard FLD sectors; found ${selectedFieldNumbers.size}.`);
   }
   return [...selected.values()].sort((a, b) => a.path.localeCompare(b.path));
+}
+
+export function browserBootstrapCarBodyIds(catalogue: OverworldCatalogue, fieldNumber = 223): readonly number[] {
+  const ids = new Set<number>([62, ...peachBodyShopStock.map((item) => item.bodyId)]);
+  for (const resident of catalogue.residents) if (resident.fieldNumber === fieldNumber) ids.add(resident.bodyId);
+  for (const interaction of catalogue.interactions) if (interaction.fieldNumber === fieldNumber) ids.add(interaction.bodyId);
+  return [...ids].sort((a, b) => a - b);
 }
 
 export function browserRuntimeCarBodyIds(catalogue: OverworldCatalogue, raceParticipantBodyIds: readonly number[] = []): readonly number[] {

@@ -5,14 +5,37 @@ import { requiredElement } from "./app/dom";
 import { bindAppDom } from "./app/domBindings";
 import { ImportController } from "./app/importController";
 import { RecoveredProgressStore } from "./app/recoveredProgressStore";
+import { carAssetPath } from "./formats/carPath";
+import type { DialogueActionToken, DialogueEntity, DialogueFlow, DialogueRuntimeState, DialogueVariant } from "./formats/dialogue";
+import type { FixedInteractionDefinition, OverworldCatalogue } from "./formats/overworld";
+import { isQuickPicPhotoNumber } from "./formats/quickPic";
+import { readRaceCatalogue } from "./formats/raceCatalogue";
+import { AdvertisingDistanceTracker } from "./game/advertisingDistanceTracker";
+import { BodyShopCatalogueSession, reconstructedBodyShopStock } from "./game/bodyCatalog";
 import {
+  type CarVisualCaptureScene,
   captureSceneById,
   captureScenes,
-  type CarVisualCaptureScene,
   type FieldOverviewCaptureScene,
+  type PeachRaceCaptureScene,
   type QFactoryCaptureScene,
   type WorldOverviewCaptureScene,
+  peachRaceCaptureSceneById,
+  peachRaceCaptureScenes,
 } from "./game/captureScenes";
+import type { Q62CarModel } from "./game/carView";
+import {
+  type AdvertisingRedemptionResult,
+  advertisingSponsorCount,
+  advertisingSponsorIndexFromOptionSelector,
+  purchaseIndexedItem,
+  type RecoveredCommerceState,
+  sellIndexedPart,
+} from "./game/commerceProgress";
+import { applyRecoveredDialogueHostAction } from "./game/dialogueProgress";
+import type { BrowserDrivingGame, CarState } from "./game/drivingGame";
+import { applyRecoveredEquipmentHostAction, fitOwnedNativeEquipmentPart, type RecoveredEquipmentState } from "./game/equipmentProgress";
+import { findNearestFixedInteraction } from "./game/fixedInteractionProximity";
 import {
   defaultChoiceIndex,
   describeFixedInteriorHostAction,
@@ -22,35 +45,20 @@ import {
   nativeNumericChoiceTarget,
   stepNativeNumericChoice,
 } from "./game/interiorFlow";
-import { BodyShopCatalogueSession, reconstructedBodyShopStock } from "./game/bodyCatalog";
-import {
-  advertisingSponsorCount,
-  advertisingSponsorIndexFromOptionSelector,
-  purchaseIndexedItem,
-  type RecoveredCommerceState,
-  sellIndexedPart,
-  type AdvertisingRedemptionResult,
-} from "./game/commerceProgress";
-import { AdvertisingDistanceTracker } from "./game/advertisingDistanceTracker";
-import { findNearestFixedInteraction } from "./game/fixedInteractionProximity";
-import { applyRecoveredEquipmentHostAction, fitOwnedNativeEquipmentPart, type RecoveredEquipmentState } from "./game/equipmentProgress";
-import type { RecoveredRaceState } from "./game/raceProgress";
+import type { QFactoryInteriorView, ShopInteriorRoomView } from "./game/interiorView";
+import { nativeTyreGripMultiplier } from "./game/nativeTyrePerformance";
 import {
   browserCompatibilityPaintWord,
   decodeNativeBodyPaint,
-  nativePaintChannel,
-  nativeWheelPaintColor,
-  nativeWheelPaintIndex,
-  nativeWheelPaintCount,
-  PaintShopSession,
-  purchasePaint,
   type NativePaintChannel,
   type NativePaintTone,
+  nativePaintChannel,
+  nativeWheelPaintColor,
+  nativeWheelPaintCount,
+  nativeWheelPaintIndex,
+  PaintShopSession,
+  purchasePaint,
 } from "./game/paintShop";
-import type { Q62CarModel } from "./game/carView";
-import { applyRecoveredDialogueHostAction } from "./game/dialogueProgress";
-import type { BrowserDrivingGame, CarState } from "./game/drivingGame";
-import { nativeTyreGripMultiplier } from "./game/nativeTyrePerformance";
 import {
   aggregatePartPerformance,
   aggregatePartsAppearance,
@@ -61,43 +69,44 @@ import {
   developmentPartCatalogue,
   equipPart,
   knownNativePart,
+  type NativeFittingCategory,
   nativeFittingCatalogue,
+  type PartCategory,
+  type PartLoadout,
   partCategoryLabels,
   partCategoryOrder,
   readDevelopmentPartsSave,
   selectedPart,
-  type NativeFittingCategory,
-  type PartCategory,
-  type PartLoadout,
 } from "./game/parts";
-import type { DrivingWorld } from "./game/worldCollision";
-import type { BrowserWorldSimulation } from "./game/worldSimulation";
-import type { WorldView } from "./game/worldView";
-import type { QFactoryInteriorView, ShopInteriorRoomView } from "./game/interiorView";
+import type { RecoveredRaceState } from "./game/raceProgress";
+import type { PeachRaceCoordinator } from "./game/raceSession/peachRaceCoordinator";
+import { qFactoryRaceLaunchActivityId, qFactoryRaceOptions, qFactoryRaceSelectionTargets } from "./game/raceSession/qFactoryRaceFlow";
+import type { RaceView } from "./game/raceView";
 import {
   PartsShopCatalogueSession,
   reconstructedPartsShopStock,
   reconstructedSecondHandInventory,
   shopPartCategoryLabels,
 } from "./game/shopCatalog";
-import type { FixedInteractionDefinition, OverworldCatalogue } from "./formats/overworld";
-import { carAssetPath } from "./formats/carPath";
-import type { DialogueActionToken, DialogueEntity, DialogueFlow, DialogueRuntimeState, DialogueVariant } from "./formats/dialogue";
-import { isQuickPicPhotoNumber } from "./formats/quickPic";
+import type { DrivingWorld } from "./game/worldCollision";
+import type { BrowserWorldSimulation } from "./game/worldSimulation";
+import type { WorldView } from "./game/worldView";
 import {
   clearCurrentPointer,
   currentImportDirectory,
+  type ImportManifest,
   readBytes,
-  readJson,
   readCurrentManifest,
+  readJson,
   removeImportDirectory,
   writeBytes,
   writeJson,
-  type ImportManifest,
 } from "./storage/opfs";
 
 const app = requiredElement<HTMLElement>("app");
 const selectTeamCarActionOpcode = 0x04;
+const raceSelectActionOpcode = 0x08;
+const startRaceActionOpcode = 0x03;
 const numericChoiceActionOpcode = 0x05;
 const shopOrServiceActionOpcode = 0x13;
 const paintShopActionOpcode = 0x03;
@@ -124,12 +133,26 @@ const {
   worldVisibility,
   driveToggle,
 } = bindAppDom();
+const raceToggle = requiredElement<HTMLButtonElement>("race-toggle");
 let worldView: WorldView | undefined;
 let drivingWorld: DrivingWorld | undefined;
 let drivingGame: BrowserDrivingGame | undefined;
 let playerCar: Q62CarModel | undefined;
+let peachRaceView: RaceView | undefined;
+let peachRaceCoordinator: PeachRaceCoordinator | undefined;
+let peachRaceModels: Q62CarModel[] = [];
+let peachRaceFrame = 0;
+let peachRaceLastTimestamp = 0;
+let peachRaceAccumulatorMs = 0;
+let peachRaceSceneTime = 0;
+let peachRaceRewardApplied = false;
+let peachRaceSuspendedTownSession = false;
+const peachRaceKeys = new Set<string>();
 let activeDirectory: FileSystemDirectoryHandle | undefined;
 let activeManifest: ImportManifest | undefined;
+const loadedWorldFieldNumbers = new Set<number>();
+const loadingWorldFields = new Map<number, Promise<void>>();
+let lastPrefetchedWorldField: number | undefined;
 let activeExecutableBytes: Uint8Array | undefined;
 let isDriving = false;
 let worldSimulation: BrowserWorldSimulation | undefined;
@@ -148,7 +171,7 @@ let shopInteriorPreviewInteraction: FixedInteractionDefinition | undefined;
 let shopInteriorSession: { flow: DialogueFlow; choiceIndex: number; interaction: FixedInteractionDefinition; entity: DialogueEntity } | undefined;
 let shopNumericChoiceSession: { action: DialogueActionToken; value: number } | undefined;
 let shopAdvertisingRewardSession: { action: DialogueActionToken; result: AdvertisingRedemptionResult } | undefined;
-let qFactorySession: { flow: DialogueFlow; choiceIndex: number; interaction: FixedInteractionDefinition } | undefined;
+let qFactorySession: { flow: DialogueFlow; choiceIndex: number; interaction: FixedInteractionDefinition; raceOptionIndex: number; selectedRaceActivityId?: number } | undefined;
 let equippedParts: PartLoadout = defaultPartLoadout;
 let changePartsSession: {
   original: PartLoadout;
@@ -177,6 +200,7 @@ let qFactoryLoadGeneration = 0;
 let shopInteriorPreviewLoadGeneration = 0;
 let shopInteriorPreviewLoading = false;
 let residentModelLoadGeneration = 0;
+let residentModelLoadChain: Promise<void> = Promise.resolve();
 let fujiProbeIndex = -1;
 const fujiProbes = [
   { from: 223, to: 221, position: { x: 960.15, y: 31, z: 40 }, yaw: Math.PI, label: "Peach north road" },
@@ -189,6 +213,10 @@ const importController = new ImportController({
   showImport,
   updateProgress,
   showInstalled,
+  installCompleted: hydrateCompletedInstall,
+  backgroundImportFailed: (error) => {
+    console.warn("Peach Town remains playable, but the background whole-world cache did not finish.", error);
+  },
   showError,
 });
 
@@ -210,6 +238,12 @@ const deterministicCaptureController = new DeterministicCaptureController(app, {
 fileInput.addEventListener("change", () => {
   if (fileInput.files?.length) void importController.start([...fileInput.files]);
 });
+raceToggle.addEventListener("click", () => {
+  if (peachRaceCoordinator) stopPeachRace();
+  else void startPeachRace().catch((error) => { stopPeachRace(); showError("Peach Raceway could not start.", error); });
+});
+window.addEventListener("keydown", handlePeachRaceKeyDown);
+window.addEventListener("keyup", handlePeachRaceKeyUp);
 
 // DEV-ONLY: `?devdisc` brings up the world without a manual file picker, for
 // headless/browser-driven visual checks. It reuses an existing usable install
@@ -295,21 +329,34 @@ requiredElement<HTMLButtonElement>("try-again").addEventListener("click", () => 
 });
 
 worldLocation.addEventListener("change", () => {
-  if (!worldView) return;
-  if (worldLocation.value === "world") {
-    worldView.showWorldOverview();
-    requiredElement<HTMLElement>("viewer-title").textContent = "The whole world";
-    return;
-  }
-  const fieldNumber = Number.parseInt(worldLocation.value, 10);
-  if (!worldView.focusField(fieldNumber)) return;
-  requiredElement<HTMLElement>("viewer-title").textContent = ({
-    223: "Peach Town",
-    113: "Fuji City",
-    203: "White Mountain",
-    233: "Papaya Island",
-  } as Record<number, string>)[fieldNumber] ?? `FLD/${fieldNumber.toString().padStart(3, "0")}`;
+  void showWorldLocation(worldLocation.value).catch((error) => showError("That world location could not be loaded.", error));
 });
+
+async function showWorldLocation(value: string): Promise<void> {
+  if (!worldView) return;
+  worldLocation.disabled = true;
+  try {
+    if (value === "world") {
+      requiredElement<HTMLElement>("viewer-title").textContent = "Loading whole world…";
+      await ensureAllWorldFields();
+      worldView.showWorldOverview();
+      requiredElement<HTMLElement>("viewer-title").textContent = "The whole world";
+      return;
+    }
+    const fieldNumber = Number.parseInt(value, 10);
+    await ensureWorldFieldLoaded(fieldNumber);
+    if (!worldView.focusField(fieldNumber)) return;
+    requiredElement<HTMLElement>("viewer-title").textContent = ({
+      223: "Peach Town",
+      113: "Fuji City",
+      203: "White Mountain",
+      233: "Papaya Island",
+    } as Record<number, string>)[fieldNumber] ?? `FLD/${fieldNumber.toString().padStart(3, "0")}`;
+    void ensureNearbyWorldFields(fieldNumber).catch((error) => console.warn("Nearby world prefetch failed.", error));
+  } finally {
+    worldLocation.disabled = isDriving || activeManifest?.installStage === "bootstrap";
+  }
+}
 
 
 worldTime.addEventListener("change", () => {
@@ -339,6 +386,7 @@ requiredElement<HTMLButtonElement>("factory-return").addEventListener("click", (
     else if (isCurrentQuickPicPhotoAction()) void captureCurrentQuickPicPhoto();
     else returnFromShopInteriorHostAction();
   }
+  else if (qFactorySession?.flow.currentExternalAction?.opcode === startRaceActionOpcode) activateQFactoryHostAction();
   else returnFromQFactoryHostAction();
 });
 requiredElement<HTMLButtonElement>("factory-numeric-decrement").addEventListener("click", () => moveShopNumericChoice(-1));
@@ -386,6 +434,7 @@ if (!(import.meta.env.DEV && new URLSearchParams(location.search).has("devdisc")
 }
 
 async function showInstalled(manifest: ImportManifest): Promise<void> {
+  stopPeachRace();
   stopDrivingSession();
   stopWorldSimulation();
   playerCar?.dispose();
@@ -393,6 +442,9 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   drivingWorld = undefined;
   activeDirectory = undefined;
   activeManifest = undefined;
+  loadedWorldFieldNumbers.clear();
+  loadingWorldFields.clear();
+  lastPrefetchedWorldField = undefined;
   emptyState.hidden = true;
   importCard.hidden = true;
   errorCard.hidden = true;
@@ -405,7 +457,10 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   requiredElement<HTMLElement>("resident-count").textContent = "—";
   worldLocation.disabled = true;
   driveToggle.disabled = true;
+  raceToggle.disabled = true;
+  raceToggle.textContent = "Peach Raceway loadingâ€¦";
 
+  const bootstrapInstall = manifest.installStage === "bootstrap";
   const upgradedManifest = await ensureWholeWorldCache(manifest, (completed, total) => {
     requiredElement<HTMLElement>("field-count").textContent = `${completed}/${total}`;
   });
@@ -416,10 +471,17 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
         .split(",").map((part) => Number.parseInt(part.trim(), 10)).filter((value) => Number.isInteger(value))
     : [];
   const onlyFieldSet = devOnlyFields.length ? new Set(devOnlyFields) : undefined;
+  const parameters = new URLSearchParams(location.search);
+  const fastNormalStart = !onlyFieldSet
+    && !parameters.has("capture")
+    && !parameters.has("driveProbe")
+    && !parameters.has("interiorProbe")
+    && !parameters.has("dialogueProbe");
+  const startupFieldSet = onlyFieldSet ?? (fastNormalStart ? new Set([223]) : undefined);
   const compiledWorld = [...upgradedManifest.compiledFields]
-    .filter((field) => !onlyFieldSet || onlyFieldSet.has(field.fieldNumber))
+    .filter((field) => !startupFieldSet || startupFieldSet.has(field.fieldNumber))
     .sort((a, b) => a.fieldNumber - b.fieldNumber);
-  if (!onlyFieldSet && compiledWorld.length !== 64) throw new Error(`The cached install has ${compiledWorld.length}/64 compiled world sectors.`);
+  if (!startupFieldSet && !bootstrapInstall && compiledWorld.length !== 64) throw new Error(`The cached install has ${compiledWorld.length}/64 compiled world sectors.`);
   const directory = await currentImportDirectory(upgradedManifest);
   activeDirectory = directory;
   activeManifest = upgradedManifest;
@@ -475,7 +537,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   // compiled MSCALF-8 mesh. Decode them from the cached raw FLD bytes for the
   // fields that carry an Extra[1] section.
   const dynamicObjectFields = upgradedManifest.fields.filter(
-    (field) => field.sectionCount >= 5 && (!onlyFieldSet || onlyFieldSet.has(field.fieldNumber)),
+    (field) => field.sectionCount >= 5 && (!startupFieldSet || startupFieldSet.has(field.fieldNumber)),
   );
   if (dynamicObjectFields.length > 0) {
     const [{ readFieldObjectAsset, findTurbineAnchors, findPalmCrownAnchors }, { readFieldRenderPrimitives }] = await Promise.all([
@@ -511,12 +573,13 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
     if (dynamicInstances > 0) console.info(`Dynamic field objects: ${dynamicInstances} instances rendered (geometry/texture evidence-backed; animation, facing & scale host-approximated).`);
   }
   const collisionWorld = [...(upgradedManifest.collisionFields ?? [])]
-    .filter((field) => !onlyFieldSet || onlyFieldSet.has(field.fieldNumber))
+    .filter((field) => !startupFieldSet || startupFieldSet.has(field.fieldNumber))
     .sort((a, b) => a.fieldNumber - b.fieldNumber);
-  if (!onlyFieldSet && collisionWorld.length !== 64) throw new Error(`The cached install has ${collisionWorld.length}/64 collision sectors.`);
+  if (!startupFieldSet && !bootstrapInstall && collisionWorld.length !== 64) throw new Error(`The cached install has ${collisionWorld.length}/64 collision sectors.`);
   requiredElement<HTMLElement>("viewer-title").textContent = "Preparing driving surfaces";
   for (const [index, collision] of collisionWorld.entries()) {
     drivingWorld.addField(collision.fieldNumber, await readBytes(directory, collision.path));
+    loadedWorldFieldNumbers.add(collision.fieldNumber);
     requiredElement<HTMLElement>("field-count").textContent = `${index + 1}/${collisionWorld.length}`;
     if ((index & 7) === 7) await nextFrame();
   }
@@ -526,17 +589,24 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
     readBytes(directory, `game/${upgradedManifest.identity.bootExecutable}`),
   ]);
   activeExecutableBytes = executableBytes;
+  updatePeachRaceAvailability();
   overworldCatalogue = readOverworldCatalogue(executableBytes);
   console.info(`Persistent fixed interactions: ${overworldCatalogue.interactions.length} authored zones mapped into ${new Set(overworldCatalogue.interactions.map((zone) => zone.fieldNumber)).size} standard world sectors.`);
   await loadDialogueCatalogue(executableBytes);
-  const parameters = new URLSearchParams(location.search);
   const captureId = parameters.get("capture");
   const captureScene = captureId ? captureSceneById(captureId) : undefined;
   if (captureId && !captureScene) {
     throw new Error(`Unknown deterministic capture '${captureId}'. Available captures: ${captureScenes.map((candidate) => candidate.id).join(", ")}.`);
   }
+  const raceCaptureId = parameters.get("raceCapture");
+  const raceCaptureScene = raceCaptureId ? peachRaceCaptureSceneById(raceCaptureId) : undefined;
+  if (raceCaptureId && !raceCaptureScene) {
+    throw new Error(`Unknown Peach race capture '${raceCaptureId}'. Available captures: ${peachRaceCaptureScenes.map((candidate) => candidate.id).join(", ")}.`);
+  }
   const { BrowserWorldSimulation: BrowserWorldSimulationClass } = await import("./game/worldSimulation");
-  const simulation = new BrowserWorldSimulationClass(overworldCatalogue.residents, drivingWorld, worldView);
+  const loadedFieldNumbers = new Set(compiledWorld.map((field) => field.fieldNumber));
+  const residentDefinitions = overworldCatalogue.residents.filter((resident) => loadedFieldNumbers.has(resident.fieldNumber));
+  const simulation = new BrowserWorldSimulationClass(residentDefinitions, drivingWorld, worldView);
   worldSimulation = simulation;
   simulation.start();
   const modelLoadGeneration = ++residentModelLoadGeneration;
@@ -544,21 +614,29 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   // Canonical captures deliberately exclude roaming residents. Do not even
   // start their asynchronous model loads in capture mode: otherwise an actor
   // could attach between the visibility snapshot and the offscreen render.
-  if (!captureScene && !onlyFieldSet) {
-    void loadResidentModels(upgradedManifest, directory, simulation, modelLoadGeneration).catch((error) => {
+  if (!captureScene && !raceCaptureScene && !onlyFieldSet) {
+    void queueResidentModelLoad(upgradedManifest, directory, simulation, modelLoadGeneration).catch((error) => {
       if (modelLoadGeneration === residentModelLoadGeneration) console.error("Resident car models could not finish loading in the background.", error);
     });
   }
-  requiredElement<HTMLElement>("viewer-title").textContent = onlyFieldSet ? `FLD/${devOnlyFields[0]?.toString().padStart(3, "0")}` : "The whole world";
+  const peachStartup = bootstrapInstall || fastNormalStart;
+  requiredElement<HTMLElement>("viewer-title").textContent = peachStartup
+    ? "Peach Town"
+    : onlyFieldSet ? `FLD/${devOnlyFields[0]?.toString().padStart(3, "0")}` : "The whole world";
   requiredElement<HTMLElement>("field-count").textContent = String(stats.sectors);
   requiredElement<HTMLElement>("triangle-count").textContent = stats.triangles.toLocaleString();
-  worldLocation.value = onlyFieldSet && worldLocation.querySelector(`option[value="${devOnlyFields[0]}"]`)
-    ? String(devOnlyFields[0])
-    : "world";
-  worldLocation.disabled = false;
+  worldLocation.value = peachStartup
+    ? "223"
+    : onlyFieldSet && worldLocation.querySelector(`option[value="${devOnlyFields[0]}"]`)
+      ? String(devOnlyFields[0])
+      : "world";
+  worldLocation.disabled = bootstrapInstall;
   driveToggle.disabled = false;
-  if (onlyFieldSet && devOnlyFields[0] !== undefined) worldView.focusField(devOnlyFields[0]);
-  if (captureScene) {
+  if (peachStartup) worldView.focusField(223);
+  else if (onlyFieldSet && devOnlyFields[0] !== undefined) worldView.focusField(devOnlyFields[0]);
+  if (raceCaptureScene) {
+    if (!bootstrapInstall) await runDeterministicPeachRaceCapture(raceCaptureScene);
+  } else if (captureScene) {
     await deterministicCaptureController.run(captureScene);
   } else if (parameters.get("driveProbe") === "fuji") {
     await toggleDriving();
@@ -589,6 +667,373 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
     }, resident.yaw);
     startResidentDialogue(resident.definition.name, greeting.pages);
   }
+  if (fastNormalStart && !bootstrapInstall) {
+    lastPrefetchedWorldField = 223;
+    void ensureNearbyWorldFields(223).catch((error) => console.warn("Initial nearby world prefetch failed.", error));
+  }
+}
+
+async function ensureWorldFieldLoaded(fieldNumber: number): Promise<void> {
+  if (loadedWorldFieldNumbers.has(fieldNumber)) return;
+  const existing = loadingWorldFields.get(fieldNumber);
+  if (existing) return existing;
+  if (!activeManifest || activeManifest.installStage === "bootstrap" || !activeDirectory || !worldView || !drivingWorld) return;
+  const compiled = activeManifest.compiledFields.find((field) => field.fieldNumber === fieldNumber);
+  const collisionRecord = activeManifest.collisionFields?.find((field) => field.fieldNumber === fieldNumber);
+  if (!compiled || !collisionRecord) throw new Error(`FLD/${fieldNumber.toString().padStart(3, "0")} is not present in the completed local cache.`);
+  const task = (async () => {
+    const [[meshBytes, collisionBytes], { deserializeCompiledField }, { deserializeCompiledCollision }] = await Promise.all([
+      Promise.all([readBytes(activeDirectory!, compiled.path), readBytes(activeDirectory!, collisionRecord.path)]),
+      import("./formats/fieldGeometry"),
+      import("./formats/fieldCollision"),
+    ]);
+    const mesh = deserializeCompiledField(meshBytes);
+    const collision = deserializeCompiledCollision(collisionBytes);
+    const stats = worldView!.addCompiledFieldMesh(fieldNumber, mesh);
+    drivingWorld!.addCompiledFieldSurface(fieldNumber, mesh);
+    drivingWorld!.addCompiledField(fieldNumber, collision);
+    loadedWorldFieldNumbers.add(fieldNumber);
+    await loadLazyFieldDynamicObjects(fieldNumber);
+    requiredElement<HTMLElement>("field-count").textContent = String(stats.sectors);
+    requiredElement<HTMLElement>("triangle-count").textContent = stats.triangles.toLocaleString();
+  })();
+  loadingWorldFields.set(fieldNumber, task);
+  try { await task; } finally { loadingWorldFields.delete(fieldNumber); }
+}
+
+async function loadLazyFieldDynamicObjects(fieldNumber: number): Promise<void> {
+  if (!activeManifest || !activeDirectory || !worldView) return;
+  const field = activeManifest.fields.find((candidate) => candidate.fieldNumber === fieldNumber);
+  if (!field || field.sectionCount < 5) return;
+  const [{ readFieldObjectAsset, findTurbineAnchors, findPalmCrownAnchors }, { readFieldRenderPrimitives }] = await Promise.all([
+    import("./formats/fieldObjects"),
+    import("./formats/fieldGeometry"),
+  ]);
+  const raw = await readBytes(activeDirectory, `game/${field.path}`);
+  const asset = readFieldObjectAsset(raw);
+  if (!asset || (asset.kind !== "turbine-rotor" && asset.kind !== "palm-crown")) return;
+  const primitives = readFieldRenderPrimitives(raw);
+  const anchors = asset.kind === "turbine-rotor" ? findTurbineAnchors(primitives) : findPalmCrownAnchors(primitives);
+  if (anchors.length > 0) worldView.addFieldDynamicObjects(fieldNumber, asset, anchors);
+}
+
+async function syncLoadedWorldResidents(): Promise<void> {
+  if (!activeManifest || !activeDirectory || !overworldCatalogue || !worldSimulation) return;
+  worldSimulation.addDefinitions(
+    overworldCatalogue.residents.filter((resident) => loadedWorldFieldNumbers.has(resident.fieldNumber)),
+  );
+  if (worldSimulation.modelCount >= worldSimulation.residents.length) return;
+  const generation = residentModelLoadGeneration;
+  await queueResidentModelLoad(activeManifest, activeDirectory, worldSimulation, generation);
+}
+
+async function ensureNearbyWorldFields(fieldNumber: number): Promise<void> {
+  if (!activeManifest || activeManifest.installStage === "bootstrap") return;
+  const { nearbyWorldFieldNumbers } = await import("./game/worldTopology");
+  for (const nearby of nearbyWorldFieldNumbers(fieldNumber)) {
+    await ensureWorldFieldLoaded(nearby);
+    await nextFrame();
+  }
+  await syncLoadedWorldResidents();
+}
+
+async function ensureAllWorldFields(): Promise<void> {
+  if (!activeManifest || activeManifest.installStage === "bootstrap") return;
+  for (const compiled of activeManifest.compiledFields) {
+    await ensureWorldFieldLoaded(compiled.fieldNumber);
+    if ((loadedWorldFieldNumbers.size & 1) === 0) await nextFrame();
+  }
+  await syncLoadedWorldResidents();
+}
+
+async function hydrateCompletedInstall(manifest: ImportManifest): Promise<void> {
+  if (activeManifest?.importId !== manifest.importId || activeManifest.installStage !== "bootstrap") return;
+  if (!activeDirectory || !worldView || !drivingWorld) return;
+  activeManifest = manifest;
+  updatePeachRaceAvailability();
+  const centre = drivingGame?.controller.state.fieldNumber ?? 223;
+  const startedAt = performance.now();
+  lastPrefetchedWorldField = centre;
+  await ensureNearbyWorldFields(centre);
+  if (!isDriving) worldLocation.disabled = false;
+  console.info(`Background install complete: ${manifest.fields.length} world sectors and ${manifest.raceCourses?.length ?? 0} race courses cached; nearby live ring reached ${loadedWorldFieldNumbers.size} sectors in ${Math.round(performance.now() - startedAt)} ms.`);
+  const raceCaptureId = new URLSearchParams(location.search).get("raceCapture");
+  const raceCaptureScene = raceCaptureId ? peachRaceCaptureSceneById(raceCaptureId) : undefined;
+  if (raceCaptureScene) await runDeterministicPeachRaceCapture(raceCaptureScene);
+}
+
+function updatePeachRaceAvailability(): void {
+  if (peachRaceCoordinator) {
+    raceToggle.disabled = false;
+    raceToggle.textContent = "Leave Peach Raceway";
+    return;
+  }
+  const ready = !!activeDirectory && !!activeExecutableBytes
+    && !!activeManifest?.compiledRaceCourses?.some((record) => record.courseId === 0)
+    && !!activeManifest?.raceCourseCollisions?.some((record) => record.courseId === 0)
+    && !!activeManifest?.raceCourses?.some((record) => record.courseId === 0);
+  raceToggle.disabled = !ready;
+  raceToggle.textContent = ready ? "Race Peach Raceway" : "Peach Raceway loadingâ€¦";
+}
+
+async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors: readonly number[] = Array(15).fill(0), activityId = 0, preserveTownSession = false): Promise<void> {
+  if (activityId !== 0) throw new Error(`Only validated Peach Raceway activity 0 can launch; received activity ${activityId}.`);
+  if (!activeDirectory || !activeManifest || !activeExecutableBytes) throw new Error("The installed PAL data is not ready.");
+  const compiled = activeManifest.compiledRaceCourses?.find((record) => record.courseId === 0);
+  const collision = activeManifest.raceCourseCollisions?.find((record) => record.courseId === 0);
+  const source = activeManifest.raceCourses?.find((record) => record.courseId === 0);
+  if (!compiled || !collision || !source) throw new Error("COURSE/C00 is not present in the completed local race cache.");
+
+  stopPeachRace();
+  if (preserveTownSession && drivingGame && isDriving) {
+    endQFactoryInterior();
+    endResidentDialogue();
+    drivingGame.setPaused(true);
+    worldSimulation?.setPaused(true);
+    peachRaceSuspendedTownSession = true;
+  } else {
+    stopDrivingSession();
+  }
+  raceToggle.disabled = true;
+  raceToggle.textContent = "Loading Peach Racewayâ€¦";
+  worldLocation.disabled = true;
+  driveToggle.disabled = true;
+  worldSimulation?.setPaused(true);
+
+  const [{ RaceView: RaceViewClass }, { PeachRaceCoordinator: Coordinator, peachRaceEntrantId },
+    { createPeachRaceRuntime }, { deserializeCompiledCollision }, { Q62CarModel: CarModel }] = await Promise.all([
+    import("./game/raceView"),
+    import("./game/raceSession/peachRaceCoordinator"),
+    import("./game/raceSession/peachRaceRuntime"),
+    import("./formats/fieldCollision"),
+    import("./game/carView"),
+  ]);
+  const [compiledBytes, collisionBytes, courseBytes, tireBytes, wheelBytes] = await Promise.all([
+    readBytes(activeDirectory, compiled.path),
+    readBytes(activeDirectory, collision.path),
+    readBytes(activeDirectory, `game/${source.path}`),
+    readBytes(activeDirectory, "game/CARS/TIRE.BIN"),
+    readOptionalInstalledWheelBytes(activeDirectory),
+  ]);
+  const runtime = createPeachRaceRuntime({
+    executable: activeExecutableBytes,
+    courseBytes,
+    compiledCollision: deserializeCompiledCollision(collisionBytes),
+    // Standalone capture supplies the validated all-standard selectors; Q's Factory may supply recovered fitted selectors.
+    playerEquipmentSelectors,
+    // The special equipment flag path remains outside the validated ordinary-frame boundary.
+    playerEquipmentFlags: 0,
+    globalEquipmentFlags: 0,
+    countdown: { elapsedUpdates: 0, fadeUpdates: 64, sceneFlags: 0, updatesPerSecond: 50 },
+    sceneKind: 0,
+    sceneByte0B: 0,
+    raceModeByte: 0,
+  });
+  const coordinator = new Coordinator(runtime);
+  const view = new RaceViewClass(viewerHost);
+  view.loadCourse(0, compiledBytes);
+
+  const bodyBytes = new Map<number, Uint8Array>();
+  const models: Q62CarModel[] = [];
+  try {
+    for (const initial of runtime.initialCommands) {
+      const entrant = initial.entrant;
+      const bodyId = entrant.kind === "opponent" ? entrant.participant.bodyId : 62;
+      let bytes = bodyBytes.get(bodyId);
+      if (!bytes) {
+        bytes = await readBytes(activeDirectory, `game/${carAssetPath(bodyId)}`);
+        bodyBytes.set(bodyId, bytes);
+      }
+      const paintWord = entrant.kind === "opponent"
+        ? entrant.participant.packedPaint
+        : playerEquipmentState?.paintWord ?? browserCompatibilityPaintWord;
+      const paint = decodeNativeBodyPaint(paintWord);
+      models.push(new CarModel(bytes, tireBytes, {
+        name: entrant.kind === "opponent" ? entrant.participant.name : "Player Q62",
+        primaryPaint: paint.primary,
+        secondaryPaint: paint.secondary,
+        ...(wheelBytes ? { wheelBytes } : {}),
+        nativeTyreSelector: 0,
+        nativeWheelSelector: 0,
+        wheelColor: nativeWheelPaintColor(paintWord),
+        wheelColorIndex: nativeWheelPaintIndex(paintWord),
+      }));
+    }
+    const poses = new Map(coordinator.poses().map((entry) => [entry.carIndex, entry.pose] as const));
+    view.setEntrants(runtime.initialCommands.map((initial, index) => ({
+      id: peachRaceEntrantId(initial.carIndex),
+      object: models[index]!,
+      pose: poses.get(initial.carIndex)!,
+    })));
+  } catch (error) {
+    models.forEach((model) => model.dispose());
+    view.dispose();
+    worldSimulation?.setPaused(false);
+    updatePeachRaceAvailability();
+    throw error;
+  }
+
+  peachRaceView = view;
+  peachRaceCoordinator = coordinator;
+  peachRaceModels = models;
+  peachRaceSceneTime = 0;
+  peachRaceLastTimestamp = 0;
+  peachRaceAccumulatorMs = 0;
+  peachRaceRewardApplied = false;
+  peachRaceKeys.clear();
+  viewerHost.querySelector<HTMLElement>(".world-canvas")?.style.setProperty("visibility", "hidden");
+  requiredElement<HTMLElement>("viewer-title").textContent = "Peach Raceway";
+  requiredElement<HTMLElement>("viewer-help").textContent = "WASD / arrows Â· native 50 Hz race controls Â· Esc to leave";
+  updatePeachRaceAvailability();
+  updatePeachRaceHud();
+  coordinator.syncView(view);
+  if (scheduleAnimation) peachRaceFrame = requestAnimationFrame(runPeachRaceFrame);
+}
+
+async function runDeterministicPeachRaceCapture(scene: PeachRaceCaptureScene): Promise<void> {
+  await startPeachRace(false);
+  const coordinator = peachRaceCoordinator;
+  const view = peachRaceView;
+  if (!coordinator || !view) throw new Error("Peach race capture could not acquire the live race runtime.");
+  const playerStart = coordinator.runtime.session.entrant(0).state.coordinates;
+  for (let update = 0; update < scene.updates; update += 1) {
+    coordinator.step({ sceneTime: update, playerCommands: scene.playerCommands });
+  }
+  coordinator.syncView(view);
+  updatePeachRaceHud();
+  const playerEnd = coordinator.runtime.session.entrant(0).state.coordinates;
+  const movement = Math.hypot(playerEnd[0] - playerStart[0], playerEnd[2] - playerStart[2]);
+  if (!(movement > 0.01)) throw new Error(`Deterministic Peach race capture did not move the player after ${scene.updates} updates.`);
+
+  const blob = await view.capturePng(scene.size);
+  const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
+  const digestHex = [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join("");
+  document.querySelector(".capture-result")?.remove();
+  app.dataset.captureMode = "true";
+  const objectUrl = URL.createObjectURL(blob);
+  const root = document.createElement("section");
+  root.className = "capture-result";
+  const header = document.createElement("header");
+  const heading = document.createElement("div");
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "eyebrow";
+  eyebrow.textContent = "DETERMINISTIC RACE CAPTURE";
+  const title = document.createElement("h1");
+  title.textContent = scene.label;
+  const metadata = document.createElement("p");
+  metadata.className = "capture-metadata";
+  metadata.textContent = `${scene.size.width}Ã—${scene.size.height} Â· tick ${scene.updates} Â· moved ${movement.toFixed(3)} Â· SHA-256 ${digestHex}`;
+  heading.append(eyebrow, title, metadata);
+  const download = document.createElement("a");
+  download.className = "primary-button capture-download";
+  download.href = objectUrl;
+  download.download = `rta-${scene.id}-${scene.size.width}x${scene.size.height}.png`;
+  download.textContent = "Save PNG";
+  header.append(heading, download);
+  const image = document.createElement("img");
+  image.className = "capture-image";
+  image.src = objectUrl;
+  image.width = scene.size.width;
+  image.height = scene.size.height;
+  image.alt = `${scene.label} PAL-backed deterministic browser-port capture`;
+  root.append(header, image);
+  app.append(root);
+  console.info(`Deterministic Peach race capture '${scene.id}': tick ${scene.updates}, player moved ${movement.toFixed(3)} course units, SHA-256 ${digestHex}.`);
+}
+
+function runPeachRaceFrame(timestamp: number): void {
+  if (!peachRaceCoordinator || !peachRaceView) return;
+  if (peachRaceLastTimestamp === 0) peachRaceLastTimestamp = timestamp;
+  peachRaceAccumulatorMs += Math.min(100, Math.max(0, timestamp - peachRaceLastTimestamp));
+  peachRaceLastTimestamp = timestamp;
+  while (peachRaceAccumulatorMs >= 20) {
+    peachRaceCoordinator.step({ sceneTime: peachRaceSceneTime++, playerCommands: peachRaceCommandMask() });
+    peachRaceAccumulatorMs -= 20;
+    applyPeachRaceResultIfReady();
+  }
+  peachRaceCoordinator.syncView(peachRaceView);
+  updatePeachRaceHud();
+  peachRaceFrame = requestAnimationFrame(runPeachRaceFrame);
+}
+
+function peachRaceCommandMask(): number {
+  let commands = 0;
+  if (peachRaceKeys.has("KeyW") || peachRaceKeys.has("ArrowUp")) commands |= 1;
+  if (peachRaceKeys.has("KeyS") || peachRaceKeys.has("ArrowDown")) commands |= 2;
+  if (peachRaceKeys.has("KeyA") || peachRaceKeys.has("ArrowLeft")) commands |= 0x8000;
+  if (peachRaceKeys.has("KeyD") || peachRaceKeys.has("ArrowRight")) commands |= 0x2000;
+  return commands;
+}
+
+function handlePeachRaceKeyDown(event: KeyboardEvent): void {
+  if (!peachRaceCoordinator) return;
+  if (event.code === "Escape") {
+    event.preventDefault();
+    stopPeachRace();
+    return;
+  }
+  if (["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight"].includes(event.code)) {
+    event.preventDefault();
+    peachRaceKeys.add(event.code);
+  }
+}
+
+function handlePeachRaceKeyUp(event: KeyboardEvent): void {
+  if (!peachRaceCoordinator) return;
+  peachRaceKeys.delete(event.code);
+}
+
+function applyPeachRaceResultIfReady(): void {
+  if (peachRaceRewardApplied || !peachRaceCoordinator || !activeExecutableBytes || !playerRaceState || !playerCommerceState) return;
+  if (peachRaceCoordinator.runtime.session.resultHandoff().status !== "ready") return;
+  const result = peachRaceCoordinator.runtime.session.applyResult(
+    readRaceCatalogue(activeExecutableBytes), playerRaceState, playerCommerceState,
+  );
+  peachRaceRewardApplied = true;
+  queueRecoveredProgressSave();
+  console.info(`Peach Raceway result applied: best native finish ${result.bestFinishIndex}, +${result.prizeCake} Cake.`);
+  updatePeachRaceHud();
+}
+
+function updatePeachRaceHud(): void {
+  if (!peachRaceCoordinator) return;
+  const player = peachRaceCoordinator.runtime.session.entrant(0);
+  const note = requiredElement<HTMLElement>("nearby-note");
+  note.hidden = false;
+  if (!peachRaceCoordinator.runtime.session.isCountdownComplete) note.textContent = "Peach Raceway Â· starting grid";
+  else if (player.finishIndex !== null) note.textContent = `Finished Â· native place ${player.finishIndex + 1}/24${peachRaceRewardApplied ? " Â· reward saved" : ""}`;
+  else note.textContent = `Peach Raceway Â· lap ${Math.min(3, player.completedLaps + 1)}/3`;
+}
+
+function stopPeachRace(): void {
+  const resumeTownSession = peachRaceSuspendedTownSession && !!drivingGame && isDriving;
+  peachRaceSuspendedTownSession = false;
+  if (peachRaceFrame) cancelAnimationFrame(peachRaceFrame);
+  peachRaceFrame = 0;
+  peachRaceKeys.clear();
+  peachRaceCoordinator = undefined;
+  peachRaceView?.dispose();
+  peachRaceView = undefined;
+  peachRaceModels.forEach((model) => model.dispose());
+  peachRaceModels = [];
+  const worldCanvas = viewerHost.querySelector<HTMLElement>(".world-canvas");
+  if (worldCanvas) worldCanvas.style.removeProperty("visibility");
+  worldSimulation?.setPaused(false);
+  if (resumeTownSession) drivingGame?.setPaused(false);
+  driveToggle.disabled = !drivingWorld;
+  worldLocation.disabled = resumeTownSession || !drivingWorld || activeManifest?.installStage === "bootstrap";
+  const note = requiredElement<HTMLElement>("nearby-note");
+  if (resumeTownSession && drivingGame) {
+    requiredElement<HTMLElement>("viewer-title").textContent = "Driving Q62";
+    requiredElement<HTMLElement>("viewer-help").textContent = "WASD / arrows to drive · Hold Shift for developer boost";
+    updateDriveHud(drivingGame.controller.state);
+  } else {
+    note.hidden = true;
+    note.textContent = "";
+    if (drivingWorld) requiredElement<HTMLElement>("viewer-title").textContent = loadedWorldFieldNumbers.size === 64 ? "The whole world" : "Peach Town area";
+    requiredElement<HTMLElement>("viewer-help").textContent = "Drag to orbit · Scroll to zoom · Right-drag to pan";
+  }
+  updatePeachRaceAvailability();
 }
 
 async function toggleDriving(): Promise<void> {
@@ -640,6 +1085,10 @@ function armFujiProbe(): void {
 function handleDriveState(state: CarState): void {
   updateDriveHud(state);
   accumulateAdvertisingDistance(state);
+  if (activeManifest?.installStage !== "bootstrap" && lastPrefetchedWorldField !== state.fieldNumber) {
+    lastPrefetchedWorldField = state.fieldNumber;
+    void ensureNearbyWorldFields(state.fieldNumber).catch((error) => console.warn("Nearby driving-sector prefetch failed.", error));
+  }
   const probe = fujiProbes[fujiProbeIndex];
   if (!probe || state.fieldNumber !== probe.to) return;
   console.info(`BROWSER FUJI SEAM PASS ${fujiProbeIndex + 1}/${fujiProbes.length}: FLD/${probe.from} -> FLD/${probe.to}.`);
@@ -670,7 +1119,7 @@ function stopDrivingSession(): void {
   isDriving = false;
   driveToggle.textContent = "Start driving Q62";
   driveToggle.disabled = !drivingWorld;
-  worldLocation.disabled = !drivingWorld;
+  worldLocation.disabled = !drivingWorld || activeManifest?.installStage === "bootstrap";
   requiredElement<HTMLElement>("viewer-help").textContent = "Drag to orbit · Scroll to zoom · Right-drag to pan";
   requiredElement<HTMLElement>("drive-field-row").hidden = true;
   requiredElement<HTMLElement>("drive-speed-row").hidden = true;
@@ -678,7 +1127,7 @@ function stopDrivingSession(): void {
   const nearby = requiredElement<HTMLElement>("nearby-note");
   nearby.hidden = true;
   nearby.textContent = "";
-  if (drivingWorld) requiredElement<HTMLElement>("viewer-title").textContent = "The whole world";
+  if (drivingWorld) requiredElement<HTMLElement>("viewer-title").textContent = loadedWorldFieldNumbers.size === 64 ? "The whole world" : "Peach Town area";
 }
 
 function updateDriveHud(state: CarState): void {
@@ -881,11 +1330,12 @@ function handleDialogueKey(event: KeyboardEvent): void {
     } else if (["KeyE", "Enter", "Space"].includes(event.code)) {
       event.preventDefault();
       if (choices.length) chooseQFactoryDialogue(qFactorySession.choiceIndex);
-      else if (qFactorySession.flow.currentExternalAction) returnFromQFactoryHostAction();
+      else if (qFactorySession.flow.currentExternalAction) activateQFactoryHostAction();
       else advanceQFactoryDialogue();
     } else if (event.code === "Escape") {
       event.preventDefault();
-      endQFactoryInterior();
+      if (qFactorySession.flow.currentExternalAction?.opcode === raceSelectActionOpcode) returnFromQFactoryHostAction();
+      else endQFactoryInterior();
     }
     return;
   }
@@ -1881,7 +2331,7 @@ async function startQFactoryInterior(interaction: FixedInteractionDefinition): P
     );
     playerDialogueState.currentAreaIndex = interaction.areaIndex;
     const flow = new DialogueFlowClass(qFactoryDialogueEntity, playerDialogueState, 0x04);
-    qFactorySession = { flow, choiceIndex: defaultChoiceIndex(flow.currentChoices), interaction };
+    qFactorySession = { flow, choiceIndex: defaultChoiceIndex(flow.currentChoices), interaction, raceOptionIndex: 0 };
     renderQFactoryDialogue();
     console.info(`Q's Factory start: SHOP/T00 slot ${interaction.localIndex}, ${backdrop.width}x${backdrop.height}, ${backdrop.dmaPacketCount} DMA packets; outdoor state paused.`);
   } catch (error) {
@@ -2141,17 +2591,82 @@ function applyEquippedParts(): void {
   drivingGame?.setNativeBrakeSelector(nativeBrakeSelector);
 }
 
+function qFactoryRaceChoices() {
+  const session = qFactorySession;
+  if (!session || !activeExecutableBytes || !playerRaceState) return [];
+  return qFactoryRaceOptions(readRaceCatalogue(activeExecutableBytes), playerRaceState, session.interaction.areaIndex);
+}
+
+function renderQFactoryRaceChoices(host: HTMLElement): void {
+  const session = qFactorySession;
+  if (!session) return;
+  const options = qFactoryRaceChoices();
+  if (!options[session.raceOptionIndex]?.launchSupported) session.raceOptionIndex = Math.max(0, options.findIndex((option) => option.launchSupported));
+  options.forEach((option, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.disabled = !option.launchSupported;
+    button.textContent = option.activity.name + (option.unlocked ? option.launchSupported ? "" : " · not validated yet" : " · licence locked");
+    button.classList.toggle("selected", index === session.raceOptionIndex);
+    button.setAttribute("aria-current", index === session.raceOptionIndex ? "true" : "false");
+    button.addEventListener("mouseenter", () => { if (option.launchSupported && qFactorySession) { qFactorySession.raceOptionIndex = index; renderQFactoryDialogue(); } });
+    button.addEventListener("click", () => selectQFactoryRace(index));
+    host.append(button);
+  });
+}
+
+function selectQFactoryRace(index: number): void {
+  const session = qFactorySession;
+  const action = session?.flow.currentExternalAction;
+  if (!session || !action || action.opcode !== raceSelectActionOpcode) return;
+  const option = qFactoryRaceChoices()[index];
+  if (!option?.launchSupported) return;
+  session.raceOptionIndex = index;
+  session.selectedRaceActivityId = option.activity.activityId;
+  const { selectedTarget } = qFactoryRaceSelectionTargets(action);
+  session.flow.returnFromExternalAction(selectedTarget);
+  session.choiceIndex = defaultChoiceIndex(session.flow.currentChoices);
+  renderQFactoryDialogue();
+}
+
+function activateQFactoryHostAction(): void {
+  const session = qFactorySession;
+  const action = session?.flow.currentExternalAction;
+  if (!session || !action) return;
+  if (action.opcode === raceSelectActionOpcode) { selectQFactoryRace(session.raceOptionIndex); return; }
+  if (action.opcode === startRaceActionOpcode) { launchQFactoryRace(action); return; }
+  returnFromQFactoryHostAction();
+}
+
+function launchQFactoryRace(action: DialogueActionToken): void {
+  const session = qFactorySession;
+  if (!session || !playerEquipmentState) return;
+  const activityId = qFactoryRaceLaunchActivityId(action, session.selectedRaceActivityId);
+  if (activityId !== 0) {
+    console.warn(`Q's Factory activity ${activityId} remains outside the validated Peach Raceway launch boundary.`);
+    return;
+  }
+  const selectors = playerEquipmentState.selectorEntries()[0] ?? Array(15).fill(0);
+  console.info(`Q's Factory launching executable-selected activity ${activityId} with recovered Q62 equipment selectors.`);
+  void startPeachRace(true, selectors, activityId, true).catch((error) => {
+    stopPeachRace();
+    showError("Peach Raceway could not start from Q's Factory.", error);
+  });
+}
+
 function renderQFactoryDialogue(): void {
   const session = qFactorySession;
   if (!session) return;
   const flow = session.flow;
+  const external = flow.currentExternalAction;
   if (flow.currentExternalAction?.opcode === selectTeamCarActionOpcode) {
     startChangeParts();
     return;
   }
   const root = requiredElement<HTMLElement>("factory-interior");
   root.dataset.dialogueSlot = `0x${flow.currentSlot.toString(16).padStart(2, "0")}`;
-  requiredElement<HTMLElement>("factory-text").textContent = flow.currentPage ?? "";
+  const selectedRace = session.selectedRaceActivityId === undefined ? undefined : qFactoryRaceChoices().find((option) => option.activity.activityId === session.selectedRaceActivityId)?.activity;
+  requiredElement<HTMLElement>("factory-text").textContent = (flow.currentPage ?? "").replace("$R", selectedRace?.name ?? "$R");
   const choicesHost = requiredElement<HTMLElement>("factory-choices");
   choicesHost.replaceChildren();
   flow.currentChoices.forEach((choice, index) => {
@@ -2169,16 +2684,22 @@ function renderQFactoryDialogue(): void {
     choicesHost.append(button);
   });
 
-  const external = flow.currentExternalAction;
+  if (external?.opcode === raceSelectActionOpcode) renderQFactoryRaceChoices(choicesHost);
+
   const hostAction = requiredElement<HTMLElement>("factory-host-action");
   const continueButton = requiredElement<HTMLButtonElement>("factory-continue");
   const returnButton = requiredElement<HTMLButtonElement>("factory-return");
   if (external) {
     const presentation = describeInteriorHostAction(external);
-    requiredElement<HTMLElement>("factory-action-title").textContent = presentation.title;
-    requiredElement<HTMLElement>("factory-action-detail").textContent = presentation.detail;
+    const raceSelection = external.opcode === raceSelectActionOpcode;
+    const peachLaunch = external.opcode === startRaceActionOpcode && session.selectedRaceActivityId === 0;
+    requiredElement<HTMLElement>("factory-action-title").textContent = raceSelection ? "Race selector" : presentation.title;
+    requiredElement<HTMLElement>("factory-action-detail").textContent = raceSelection
+      ? "Peach Town's executable selector exposes its authored race range. Only independently validated Peach Raceway can launch in this milestone."
+      : peachLaunch ? "Launch the selected Peach Raceway session with Q62's recovered fitted equipment." : presentation.detail;
     hostAction.hidden = false;
-    returnButton.textContent = presentation.returnSlot ? "Return to Q's Factory" : (presentation.leaveLabel ?? "Return to town");
+    returnButton.textContent = raceSelection ? "Cancel race selection" : peachLaunch ? "Start Peach Raceway"
+      : presentation.returnSlot ? "Return to Q's Factory" : (presentation.leaveLabel ?? "Return to town");
     returnButton.hidden = false;
   } else {
     hostAction.hidden = true;
@@ -2188,7 +2709,8 @@ function renderQFactoryDialogue(): void {
   requiredElement<HTMLElement>("factory-key-hint").textContent = flow.currentChoices.length
     ? "↑ / ↓ · E select"
     : external
-      ? "E · return"
+      ? external.opcode === raceSelectActionOpcode ? "E · select supported race · Esc cancel"
+        : external.opcode === startRaceActionOpcode && session.selectedRaceActivityId === 0 ? "E · start race" : "E · return"
       : "E / Enter · continue";
 }
 
@@ -2260,6 +2782,17 @@ async function captureQFactory(scene: QFactoryCaptureScene): Promise<Blob> {
   return qFactoryInteriorView.capturePng(scene.size, scene.animationTimeMs);
 }
 
+function queueResidentModelLoad(
+  manifest: ImportManifest,
+  directory: FileSystemDirectoryHandle,
+  simulation: BrowserWorldSimulation,
+  generation: number,
+): Promise<void> {
+  const task = residentModelLoadChain.catch(() => undefined).then(() => loadResidentModels(manifest, directory, simulation, generation));
+  residentModelLoadChain = task;
+  return task;
+}
+
 async function loadResidentModels(
   manifest: ImportManifest,
   directory: FileSystemDirectoryHandle,
@@ -2275,9 +2808,10 @@ async function loadResidentModels(
   const tireBytes = await readBytes(directory, "game/CARS/TIRE.BIN");
   const carBytesByBody = new Map<number, Uint8Array>();
   const { Q62CarModel: CarModelClass } = await import("./game/carView");
-  let loaded = 0;
+  let loaded = simulation.modelCount;
   for (const resident of residents) {
     if (generation !== residentModelLoadGeneration) return;
+    if (simulation.hasModel(resident.state.id)) continue;
     const definition = resident.state.definition;
     const path = carAssetPath(definition.bodyId);
     if (!available.has(path.toUpperCase())) continue;
@@ -2303,6 +2837,7 @@ async function loadResidentModels(
 
 function stopWorldSimulation(): void {
   residentModelLoadGeneration += 1;
+  residentModelLoadChain = Promise.resolve();
   endQFactoryInterior();
   endResidentDialogue();
   worldSimulation?.stop();
@@ -2325,7 +2860,7 @@ async function ensureWholeWorldCache(
   const existing = new Map(manifest.compiledFields.filter((field) => field.cacheVersion === compiledFieldCacheVersion).map((field) => [field.fieldNumber, field]));
   const collisions = new Map((manifest.collisionFields ?? []).map((field) => [field.fieldNumber, field]));
   const fields = [...manifest.fields].sort((a, b) => a.fieldNumber - b.fieldNumber);
-  if (!manifest.devPartialFields && fields.length !== 64) throw new Error(`Expected 64 cached FLDs; found ${fields.length}.`);
+  if (manifest.installStage !== "bootstrap" && !manifest.devPartialFields && fields.length !== 64) throw new Error(`Expected 64 cached FLDs; found ${fields.length}.`);
   if (fields.every((field) => existing.has(field.fieldNumber) && collisions.has(field.fieldNumber))) return manifest;
 
   const directory = await currentImportDirectory(manifest);
@@ -2431,6 +2966,7 @@ function wrapIndex(index: number, length: number): number {
 }
 
 function showEmpty(): void {
+  stopPeachRace();
   stopDrivingSession();
   stopWorldSimulation();
   importCard.hidden = true;
@@ -2442,6 +2978,7 @@ function showEmpty(): void {
 }
 
 function showImport(): void {
+  stopPeachRace();
   stopDrivingSession();
   stopWorldSimulation();
   emptyState.hidden = true;
