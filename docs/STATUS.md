@@ -32,6 +32,7 @@ Primary race write-ups remain `PAL_NATIVE_RACE_FRAME_2026-09-05.md`, `PAL_NATIVE
 - Q's Factory post-race dialogue/result branching whose native `resultCode` mapping has not yet been proven;
 - launching Peach Raceway II, Temple Raceway or any other unvalidated ordinary course from the selector;
 - complete native scene initialization and reset/debug paths;
+- live race position ordering: `OrdinaryRaceSession.livePositions()` implements the native ranking sort, but the Peach coordinator supplies no navigation output/distance for any car, and the human-driven car 0 runs no navigation at all, so the session reports `navigation-metrics-required` and the race HUD shows lap and finish state without a live place;
 - outdoor/scene-28 behavior;
 - equipment path `0x300C`;
 - wheel animation and the later UI callback;
