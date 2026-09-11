@@ -56,15 +56,6 @@ const appShellHtml = `
       <aside class="installed-panel" id="installed-panel" hidden>
         <p class="eyebrow">LOCAL INSTALL READY</p>
         <h2 id="viewer-title">The whole world</h2>
-        <dl>
-          <div><dt>Disc</dt><dd id="disc-version">PAL</dd></div>
-          <div><dt>Sectors</dt><dd id="field-count">64</dd></div>
-          <div><dt>Triangles</dt><dd id="triangle-count">—</dd></div>
-          <div><dt>Residents</dt><dd id="resident-count">—</dd></div>
-          <div id="drive-field-row" hidden><dt>Field</dt><dd id="drive-field">FLD/223</dd></div>
-          <div id="drive-speed-row" hidden><dt>Speed</dt><dd id="drive-speed">0 km/h</dd></div>
-          <div id="drive-surface-row" hidden><dt>Surface</dt><dd id="drive-surface">Paved road</dd></div>
-        </dl>
         <label class="location-control">
           <span>View</span>
           <select id="world-location">
@@ -85,31 +76,89 @@ const appShellHtml = `
             <option value="023">FLD/023</option>
           </select>
         </label>
-        <div class="world-render-controls">
-          <label class="location-control">
-            <span>Time</span>
-            <select id="world-time">
-              <option value="12">Day · 12:00</option>
-              <option value="17.5">Sunset · 17:30</option>
-              <option value="18.25">Dusk · 18:15</option>
-              <option value="22">Night · 22:00</option>
-            </select>
-          </label>
-          <label class="location-control">
-            <span>Visibility</span>
-            <select id="world-visibility">
-              <option value="extended" selected>Extended</option>
-              <option value="authentic">Original PS2</option>
-              <option value="unlimited">Unlimited</option>
-            </select>
-          </label>
-        </div>
         <button class="primary-button drive-button" id="drive-toggle" type="button" disabled>Start driving Q62</button>
-        <button class="quiet-button race-button" id="race-toggle" type="button" disabled>Peach Raceway loadingâ€¦</button>
-        <p class="nearby-note" id="nearby-note" hidden></p>
+        <button class="quiet-button race-button" id="race-toggle" type="button" disabled>Peach Raceway loading…</button>
         <p class="viewer-help" id="viewer-help">Drag to orbit · Scroll to zoom · Right-drag to pan</p>
-        <button class="quiet-button" id="remove-install" type="button">Remove local install</button>
+        <button class="quiet-button panel-settings-button" id="open-pause" type="button">Settings · Esc</button>
       </aside>
+
+      <section class="game-hud" id="game-hud" hidden>
+        <p class="game-hud-location" id="hud-location">Peach Town</p>
+        <p class="game-hud-cake" id="hud-cake">0 Cake</p>
+        <p class="game-hud-speed" id="hud-speed" hidden>0 km/h</p>
+        <p class="game-hud-status" id="hud-status" hidden></p>
+        <p class="game-hud-hint" id="hud-hint">Esc · pause and settings</p>
+      </section>
+
+      <aside class="debug-overlay" id="debug-overlay" hidden aria-label="Developer diagnostics">
+        <header class="debug-overlay-header">
+          <p class="eyebrow">DEVELOPER DIAGNOSTICS</p>
+          <span class="debug-overlay-key">F3</span>
+        </header>
+        <dl class="debug-rows">
+          <div><dt>Disc</dt><dd id="disc-version">PAL</dd></div>
+          <div><dt>Sectors</dt><dd id="field-count">64</dd></div>
+          <div><dt>Triangles</dt><dd id="triangle-count">—</dd></div>
+          <div><dt>Residents</dt><dd id="resident-count">—</dd></div>
+        </dl>
+        <dl class="debug-rows" id="debug-live-rows"></dl>
+        <div class="debug-overlay-actions">
+          <button class="quiet-button" id="debug-copy" type="button">Copy for bug report</button>
+          <button class="quiet-button" id="debug-hide" type="button">Hide</button>
+        </div>
+        <p class="debug-overlay-feedback" id="debug-feedback" role="status" hidden></p>
+      </aside>
+
+      <section class="pause-overlay" id="pause-overlay" hidden>
+        <div class="pause-panel" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+          <p class="eyebrow">PAUSED</p>
+          <h2 id="pause-title">Settings</h2>
+
+          <section class="pause-section">
+            <h3>Presentation</h3>
+            <div class="world-render-controls">
+              <label class="location-control">
+                <span>Time</span>
+                <select id="world-time">
+                  <option value="12">Day · 12:00</option>
+                  <option value="17.5">Sunset · 17:30</option>
+                  <option value="18.25">Dusk · 18:15</option>
+                  <option value="22">Night · 22:00</option>
+                </select>
+              </label>
+              <label class="location-control">
+                <span>Visibility</span>
+                <select id="world-visibility">
+                  <option value="extended" selected>Extended</option>
+                  <option value="authentic">Original PS2</option>
+                  <option value="unlimited">Unlimited</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="pause-section">
+            <h3>Controls</h3>
+            <dl class="pause-controls">
+              <div><dt>Drive</dt><dd>W A S D or arrow keys</dd></div>
+              <div><dt>Talk · enter building</dt><dd>E</dd></div>
+              <div><dt>Pause and settings</dt><dd>Esc</dd></div>
+              <div><dt>Developer diagnostics</dt><dd>F3</dd></div>
+            </dl>
+          </section>
+
+          <section class="pause-section">
+            <h3>Developer</h3>
+            <button class="quiet-button pause-wide-button" id="pause-diagnostics" type="button">Show developer diagnostics</button>
+            <button class="quiet-button pause-wide-button" id="remove-install" type="button">Remove local install</button>
+          </section>
+
+          <div class="pause-actions">
+            <button class="quiet-button" id="pause-stop-driving" type="button" hidden>Stop driving</button>
+            <button class="primary-button" id="pause-resume" type="button">Resume</button>
+          </div>
+        </div>
+      </section>
 
       <section class="dialogue-overlay" id="dialogue-overlay" hidden aria-live="polite">
         <p class="dialogue-speaker" id="dialogue-speaker"></p>

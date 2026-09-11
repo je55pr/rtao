@@ -1,9 +1,12 @@
 import "./styles.css";
 import { installAppShell } from "./app/appShell";
+import { diagnosticsReportText, FrameRateSampler, liveDiagnosticsRows } from "./app/debugDiagnostics";
 import { DeterministicCaptureController } from "./app/deterministicCaptureController";
 import { requiredElement } from "./app/dom";
 import { bindAppDom } from "./app/domBindings";
+import { fieldDisplayName, type GameHudState, gameHudView, raceStatusText } from "./app/hudModel";
 import { ImportController } from "./app/importController";
+import { canOpenPauseMenu } from "./app/pauseState";
 import { RecoveredProgressStore } from "./app/recoveredProgressStore";
 import { carAssetPath } from "./formats/carPath";
 import type { DialogueActionToken, DialogueEntity, DialogueFlow, DialogueRuntimeState, DialogueVariant } from "./formats/dialogue";
@@ -132,6 +135,17 @@ const {
   worldTime,
   worldVisibility,
   driveToggle,
+  gameHud,
+  hudLocation,
+  hudCake,
+  hudSpeed,
+  hudStatus,
+  hudHint,
+  debugOverlay,
+  debugLiveRows,
+  pauseOverlay,
+  pauseStopDriving,
+  pauseResume,
 } = bindAppDom();
 const raceToggle = requiredElement<HTMLButtonElement>("race-toggle");
 let worldView: WorldView | undefined;
@@ -155,6 +169,12 @@ const loadingWorldFields = new Map<number, Promise<void>>();
 let lastPrefetchedWorldField: number | undefined;
 let activeExecutableBytes: Uint8Array | undefined;
 let isDriving = false;
+let playUiActive = false;
+let debugOverlayVisible = false;
+let debugOverlayFrame = 0;
+const debugFrameRate = new FrameRateSampler();
+let pauseMenuOpen = false;
+let pauseReturnFocus: HTMLElement | undefined;
 let worldSimulation: BrowserWorldSimulation | undefined;
 let overworldCatalogue: OverworldCatalogue | undefined;
 let residentGreetings = new Map<string, DialogueVariant>();
@@ -242,6 +262,10 @@ raceToggle.addEventListener("click", () => {
   if (peachRaceCoordinator) stopPeachRace();
   else void startPeachRace().catch((error) => { stopPeachRace(); showError("Peach Raceway could not start.", error); });
 });
+// Registered before the race and dialogue handlers so that an Escape they
+// consume is still seen here while their state is live: leaving a race must not
+// also open the pause layer behind it.
+window.addEventListener("keydown", handleShellKey);
 window.addEventListener("keydown", handlePeachRaceKeyDown);
 window.addEventListener("keyup", handlePeachRaceKeyUp);
 
@@ -372,6 +396,23 @@ driveToggle.addEventListener("click", () => {
   void toggleDriving().catch((error) => showError("The Q62 driving slice could not be started.", error));
 });
 
+requiredElement<HTMLButtonElement>("open-pause").addEventListener("click", openPauseMenu);
+pauseResume.addEventListener("click", closePauseMenu);
+pauseStopDriving.addEventListener("click", () => {
+  closePauseMenu();
+  stopDrivingSession();
+});
+requiredElement<HTMLButtonElement>("pause-diagnostics").addEventListener("click", () => {
+  setDebugOverlayVisible(!debugOverlayVisible);
+});
+pauseOverlay.addEventListener("click", (event) => {
+  if (event.target === pauseOverlay) closePauseMenu();
+});
+requiredElement<HTMLButtonElement>("debug-hide").addEventListener("click", () => setDebugOverlayVisible(false));
+requiredElement<HTMLButtonElement>("debug-copy").addEventListener("click", () => {
+  void copyDiagnosticsReport();
+});
+
 window.addEventListener("keydown", handleDialogueKey);
 window.addEventListener("resize", () => { if (qFactorySession || shopInteriorPreviewInteraction || shopInteriorPreviewLoading) sizeFactoryStage(); });
 requiredElement<HTMLButtonElement>("dialogue-continue").addEventListener("click", advanceResidentDialogue);
@@ -450,6 +491,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   errorCard.hidden = true;
   viewerHost.hidden = false;
   installedPanel.hidden = false;
+  playUiActive = true;
   requiredElement<HTMLElement>("disc-version").textContent = `${manifest.identity.bootExecutable} · ${manifest.identity.videoMode || "PAL"}`;
   requiredElement<HTMLElement>("viewer-title").textContent = "Preparing world";
   requiredElement<HTMLElement>("field-count").textContent = `0/${manifest.fields.length}`;
@@ -458,7 +500,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   worldLocation.disabled = true;
   driveToggle.disabled = true;
   raceToggle.disabled = true;
-  raceToggle.textContent = "Peach Raceway loadingâ€¦";
+  raceToggle.textContent = "Peach Raceway loading…";
 
   const bootstrapInstall = manifest.installStage === "bootstrap";
   const upgradedManifest = await ensureWholeWorldCache(manifest, (completed, total) => {
@@ -773,7 +815,7 @@ function updatePeachRaceAvailability(): void {
     && !!activeManifest?.raceCourseCollisions?.some((record) => record.courseId === 0)
     && !!activeManifest?.raceCourses?.some((record) => record.courseId === 0);
   raceToggle.disabled = !ready;
-  raceToggle.textContent = ready ? "Race Peach Raceway" : "Peach Raceway loadingâ€¦";
+  raceToggle.textContent = ready ? "Race Peach Raceway" : "Peach Raceway loading…";
 }
 
 async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors: readonly number[] = Array(15).fill(0), activityId = 0, preserveTownSession = false): Promise<void> {
@@ -795,7 +837,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
     stopDrivingSession();
   }
   raceToggle.disabled = true;
-  raceToggle.textContent = "Loading Peach Racewayâ€¦";
+  raceToggle.textContent = "Loading Peach Raceway…";
   worldLocation.disabled = true;
   driveToggle.disabled = true;
   worldSimulation?.setPaused(true);
@@ -883,9 +925,9 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
   peachRaceKeys.clear();
   viewerHost.querySelector<HTMLElement>(".world-canvas")?.style.setProperty("visibility", "hidden");
   requiredElement<HTMLElement>("viewer-title").textContent = "Peach Raceway";
-  requiredElement<HTMLElement>("viewer-help").textContent = "WASD / arrows Â· native 50 Hz race controls Â· Esc to leave";
+  requiredElement<HTMLElement>("viewer-help").textContent = "WASD / arrows · native 50 Hz race controls · Esc to leave";
   updatePeachRaceAvailability();
-  updatePeachRaceHud();
+  refreshGameHud();
   coordinator.syncView(view);
   if (scheduleAnimation) peachRaceFrame = requestAnimationFrame(runPeachRaceFrame);
 }
@@ -900,7 +942,7 @@ async function runDeterministicPeachRaceCapture(scene: PeachRaceCaptureScene): P
     coordinator.step({ sceneTime: update, playerCommands: scene.playerCommands });
   }
   coordinator.syncView(view);
-  updatePeachRaceHud();
+  refreshGameHud();
   const playerEnd = coordinator.runtime.session.entrant(0).state.coordinates;
   const movement = Math.hypot(playerEnd[0] - playerStart[0], playerEnd[2] - playerStart[2]);
   if (!(movement > 0.01)) throw new Error(`Deterministic Peach race capture did not move the player after ${scene.updates} updates.`);
@@ -922,7 +964,7 @@ async function runDeterministicPeachRaceCapture(scene: PeachRaceCaptureScene): P
   title.textContent = scene.label;
   const metadata = document.createElement("p");
   metadata.className = "capture-metadata";
-  metadata.textContent = `${scene.size.width}Ã—${scene.size.height} Â· tick ${scene.updates} Â· moved ${movement.toFixed(3)} Â· SHA-256 ${digestHex}`;
+  metadata.textContent = `${scene.size.width}×${scene.size.height} · tick ${scene.updates} · moved ${movement.toFixed(3)} · SHA-256 ${digestHex}`;
   heading.append(eyebrow, title, metadata);
   const download = document.createElement("a");
   download.className = "primary-button capture-download";
@@ -952,7 +994,7 @@ function runPeachRaceFrame(timestamp: number): void {
     applyPeachRaceResultIfReady();
   }
   peachRaceCoordinator.syncView(peachRaceView);
-  updatePeachRaceHud();
+  refreshGameHud();
   peachRaceFrame = requestAnimationFrame(runPeachRaceFrame);
 }
 
@@ -992,17 +1034,7 @@ function applyPeachRaceResultIfReady(): void {
   peachRaceRewardApplied = true;
   queueRecoveredProgressSave();
   console.info(`Peach Raceway result applied: best native finish ${result.bestFinishIndex}, +${result.prizeCake} Cake.`);
-  updatePeachRaceHud();
-}
-
-function updatePeachRaceHud(): void {
-  if (!peachRaceCoordinator) return;
-  const player = peachRaceCoordinator.runtime.session.entrant(0);
-  const note = requiredElement<HTMLElement>("nearby-note");
-  note.hidden = false;
-  if (!peachRaceCoordinator.runtime.session.isCountdownComplete) note.textContent = "Peach Raceway Â· starting grid";
-  else if (player.finishIndex !== null) note.textContent = `Finished Â· native place ${player.finishIndex + 1}/24${peachRaceRewardApplied ? " Â· reward saved" : ""}`;
-  else note.textContent = `Peach Raceway Â· lap ${Math.min(3, player.completedLaps + 1)}/3`;
+  refreshGameHud();
 }
 
 function stopPeachRace(): void {
@@ -1022,16 +1054,14 @@ function stopPeachRace(): void {
   if (resumeTownSession) drivingGame?.setPaused(false);
   driveToggle.disabled = !drivingWorld;
   worldLocation.disabled = resumeTownSession || !drivingWorld || activeManifest?.installStage === "bootstrap";
-  const note = requiredElement<HTMLElement>("nearby-note");
   if (resumeTownSession && drivingGame) {
     requiredElement<HTMLElement>("viewer-title").textContent = "Driving Q62";
     requiredElement<HTMLElement>("viewer-help").textContent = "WASD / arrows to drive · Hold Shift for developer boost";
-    updateDriveHud(drivingGame.controller.state);
+    refreshGameHud(drivingGame.controller.state);
   } else {
-    note.hidden = true;
-    note.textContent = "";
     if (drivingWorld) requiredElement<HTMLElement>("viewer-title").textContent = loadedWorldFieldNumbers.size === 64 ? "The whole world" : "Peach Town area";
     requiredElement<HTMLElement>("viewer-help").textContent = "Drag to orbit · Scroll to zoom · Right-drag to pan";
+    refreshGameHud();
   }
   updatePeachRaceAvailability();
 }
@@ -1063,9 +1093,7 @@ async function toggleDriving(): Promise<void> {
   worldLocation.disabled = true;
   requiredElement<HTMLElement>("viewer-title").textContent = "Driving Q62";
   requiredElement<HTMLElement>("viewer-help").textContent = "WASD / arrows to drive · Hold Shift for developer boost";
-  requiredElement<HTMLElement>("drive-field-row").hidden = false;
-  requiredElement<HTMLElement>("drive-speed-row").hidden = false;
-  requiredElement<HTMLElement>("drive-surface-row").hidden = false;
+  refreshGameHud();
 }
 
 function startFujiProbe(): void {
@@ -1083,7 +1111,7 @@ function armFujiProbe(): void {
 }
 
 function handleDriveState(state: CarState): void {
-  updateDriveHud(state);
+  refreshGameHud(state);
   accumulateAdvertisingDistance(state);
   if (activeManifest?.installStage !== "bootstrap" && lastPrefetchedWorldField !== state.fieldNumber) {
     lastPrefetchedWorldField = state.fieldNumber;
@@ -1121,34 +1149,162 @@ function stopDrivingSession(): void {
   driveToggle.disabled = !drivingWorld;
   worldLocation.disabled = !drivingWorld || activeManifest?.installStage === "bootstrap";
   requiredElement<HTMLElement>("viewer-help").textContent = "Drag to orbit · Scroll to zoom · Right-drag to pan";
-  requiredElement<HTMLElement>("drive-field-row").hidden = true;
-  requiredElement<HTMLElement>("drive-speed-row").hidden = true;
-  requiredElement<HTMLElement>("drive-surface-row").hidden = true;
-  const nearby = requiredElement<HTMLElement>("nearby-note");
-  nearby.hidden = true;
-  nearby.textContent = "";
   if (drivingWorld) requiredElement<HTMLElement>("viewer-title").textContent = loadedWorldFieldNumbers.size === 64 ? "The whole world" : "Peach Town area";
+  refreshGameHud();
 }
 
-function updateDriveHud(state: CarState): void {
-  requiredElement<HTMLElement>("drive-field").textContent = `FLD/${state.fieldNumber.toString().padStart(3, "0")}`;
-  requiredElement<HTMLElement>("drive-speed").textContent = `${Math.round(Math.abs(state.speed) * 3.6)} km/h`;
-  requiredElement<HTMLElement>("drive-surface").textContent = ({
-    "paved-road": "Paved road",
-    dry: "Dry",
-    dirt: "Dirt",
-    wet: "Wet",
-    grass: "Grass",
-    snow: "Snow",
-    ice: "Ice",
-    other: "Other",
-  } as const)[state.surfaceKind];
-  const nearby = requiredElement<HTMLElement>("nearby-note");
+function nearbyPrompt(state: CarState): string | undefined {
   const resident = worldSimulation?.nearest(state.fieldNumber, state.position, 5);
   const interaction = findNearestFixedInteraction(overworldCatalogue?.interactions ?? [], state.fieldNumber, state.position);
   const label = resident?.definition.name ?? interaction?.interaction.name;
-  nearby.hidden = !label;
-  nearby.textContent = label ? `Nearby · ${label} · E ${resident ? "talk" : "enter"}` : "";
+  return label ? `Nearby · ${label} · E ${resident ? "talk" : "enter"}` : undefined;
+}
+
+function currentGameHudState(driveState?: CarState): GameHudState {
+  const cake = playerCommerceState?.cake ?? 0;
+  if (peachRaceCoordinator) {
+    const session = peachRaceCoordinator.runtime.session;
+    const player = session.entrant(0);
+    return {
+      mode: "race",
+      cake,
+      location: "Peach Raceway",
+      raceStatus: raceStatusText({
+        countdownComplete: session.isCountdownComplete,
+        finishIndex: player.finishIndex,
+        completedLaps: player.completedLaps,
+        entrantCount: peachRaceCoordinator.runtime.initialCommands.length,
+        totalLaps: 3,
+        rewardSaved: peachRaceRewardApplied,
+      }),
+    };
+  }
+  const state = driveState ?? drivingGame?.controller.state;
+  if (isDriving && state) {
+    return {
+      mode: "driving",
+      cake,
+      location: fieldDisplayName(state.fieldNumber),
+      speedKph: Math.round(Math.abs(state.speed) * 3.6),
+      nearby: nearbyPrompt(state),
+    };
+  }
+  return { mode: "overview", cake, location: "" };
+}
+
+/**
+ * Normal play shows game state only. Sector/triangle/resident counts, raw field
+ * ids, coordinates and surface live in the developer overlay instead.
+ */
+function refreshGameHud(driveState?: CarState): void {
+  const view = gameHudView(currentGameHudState(driveState));
+  if (playUiActive) {
+    gameHud.hidden = !view.visible;
+    installedPanel.hidden = view.visible;
+  }
+  hudLocation.textContent = view.location;
+  hudCake.textContent = view.cake;
+  hudSpeed.textContent = view.speed;
+  hudSpeed.hidden = !view.speedVisible;
+  hudStatus.textContent = view.status;
+  hudStatus.hidden = !view.statusVisible;
+  hudHint.textContent = view.hint;
+  if (debugOverlayVisible) refreshDebugOverlay();
+}
+
+function refreshDebugOverlay(): void {
+  const state = peachRaceCoordinator ? undefined : drivingGame?.controller.state;
+  const rows = liveDiagnosticsRows({
+    mode: peachRaceCoordinator ? "race" : isDriving ? "driving" : "overview",
+    fps: debugFrameRate.fps,
+    fieldNumber: state?.fieldNumber,
+    position: state?.position,
+    surface: state?.surfaceKind,
+    loadedSectors: loadedWorldFieldNumbers.size,
+    installStage: activeManifest?.installStage,
+  });
+  debugLiveRows.replaceChildren(...rows.map((row) => {
+    const line = document.createElement("div");
+    const label = document.createElement("dt");
+    label.textContent = row.label;
+    const value = document.createElement("dd");
+    value.textContent = row.value;
+    line.append(label, value);
+    return line;
+  }));
+}
+
+function setDebugOverlayVisible(visible: boolean): void {
+  if (debugOverlayVisible === visible) return;
+  debugOverlayVisible = visible;
+  debugOverlay.hidden = !visible;
+  requiredElement<HTMLElement>("debug-feedback").hidden = true;
+  requiredElement<HTMLElement>("pause-diagnostics").textContent = visible ? "Hide developer diagnostics" : "Show developer diagnostics";
+  if (visible) {
+    debugFrameRate.reset();
+    refreshDebugOverlay();
+    debugOverlayFrame = requestAnimationFrame(sampleDebugOverlayFrame);
+  } else if (debugOverlayFrame) {
+    cancelAnimationFrame(debugOverlayFrame);
+    debugOverlayFrame = 0;
+  }
+}
+
+// Only runs while a developer has the overlay open, so normal play and
+// deterministic captures keep their original timing.
+function sampleDebugOverlayFrame(timestamp: number): void {
+  debugFrameRate.sample(timestamp);
+  refreshDebugOverlay();
+  debugOverlayFrame = requestAnimationFrame(sampleDebugOverlayFrame);
+}
+
+async function copyDiagnosticsReport(): Promise<void> {
+  const rows = [...debugOverlay.querySelectorAll<HTMLElement>(".debug-rows div")].map((line) => ({
+    label: line.querySelector("dt")?.textContent ?? "",
+    value: line.querySelector("dd")?.textContent ?? "",
+  }));
+  const text = diagnosticsReportText(rows, { capturedAt: new Date().toISOString(), userAgent: navigator.userAgent });
+  const feedback = requiredElement<HTMLElement>("debug-feedback");
+  feedback.hidden = false;
+  try {
+    await navigator.clipboard.writeText(text);
+    feedback.textContent = "Diagnostics copied to the clipboard.";
+  } catch (error) {
+    feedback.textContent = "The browser refused clipboard access; the report was logged to the console instead.";
+    console.info(text, error);
+  }
+}
+
+function pauseMenuAvailable(): boolean {
+  return canOpenPauseMenu({
+    hasInstall: playUiActive,
+    raceActive: !!peachRaceCoordinator,
+    dialogueActive: !!activeDialogue,
+    interiorActive: !!qFactorySession || !!shopInteriorSession || !!shopInteriorPreviewInteraction || qFactoryLoading || shopInteriorPreviewLoading,
+    importActive: !importCard.hidden,
+    captureMode: app.dataset.captureMode === "true",
+  });
+}
+
+function openPauseMenu(): void {
+  if (pauseMenuOpen || !pauseMenuAvailable()) return;
+  pauseMenuOpen = true;
+  pauseReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
+  drivingGame?.setPaused(true);
+  worldSimulation?.setPaused(true);
+  pauseStopDriving.hidden = !isDriving;
+  pauseOverlay.hidden = false;
+  pauseResume.focus();
+}
+
+function closePauseMenu(): void {
+  if (!pauseMenuOpen) return;
+  pauseMenuOpen = false;
+  pauseOverlay.hidden = true;
+  worldSimulation?.setPaused(false);
+  if (isDriving) drivingGame?.setPaused(false);
+  pauseReturnFocus?.focus();
+  pauseReturnFocus = undefined;
 }
 
 async function loadDialogueCatalogue(executableBytes: Uint8Array): Promise<void> {
@@ -1162,6 +1318,25 @@ async function loadDialogueCatalogue(executableBytes: Uint8Array): Promise<void>
   if (!playerDialogueState) throw new Error("Recovered dialogue state was not loaded before the executable catalogue.");
   playerDialogueState.currentAreaIndex = 1;
   console.info(`PAL dialogue: ${residentGreetings.size} Peach roaming greetings and ${qFactoryDialogueEntity.variants.length} Q's Factory streams decoded from SLES_513.56.`);
+}
+
+function handleShellKey(event: KeyboardEvent): void {
+  if (event.repeat) return;
+  if (event.code === "F3") {
+    if (!playUiActive) return;
+    event.preventDefault();
+    setDebugOverlayVisible(!debugOverlayVisible);
+    return;
+  }
+  if (event.code !== "Escape") return;
+  if (pauseMenuOpen) {
+    event.preventDefault();
+    closePauseMenu();
+    return;
+  }
+  if (!pauseMenuAvailable()) return;
+  event.preventDefault();
+  openPauseMenu();
 }
 
 function handleDialogueKey(event: KeyboardEvent): void {
@@ -2969,9 +3144,9 @@ function showEmpty(): void {
   stopPeachRace();
   stopDrivingSession();
   stopWorldSimulation();
+  hidePlayUi();
   importCard.hidden = true;
   errorCard.hidden = true;
-  installedPanel.hidden = true;
   viewerHost.hidden = true;
   emptyState.hidden = false;
   fileInput.value = "";
@@ -2981,12 +3156,21 @@ function showImport(): void {
   stopPeachRace();
   stopDrivingSession();
   stopWorldSimulation();
+  hidePlayUi();
   emptyState.hidden = true;
   errorCard.hidden = true;
-  installedPanel.hidden = true;
   viewerHost.hidden = true;
   importCard.hidden = false;
   updateProgress("prepare", "Opening game image locally", 0, 1);
+}
+
+/** Leaves the world for the landing, import or error card. */
+function hidePlayUi(): void {
+  closePauseMenu();
+  setDebugOverlayVisible(false);
+  playUiActive = false;
+  installedPanel.hidden = true;
+  gameHud.hidden = true;
 }
 
 function updateProgress(phase: string, detail: string, completed: number, total: number): void {
@@ -2999,7 +3183,7 @@ function updateProgress(phase: string, detail: string, completed: number, total:
 
 function showError(title: string, error: unknown): void {
   importCard.hidden = true;
-  installedPanel.hidden = true;
+  hidePlayUi();
   viewerHost.hidden = true;
   emptyState.hidden = true;
   errorCard.hidden = false;

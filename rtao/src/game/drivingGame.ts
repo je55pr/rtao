@@ -305,8 +305,10 @@ export class BrowserDrivingGame {
   }
 
   private down(...codes: string[]): boolean { return codes.some((code) => this.keys.has(code)); }
-  private readonly keyDown = (event: KeyboardEvent): void => { if (isDriveKey(event.code)) { event.preventDefault(); this.keys.add(event.code); } };
-  private readonly keyUp = (event: KeyboardEvent): void => { if (isDriveKey(event.code)) { event.preventDefault(); this.keys.delete(event.code); } };
+  // While paused the pause/settings layer owns the keyboard, so drive keys are
+  // neither swallowed nor held.
+  private readonly keyDown = (event: KeyboardEvent): void => { if (!this.paused && isDriveKey(event.code)) { event.preventDefault(); this.keys.add(event.code); } };
+  private readonly keyUp = (event: KeyboardEvent): void => { if (!this.paused && isDriveKey(event.code)) { event.preventDefault(); this.keys.delete(event.code); } };
 }
 
 function isDriveKey(code: string): boolean { return ["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight", "ShiftLeft", "ShiftRight"].includes(code); }
