@@ -25,7 +25,7 @@ export function nativeRacePositions(cars: readonly NativeRacePositionCar[], fini
     indices.add(car.carIndex);
   }
   const effectiveLap = (car: NativeRacePositionCar): number => ((car.completedLaps << 24) >> 24) - (car.finishGatePhase < 2 ? 1 : 0);
-  const ranked = cars.filter(car => (car.flags & 65535) !== 0 && (car.flags & 0x200) === 0).slice().sort((a, b) =>
+  const ranked = cars.filter(car => (car.flags & 65535) !== 0 && (car.flags & 0x200) === 0).sort((a, b) =>
     effectiveLap(b) - effectiveLap(a) || b.finishGatePhase - a.finishGatePhase ||
     b.navigationOutput - a.navigationOutput || Math.fround(a.navigationDistance) - Math.fround(b.navigationDistance) ||
     a.carIndex - b.carIndex);
