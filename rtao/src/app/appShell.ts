@@ -50,6 +50,8 @@ const appShellHtml = `
         <p class="eyebrow">IMPORT STOPPED</p>
         <h2 id="error-title">That game image could not be opened.</h2>
         <p id="error-detail"></p>
+        <p class="error-hint" id="error-hint" hidden></p>
+        <p class="error-privacy">Nothing was uploaded. The file was read by your browser on this device only.</p>
         <button class="primary-button" id="try-again" type="button">Try another file</button>
       </div>
 

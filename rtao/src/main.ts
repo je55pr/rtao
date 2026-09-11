@@ -95,6 +95,7 @@ import {
 import type { DrivingWorld } from "./game/worldCollision";
 import type { BrowserWorldSimulation } from "./game/worldSimulation";
 import type { WorldView } from "./game/worldView";
+import { classifyImportSelection, describeImportFailure, type ImportProblem } from "./importer/importDiagnostics";
 import {
   clearCurrentPointer,
   currentImportDirectory,
@@ -255,7 +256,9 @@ const importController = new ImportController({
   backgroundImportFailed: (error) => {
     console.warn("Peach Town remains playable, but the background whole-world cache did not finish.", error);
   },
-  showError,
+  showError: (title, error) => {
+    showImportProblem(describeImportFailure(error instanceof Error ? error.message : String(error), title));
+  },
 });
 
 // DEV-ONLY: expose the world renderer for browser-driven inspection. Stripped
@@ -274,7 +277,7 @@ const deterministicCaptureController = new DeterministicCaptureController(app, {
 });
 
 fileInput.addEventListener("change", () => {
-  if (fileInput.files?.length) void importController.start([...fileInput.files]);
+  if (fileInput.files?.length) beginImport([...fileInput.files]);
 });
 raceToggle.addEventListener("click", () => {
   if (peachRaceCoordinator) stopPeachRace();
@@ -358,7 +361,7 @@ for (const eventName of ["dragleave", "drop"]) {
 }
 dropZone.addEventListener("drop", (event) => {
   const files = [...(event.dataTransfer?.files ?? [])];
-  if (files.length) void importController.start(files);
+  if (files.length) beginImport(files);
 });
 
 cancelImportButton.addEventListener("click", () => {
@@ -3213,13 +3216,30 @@ function updateProgress(phase: string, detail: string, completed: number, total:
 }
 
 function showError(title: string, error: unknown): void {
+  showImportProblem({ title, detail: error instanceof Error ? error.message : String(error), hint: "" });
+}
+
+function showImportProblem(problem: ImportProblem): void {
   importCard.hidden = true;
   hidePlayUi();
   viewerHost.hidden = true;
   emptyState.hidden = true;
   errorCard.hidden = false;
-  requiredElement<HTMLElement>("error-title").textContent = title;
-  errorDetail.textContent = error instanceof Error ? error.message : String(error);
+  requiredElement<HTMLElement>("error-title").textContent = problem.title;
+  errorDetail.textContent = problem.detail;
+  const hint = requiredElement<HTMLElement>("error-hint");
+  hint.textContent = problem.hint;
+  hint.hidden = problem.hint.length === 0;
+}
+
+/** Rejects an unusable selection before starting the long local import. */
+function beginImport(files: File[]): void {
+  const selection = classifyImportSelection(files.map((file) => ({ name: file.name, size: file.size })));
+  if (selection.kind === "rejected") {
+    showImportProblem(selection.problem);
+    return;
+  }
+  void importController.start(files);
 }
 
 function phaseLabel(phase: string): string {
