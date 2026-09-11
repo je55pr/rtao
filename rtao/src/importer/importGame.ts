@@ -52,6 +52,10 @@ export async function importGame(
   try {
     source = await openImportSource(files, importId, progress);
     const sourceKind = source.kind;
+    // A non-reassignable alias: narrowing on `source` does not survive into the
+    // async callbacks below, and an optional call there would silently write an
+    // empty file while the manifest still recorded its full expected size.
+    const disc = source.disc;
     progress("validate", "Reading SYSTEM.CNF", 0, 1);
     const identity = await readGameIdentity(source.disc);
     if (!identity.supported) {
@@ -131,83 +135,91 @@ export async function importGame(
       ...(devFieldSet ? { devPartialFields: [...devFieldSet].sort((a, b) => a - b) } : {}),
     });
 
-    for (const [entryIndex, entry] of orderedEntries.entries()) {
-      const label = `Caching ${entry.path}`;
-      const isField = /^FLD\/\d{3}\.BIN$/i.test(entry.path);
-      const isRaceCourse = /^COURSE\/C\d{2}\.BIN$/i.test(entry.path);
-      if (isField || isRaceCourse) {
-        const bytes = await source.disc.readFile(entry.path);
-        await writeBytes(importDirectory, `game/${entry.path}`, bytes);
-        if (isField) {
-          const summary = summarizeField(entry, bytes);
-          fields.push(summary);
-          progress(
-            "compile",
-            `Compiling FLD/${summary.fieldNumber.toString().padStart(3, "0")} (${compiledFieldCount + 1}/${fieldTotal})`,
-            compiledFieldCount,
-            fieldTotal,
-          );
-          const mesh = compileFieldVertexColorMesh(bytes);
-          const collision = compileFieldCollision(bytes);
-          const compiledPath = `compiled/field-${summary.fieldNumber.toString().padStart(3, "0")}.mesh`;
-          await writeBytes(importDirectory, compiledPath, serializeCompiledField(mesh));
-          compiledFields.push({
-            fieldNumber: summary.fieldNumber,
-            path: compiledPath,
-            cacheVersion: compiledFieldCacheVersion,
-            vertexCount: mesh.vertexCount,
-            triangleCount: mesh.triangleCount,
-            primitiveCount: mesh.primitiveCount,
-          });
-          const collisionPath = `compiled/collision-${summary.fieldNumber.toString().padStart(3, "0")}.bin`;
-          await writeBytes(importDirectory, collisionPath, serializeCompiledCollision(collision));
-          collisionFields.push({ fieldNumber: summary.fieldNumber, path: collisionPath, triangleCount: collision.triangleCount });
-          compiledFieldCount += 1;
+    const cacheSelectedEntries = async (): Promise<void> => {
+      for (const [entryIndex, entry] of orderedEntries.entries()) {
+        const label = `Caching ${entry.path}`;
+        const isField = /^FLD\/\d{3}\.BIN$/i.test(entry.path);
+        const isRaceCourse = /^COURSE\/C\d{2}\.BIN$/i.test(entry.path);
+        if (isField || isRaceCourse) {
+          const bytes = await disc.readFile(entry.path);
+          await writeBytes(importDirectory, `game/${entry.path}`, bytes);
+          if (isField) {
+            const summary = summarizeField(entry, bytes);
+            fields.push(summary);
+            progress(
+              "compile",
+              `Compiling FLD/${summary.fieldNumber.toString().padStart(3, "0")} (${compiledFieldCount + 1}/${fieldTotal})`,
+              compiledFieldCount,
+              fieldTotal,
+            );
+            const mesh = compileFieldVertexColorMesh(bytes);
+            const collision = compileFieldCollision(bytes);
+            const compiledPath = `compiled/field-${summary.fieldNumber.toString().padStart(3, "0")}.mesh`;
+            await writeBytes(importDirectory, compiledPath, serializeCompiledField(mesh));
+            compiledFields.push({
+              fieldNumber: summary.fieldNumber,
+              path: compiledPath,
+              cacheVersion: compiledFieldCacheVersion,
+              vertexCount: mesh.vertexCount,
+              triangleCount: mesh.triangleCount,
+              primitiveCount: mesh.primitiveCount,
+            });
+            const collisionPath = `compiled/collision-${summary.fieldNumber.toString().padStart(3, "0")}.bin`;
+            await writeBytes(importDirectory, collisionPath, serializeCompiledCollision(collision));
+            collisionFields.push({ fieldNumber: summary.fieldNumber, path: collisionPath, triangleCount: collision.triangleCount });
+            compiledFieldCount += 1;
+          } else {
+            const summary = summarizeRaceCourse(entry, bytes);
+            raceCourses.push(summary);
+            progress(
+              "compile",
+              `Compiling COURSE/C${summary.courseId.toString().padStart(2, "0")} (${compiledRaceCourseCount + 1}/${raceCourseTotal})`,
+              compiledRaceCourseCount,
+              raceCourseTotal,
+            );
+            const mesh = compileFieldVertexColorMesh(bytes);
+            const collision = compileFieldCollision(bytes);
+            const compiledPath = `compiled/course-${summary.courseId.toString().padStart(2, "0")}.mesh`;
+            await writeBytes(importDirectory, compiledPath, serializeCompiledField(mesh));
+            compiledRaceCourses.push({
+              courseId: summary.courseId,
+              path: compiledPath,
+              cacheVersion: compiledFieldCacheVersion,
+              vertexCount: mesh.vertexCount,
+              triangleCount: mesh.triangleCount,
+              primitiveCount: mesh.primitiveCount,
+            });
+            const collisionPath = `compiled/course-collision-${summary.courseId.toString().padStart(2, "0")}.bin`;
+            await writeBytes(importDirectory, collisionPath, serializeCompiledCollision(collision));
+            raceCourseCollisions.push({ courseId: summary.courseId, path: collisionPath, triangleCount: collision.triangleCount });
+            compiledRaceCourseCount += 1;
+          }
+          completedBytes += entry.size;
+          progress("cache", label, completedBytes, totalBytes);
         } else {
-          const summary = summarizeRaceCourse(entry, bytes);
-          raceCourses.push(summary);
-          progress(
-            "compile",
-            `Compiling COURSE/C${summary.courseId.toString().padStart(2, "0")} (${compiledRaceCourseCount + 1}/${raceCourseTotal})`,
-            compiledRaceCourseCount,
-            raceCourseTotal,
-          );
-          const mesh = compileFieldVertexColorMesh(bytes);
-          const collision = compileFieldCollision(bytes);
-          const compiledPath = `compiled/course-${summary.courseId.toString().padStart(2, "0")}.mesh`;
-          await writeBytes(importDirectory, compiledPath, serializeCompiledField(mesh));
-          compiledRaceCourses.push({
-            courseId: summary.courseId,
-            path: compiledPath,
-            cacheVersion: compiledFieldCacheVersion,
-            vertexCount: mesh.vertexCount,
-            triangleCount: mesh.triangleCount,
-            primitiveCount: mesh.primitiveCount,
+          await writeFile(importDirectory, `game/${entry.path}`, async (destination) => {
+            await disc.copyFile(entry.path, destination, (written) => {
+              progress("cache", label, completedBytes + written, totalBytes);
+            });
           });
-          const collisionPath = `compiled/course-collision-${summary.courseId.toString().padStart(2, "0")}.bin`;
-          await writeBytes(importDirectory, collisionPath, serializeCompiledCollision(collision));
-          raceCourseCollisions.push({ courseId: summary.courseId, path: collisionPath, triangleCount: collision.triangleCount });
-          compiledRaceCourseCount += 1;
+          completedBytes += entry.size;
         }
-        completedBytes += entry.size;
-        progress("cache", label, completedBytes, totalBytes);
-      } else {
-        await writeFile(importDirectory, `game/${entry.path}`, async (destination) => {
-          await source?.disc.copyFile(entry.path, destination, (written) => {
-            progress("cache", label, completedBytes + written, totalBytes);
-          });
-        });
-        completedBytes += entry.size;
+        cachedFiles.push({ path: entry.path, size: entry.size });
+        if (!devFieldSet && !bootstrapPublished && entryIndex + 1 === bootstrapEntries.length) {
+          const bootstrapManifest = makeManifest("bootstrap", completedBytes);
+          await writeJson(importDirectory, "manifest.json", bootstrapManifest);
+          await publishImport(bootstrapManifest);
+          bootstrapPublished = true;
+          progress("ready", "Peach Town is ready; finishing the world in the background", completedBytes, totalBytes);
+          await bootstrapReady?.(bootstrapManifest);
+        }
       }
-      cachedFiles.push({ path: entry.path, size: entry.size });
-      if (!devFieldSet && !bootstrapPublished && entryIndex + 1 === bootstrapEntries.length) {
-        const bootstrapManifest = makeManifest("bootstrap", completedBytes);
-        await writeJson(importDirectory, "manifest.json", bootstrapManifest);
-        await publishImport(bootstrapManifest);
-        bootstrapPublished = true;
-        progress("ready", "Peach Town is ready; finishing the world in the background", completedBytes, totalBytes);
-        await bootstrapReady?.(bootstrapManifest);
-      }
+    };
+
+    try {
+      await cacheSelectedEntries();
+    } catch (error) {
+      throw describeCacheFailure(error, completedBytes);
     }
 
     await source.cleanup();
@@ -227,6 +239,12 @@ export async function importGame(
   }
 }
 
+/**
+ * Pre-flight check against the source bytes only. Each field and race course
+ * also produces a compiled mesh and a collision blob whose sizes are not known
+ * until they are built, so passing this check does not guarantee the whole
+ * install fits; `describeCacheFailure` reports the shortfall if it does not.
+ */
 async function assertCacheHeadroom(requiredBytes: number): Promise<void> {
   const estimate = await navigator.storage.estimate();
   if (estimate.quota === undefined || estimate.usage === undefined) return;
@@ -236,6 +254,18 @@ async function assertCacheHeadroom(requiredBytes: number): Promise<void> {
       `This import needs ${formatBytes(requiredBytes)} of browser storage, but only ${formatBytes(available)} is currently available.`,
     );
   }
+}
+
+/**
+ * A browser-storage exhaustion part-way through caching arrives as an opaque
+ * DOMException. Restate it in the same terms as the pre-flight check so the
+ * cause is legible rather than looking like a corrupt game image.
+ */
+function describeCacheFailure(error: unknown, cachedBytes: number): unknown {
+  if (!(error instanceof DOMException) || error.name !== "QuotaExceededError") return error;
+  return new Error(
+    `Browser storage ran out after caching ${formatBytes(cachedBytes)}. The compiled world data this import also builds does not fit alongside the copied game files; free up origin storage and import again.`,
+  );
 }
 
 function formatBytes(value: number): string {
