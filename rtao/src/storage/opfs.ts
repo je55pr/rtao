@@ -1,8 +1,9 @@
 import { BlobSource, type RandomAccessSource } from "../disc/randomAccess";
 import type { GameIdentity } from "../formats/gameIdentity";
+import { appStorageDirectoryName } from "./storageChannel";
 
 export const cacheSchemaVersion = 3;
-const appDirectoryName = "rta-browser";
+const appDirectoryName = appStorageDirectoryName(import.meta.env.VITE_RTA_CHANNEL);
 
 export interface CachedFileRecord {
   readonly path: string;
