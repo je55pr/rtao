@@ -1,6 +1,11 @@
 import type { DialogueRuntimeState } from "../formats/dialogue";
 import { RecoveredCommerceState, seedInitialEquipmentOwnership } from "../game/commerceProgress";
-import { createRecoveredDialogueStateSave, restoreRecoveredDialogueStateSave } from "../game/dialogueProgress";
+import {
+  createRecoveredDialogueStateSave,
+  isRestorableRecoveredSave,
+  recoveredSaveSchemaVersion,
+  restoreRecoveredDialogueStateSave,
+} from "../game/dialogueProgress";
 import { RecoveredEquipmentState } from "../game/equipmentProgress";
 import { RecoveredRaceState } from "../game/raceProgress";
 import { readJson, writeJson } from "../storage/opfs";
@@ -99,11 +104,13 @@ export class RecoveredProgressStore implements RecoveredProgressState {
   private async restoreFromDisk(): Promise<void> {
     try {
       const saved = await this.io.read(this.directory, recoveredProgressPath);
-      const schemaVersion = saved && typeof saved === "object"
-        ? (saved as { schemaVersion?: unknown }).schemaVersion
-        : undefined;
-      if (!Number.isInteger(schemaVersion) || (schemaVersion as number) < 4 || (schemaVersion as number) > 10) {
+      // Seeding and restoring are mutually exclusive: a restorable save already
+      // carries its own ownership counts, so seeding first would add a second
+      // set of starting parts on top of them.
+      if (!isRestorableRecoveredSave(saved)) {
         seedInitialEquipmentOwnership(this.dialogueState);
+        console.warn(`The recovered persistent state is not schema ${recoveredSaveSchemaVersion}; a fresh state will be used.`);
+        return;
       }
       restoreRecoveredDialogueStateSave(
         saved,
