@@ -2,7 +2,7 @@
 
 **Active implementation:** `rtao/` — Three.js / TypeScript browser game  
 **Authority:** European PAL executable/data supplied locally by the developer  
-**Current priority:** DEV validation and promotion of the first playable Peach Raceway / Q's Factory race slice
+**Current priority:** race-facing UX, presentation and hardening on DEV after the first playable Peach Raceway release
 
 GitHub issues are the actionable backlog. This page is only the concise implementation/evidence boundary; do not grow it into a second task tracker.
 
@@ -18,14 +18,15 @@ The first ordinary-race vertical slice is integrated on `dev`. Verified foundati
 - Q's Factory's executable-backed race selector and `StartRace` handoff, currently launching only validated activity 0 / Peach Raceway;
 - recovered player equipment selectors passed into the Q's Factory-launched race;
 - deterministic finish/reward state, Cake credit, best-finish/licence updates and recovered-progress persistence;
+- game-facing race HUD plus a dedicated completion panel that presents the already-applied player/team places, exact Cake credit, best result and licence promotion without recalculating progression;
 - race exit restores the suspended live town-driving session instead of rebuilding a synthetic return state.
 
 Primary race write-ups remain `PAL_NATIVE_RACE_FRAME_2026-09-05.md`, `PAL_NATIVE_RACE_MATH_2026-09-05.md`, `PAL_NATIVE_RACE_CONTACT_2026-09-05.md`, and `PAL_NATIVE_RACE_COLLISION_2026-09-05.md`. Supporting 2026-09-10 activity, interaction and equipment censuses are retained under `docs/archaeology/` and `docs/evidence/`.
 
 ## Immediate work
 
-1. Human DEV play/visual validation of the integrated Peach/Q's Factory slice before promotion from `dev` to stable `main`.
-2. Continue the race-facing UX/presentation tranche only after the promotion candidate is accepted.
+1. Continue the race-facing UX/presentation tranche and deterministic course validation on `dev`.
+2. Keep additional course launches and unresolved native post-race dialogue branching gated until their evidence boundaries are closed.
 
 ## Explicitly outside the current race gate
 
@@ -38,7 +39,7 @@ Primary race write-ups remain `PAL_NATIVE_RACE_FRAME_2026-09-05.md`, `PAL_NATIVE
 - wheel animation and the later UI callback;
 - hardware-exact VU timing/flags, rounding and extended-exponent behavior beyond the bounded host-float32 oracle.
 
-The first playable Peach Raceway slice and its Q's Factory launch path are implemented to this evidence boundary. A deterministic PAL-backed moving-race capture is retained, but stable-branch promotion still requires the human DEV play/visual check defined by repository policy.
+The first playable Peach Raceway slice and its Q's Factory launch path have been promoted to stable `main`; ongoing race-facing polish continues on `dev`. A deterministic PAL-backed moving-race capture is retained.
 
 ## Validation and evidence
 

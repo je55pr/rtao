@@ -8,6 +8,7 @@ import { fieldDisplayName, type GameHudState, gameHudView, raceStatusText } from
 import { ImportController } from "./app/importController";
 import { canOpenPauseMenu } from "./app/pauseState";
 import { RecoveredProgressStore } from "./app/recoveredProgressStore";
+import { raceResultsView } from "./app/raceResultsModel";
 import { SceneFade } from "./app/sceneTransition";
 import { carAssetPath } from "./formats/carPath";
 import type { DialogueActionToken, DialogueEntity, DialogueFlow, DialogueRuntimeState, DialogueVariant } from "./formats/dialogue";
@@ -82,7 +83,7 @@ import {
   readDevelopmentPartsSave,
   selectedPart,
 } from "./game/parts";
-import type { RecoveredRaceState } from "./game/raceProgress";
+import type { RaceCompletionResult, RecoveredRaceState } from "./game/raceProgress";
 import type { PeachRaceCoordinator } from "./game/raceSession/peachRaceCoordinator";
 import { qFactoryRaceLaunchActivityId, qFactoryRaceOptions, qFactoryRaceSelectionTargets } from "./game/raceSession/qFactoryRaceFlow";
 import type { RaceView } from "./game/raceView";
@@ -143,6 +144,14 @@ const {
   hudSpeed,
   hudStatus,
   hudHint,
+  raceResultsOverlay,
+  raceResultsTitle,
+  raceResultsPlaces,
+  raceResultsPrize,
+  raceResultsBalance,
+  raceResultsBest,
+  raceResultsPromotion,
+  raceResultsReturn,
   debugOverlay,
   debugLiveRows,
   pauseOverlay,
@@ -179,6 +188,7 @@ let peachRaceLastTimestamp = 0;
 let peachRaceAccumulatorMs = 0;
 let peachRaceSceneTime = 0;
 let peachRaceRewardApplied = false;
+let peachRaceResultOpen = false;
 let peachRaceSuspendedTownSession = false;
 const peachRaceKeys = new Set<string>();
 let activeDirectory: FileSystemDirectoryHandle | undefined;
@@ -283,6 +293,7 @@ raceToggle.addEventListener("click", () => {
   if (peachRaceCoordinator) stopPeachRace();
   else void startPeachRace().catch((error) => { stopPeachRace(); showError("Peach Raceway could not start.", error); });
 });
+raceResultsReturn.addEventListener("click", stopPeachRace);
 // Registered before the race and dialogue handlers so that an Escape they
 // consume is still seen here while their state is live: leaving a race must not
 // also open the pause layer behind it.
@@ -946,6 +957,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
   peachRaceLastTimestamp = 0;
   peachRaceAccumulatorMs = 0;
   peachRaceRewardApplied = false;
+  hidePeachRaceResults();
   peachRaceKeys.clear();
   viewerHost.querySelector<HTMLElement>(".world-canvas")?.style.setProperty("visibility", "hidden");
   requiredElement<HTMLElement>("viewer-title").textContent = "Peach Raceway";
@@ -1017,9 +1029,17 @@ function runPeachRaceFrame(timestamp: number): void {
     peachRaceCoordinator.step({ sceneTime: peachRaceSceneTime++, playerCommands: peachRaceCommandMask() });
     peachRaceAccumulatorMs -= 20;
     applyPeachRaceResultIfReady();
+    if (peachRaceResultOpen) {
+      peachRaceAccumulatorMs = 0;
+      break;
+    }
   }
   peachRaceCoordinator.syncView(peachRaceView);
   refreshGameHud();
+  if (peachRaceResultOpen) {
+    peachRaceFrame = 0;
+    return;
+  }
   peachRaceFrame = requestAnimationFrame(runPeachRaceFrame);
 }
 
@@ -1034,6 +1054,13 @@ function peachRaceCommandMask(): number {
 
 function handlePeachRaceKeyDown(event: KeyboardEvent): void {
   if (!peachRaceCoordinator) return;
+  if (peachRaceResultOpen) {
+    if (["Escape", "Enter", "Space", "KeyE"].includes(event.code)) {
+      event.preventDefault();
+      stopPeachRace();
+    }
+    return;
+  }
   if (event.code === "Escape") {
     event.preventDefault();
     stopPeachRace();
@@ -1052,7 +1079,8 @@ function handlePeachRaceKeyUp(event: KeyboardEvent): void {
 
 function applyPeachRaceResultIfReady(): void {
   if (peachRaceRewardApplied || !peachRaceCoordinator || !activeExecutableBytes || !playerRaceState || !playerCommerceState) return;
-  if (peachRaceCoordinator.runtime.session.resultHandoff().status !== "ready") return;
+  const handoff = peachRaceCoordinator.runtime.session.resultHandoff();
+  if (handoff.status !== "ready") return;
   const result = peachRaceCoordinator.runtime.session.applyResult(
     readRaceCatalogue(activeExecutableBytes), playerRaceState, playerCommerceState,
   );
@@ -1060,10 +1088,43 @@ function applyPeachRaceResultIfReady(): void {
   queueRecoveredProgressSave();
   console.info(`Peach Raceway result applied: best native finish ${result.bestFinishIndex}, +${result.prizeCake} Cake.`);
   refreshGameHud();
+  showPeachRaceResults(result, handoff.nativeFinishIndices);
+}
+
+function showPeachRaceResults(result: RaceCompletionResult, nativeFinishIndices: readonly number[]): void {
+  const view = raceResultsView({ raceName: "Peach Raceway", completion: result, nativeFinishIndices });
+  raceResultsTitle.textContent = view.raceName;
+  raceResultsPlaces.replaceChildren(...view.finishers.map((finisher) => {
+    const row = document.createElement("div");
+    row.className = "race-results-place";
+    const label = document.createElement("span");
+    label.textContent = finisher.label;
+    const place = document.createElement("strong");
+    place.textContent = finisher.place;
+    row.append(label, place);
+    return row;
+  }));
+  raceResultsPrize.textContent = view.prize;
+  raceResultsBalance.textContent = view.balance;
+  raceResultsBest.textContent = view.bestResult;
+  raceResultsBest.classList.toggle("updated", view.bestUpdated);
+  raceResultsPromotion.textContent = view.promotion;
+  raceResultsPromotion.hidden = !view.promotionVisible;
+  peachRaceResultOpen = true;
+  raceResultsOverlay.hidden = false;
+  gameHud.hidden = true;
+  raceResultsReturn.focus();
+}
+
+function hidePeachRaceResults(): void {
+  peachRaceResultOpen = false;
+  raceResultsOverlay.hidden = true;
+  raceResultsPlaces.replaceChildren();
 }
 
 function stopPeachRace(): void {
   const resumeTownSession = peachRaceSuspendedTownSession && !!drivingGame && isDriving;
+  hidePeachRaceResults();
   peachRaceSuspendedTownSession = false;
   if (peachRaceFrame) cancelAnimationFrame(peachRaceFrame);
   peachRaceFrame = 0;
@@ -1229,7 +1290,7 @@ function currentGameHudState(driveState?: CarState): GameHudState {
 function refreshGameHud(driveState?: CarState): void {
   const view = gameHudView(currentGameHudState(driveState));
   if (playUiActive) {
-    gameHud.hidden = !view.visible;
+    gameHud.hidden = peachRaceResultOpen || !view.visible;
     installedPanel.hidden = view.visible;
   }
   hudLocation.textContent = view.location;
