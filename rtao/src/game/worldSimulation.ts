@@ -1,6 +1,7 @@
 import type { OutdoorResidentDefinition } from "../formats/overworld";
 import type { Q62CarModel } from "./carView";
 import type { DrivingWorld, Vec3 } from "./worldCollision";
+import { orientedBoundsOverlapXZ, type HorizontalBounds } from "./interactionContact";
 import type { WorldView } from "./worldView";
 
 export interface ResidentState {
@@ -157,6 +158,18 @@ export class BrowserWorldSimulation {
       if (distance < bestDistance) { best = state; bestDistance = distance; }
     }
     return best;
+  }
+
+  contacts(fieldNumber: number, position: Vec3, yaw: number, playerBounds: HorizontalBounds): ResidentState[] {
+    const player = { position, yaw, bounds: playerBounds };
+    return this.residents
+      .map((resident) => resident.state)
+      .filter((state) => {
+        if (state.fieldNumber !== fieldNumber) return false;
+        const model = this.models.get(state.id);
+        return model ? orientedBoundsOverlapXZ(player, { position: state.position, yaw: state.yaw, bounds: model.localBounds }) : false;
+      })
+      .sort((a, b) => Math.hypot(a.position.x - position.x, a.position.z - position.z) - Math.hypot(b.position.x - position.x, b.position.z - position.z));
   }
 
   private readonly frame = (time: number): void => {
