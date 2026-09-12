@@ -8,7 +8,8 @@ const startRaceOpcode = 0x03;
 export interface QFactoryRaceOption {
   readonly activity: RaceActivityDescriptor;
   readonly unlocked: boolean;
-  readonly launchSupported: boolean;
+  readonly bestFinishIndex: number;
+  readonly completedTopSix: boolean;
 }
 
 export function qFactoryRaceSelectionTargets(action: DialogueActionToken): {
@@ -25,12 +26,11 @@ export function qFactoryRaceOptions(
   catalogue: RaceCatalogue,
   races: RecoveredRaceState,
   areaIndex: number,
-  supportedActivityIds: readonly number[] = [0],
 ): readonly QFactoryRaceOption[] {
-  const supported = new Set(supportedActivityIds);
   return raceActivitiesForArea(catalogue, areaIndex).map((activity) => {
     const unlocked = races.isUnlocked(activity);
-    return { activity, unlocked, launchSupported: unlocked && activity.ordinaryRace && supported.has(activity.activityId) };
+    const bestFinishIndex = races.finishIndex(activity.activityId);
+    return { activity, unlocked, bestFinishIndex, completedTopSix: bestFinishIndex < 6 };
   });
 }
 

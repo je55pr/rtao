@@ -113,7 +113,7 @@ export class RecoveredRaceState {
     }
 
     if (activity.variantId === this.license && this.license < maximumRaceLicenseClass &&
-      playerFinishIndex < 6 && racesInLicenseClass(catalogue, this.license).every((race) => this.finishIndex(race.activityId) < 6)) {
+      racesInLicenseClass(catalogue, this.license).every((race) => this.finishIndex(race.activityId) < 6)) {
       this.license += 1;
       this.progressRevision += 1;
     }

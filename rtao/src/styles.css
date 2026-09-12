@@ -500,6 +500,10 @@ h1 em { color: var(--red); font-style: normal; }
 .factory-choices button.selected { color: #ffe567; }
 .factory-choices button.selected::before { content: ">"; position: absolute; left: 0; }
 .factory-choices button:focus-visible { outline: 2px solid #ffe567; outline-offset: 2px; }
+.factory-choices button:disabled { opacity: .55; cursor: default; }
+.factory-race-choice { display: grid; gap: .08em; }
+.factory-race-status { color: #dfe5bd; font-size: clamp(14px, .78em, 16px); line-height: 1.1; }
+.factory-race-status:empty { display: none; }
 
 .factory-host-action {
   display: grid;
