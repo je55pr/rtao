@@ -87,7 +87,7 @@ import {
 } from "./game/parts";
 import type { RaceCompletionResult, RecoveredRaceState } from "./game/raceProgress";
 import type { PeachRaceCoordinator } from "./game/raceSession/peachRaceCoordinator";
-import { qFactoryRaceLaunchActivityId, qFactoryRaceOptions, qFactoryRaceSelectionTargets } from "./game/raceSession/qFactoryRaceFlow";
+import { qFactoryRaceLaunchActivityId, qFactoryRaceOptions, qFactoryRaceSelectionTargets, type QFactoryRaceOption } from "./game/raceSession/qFactoryRaceFlow";
 import type { RaceView } from "./game/raceView";
 import {
   PartsShopCatalogueSession,
@@ -2930,19 +2930,35 @@ function qFactoryRaceChoices() {
   return qFactoryRaceOptions(readRaceCatalogue(activeExecutableBytes), playerRaceState, session.interaction.areaIndex);
 }
 
+function qFactoryRaceLaunchSupported(option: QFactoryRaceOption | undefined): boolean {
+  // RTAO implementation gate only. Native availability is carried by option.unlocked.
+  return Boolean(option?.unlocked && option.activity.activityId === 0);
+}
+
 function renderQFactoryRaceChoices(host: HTMLElement): void {
   const session = qFactorySession;
   if (!session) return;
   const options = qFactoryRaceChoices();
-  if (!options[session.raceOptionIndex]?.launchSupported) session.raceOptionIndex = Math.max(0, options.findIndex((option) => option.launchSupported));
+  if (!qFactoryRaceLaunchSupported(options[session.raceOptionIndex])) {
+    session.raceOptionIndex = Math.max(0, options.findIndex(qFactoryRaceLaunchSupported));
+  }
   options.forEach((option, index) => {
+    const launchSupported = qFactoryRaceLaunchSupported(option);
     const button = document.createElement("button");
     button.type = "button";
-    button.disabled = !option.launchSupported;
-    button.textContent = option.activity.name + (option.unlocked ? option.launchSupported ? "" : " · not validated yet" : " · licence locked");
+    button.className = "factory-race-choice";
+    button.disabled = !launchSupported;
+    button.dataset.nativeAvailability = option.unlocked ? "unlocked" : "locked";
+    const name = document.createElement("span");
+    name.className = "factory-race-name";
+    name.textContent = option.activity.name;
+    const status = document.createElement("small");
+    status.className = "factory-race-status";
+    status.textContent = [!option.unlocked ? "Licence locked" : "", option.completedTopSix ? "Top-6 recorded" : "", option.unlocked && !launchSupported ? "RTAO runtime pending" : ""].filter(Boolean).join(" · ");
+    button.append(name, status);
     button.classList.toggle("selected", index === session.raceOptionIndex);
     button.setAttribute("aria-current", index === session.raceOptionIndex ? "true" : "false");
-    button.addEventListener("mouseenter", () => { if (option.launchSupported && qFactorySession) { qFactorySession.raceOptionIndex = index; renderQFactoryDialogue(); } });
+    button.addEventListener("mouseenter", () => { if (launchSupported && qFactorySession) { qFactorySession.raceOptionIndex = index; renderQFactoryDialogue(); } });
     button.addEventListener("click", () => selectQFactoryRace(index));
     host.append(button);
   });
@@ -2953,7 +2969,7 @@ function selectQFactoryRace(index: number): void {
   const action = session?.flow.currentExternalAction;
   if (!session || !action || action.opcode !== raceSelectActionOpcode) return;
   const option = qFactoryRaceChoices()[index];
-  if (!option?.launchSupported) return;
+  if (!option || !qFactoryRaceLaunchSupported(option)) return;
   session.raceOptionIndex = index;
   session.selectedRaceActivityId = option.activity.activityId;
   const { selectedTarget } = qFactoryRaceSelectionTargets(action);

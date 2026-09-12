@@ -16,7 +16,7 @@ The first ordinary-race vertical slice is integrated on `dev`. Verified foundati
 - the enclosing ordinary vehicle frame validated against retained PAL execution on original courses;
 - rendered Peach Raceway (`COURSE/C00`) with the recovered 24-car grid and deterministic moving capture;
 - C00–C14 accepted as course geometry/collision/native-start-grid inputs: 15/15 compile and render, 360/360 recovered start positions ground, and each representative 24-car grid repeats pixel-identically;
-- Q's Factory's executable-backed race selector and `StartRace` handoff, currently launching only validated activity 0 / Peach Raceway;
+- Q's Factory's executable-backed selector now exposes each authored area range with native licence availability and saved top-six progress; its `StartRace` handoff still launches only validated activity 0 / Peach Raceway;
 - recovered player equipment selectors passed into the Q's Factory-launched race;
 - deterministic finish/reward state, Cake credit, best-finish/licence updates and recovered-progress persistence;
 - game-facing race HUD plus a native-timed start signal driven by PAL widget states 2–6 and scene flag `0x4`, followed by a dedicated completion panel that presents the already-applied player/team places, exact Cake credit, best result and licence promotion without recalculating progression;
@@ -28,13 +28,13 @@ Overworld interaction activation is explicit browser host policy: manual NPC/doo
 
 ## Immediate work
 
-1. Connect the accepted C00–C14 course set to recovered licence/race availability without bypassing activity-level evidence.
-2. Bring the next ordinary race through the existing generic race pipeline, keeping unresolved post-race dialogue branching gated.
+1. Bring the next ordinary race through the existing generic race pipeline, keeping unresolved post-race dialogue branching gated.
+2. Continue activity-level validation before removing the explicit activity-0 Q's Factory launch gate.
 
 ## Explicitly outside the current race gate
 
 - Q's Factory post-race dialogue/result branching whose native `resultCode` mapping has not yet been proven;
-- launching additional ordinary activities from the selector until their licence/availability/progression integration is validated; course geometry acceptance alone is not a launch gate;
+- launching additional ordinary activities from the selector until their activity-specific runtime path is validated; licence availability/progress is recovered, but course geometry acceptance alone is not a launch gate;
 - complete native scene initialization and reset/debug paths;
 - exact original race-start widget sprites/colours, countdown cue-45 playback semantics and the separate 64-update fade appearance;
 - live race position ordering: `OrdinaryRaceSession.livePositions()` implements the native ranking sort, but the Peach coordinator supplies no navigation output/distance for any car, and the human-driven car 0 runs no navigation at all, so the session reports `navigation-metrics-required` and the race HUD shows lap and finish state without a live place;

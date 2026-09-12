@@ -31,6 +31,17 @@ describe("recovered ordinary-race progress", () => {
     expect(races.finishEntries().slice(0, 3)).toEqual([5, 4, 0xff]);
   });
 
+  test("promotes from stored bests even when the replay result itself is outside the top six", () => {
+    const catalogue = syntheticCatalogue([0, 0, 1]);
+    const races = new RecoveredRaceState();
+    const finishes = Array<number>(24).fill(nativeUnfinishedRaceIndex);
+    finishes[0] = 5;
+    finishes[1] = 4;
+    expect(races.restore(0, finishes)).toBe(true);
+    const result = races.completeOrdinaryRace(catalogue, 1, [20], new RecoveredCommerceState());
+    expect(result).toMatchObject({ promoted: true, licenseBefore: 0, licenseAfter: 1, bestFinishIndex: 4 });
+  });
+
   test("rejects locked and non-race activities without changing progress or Cake", () => {
     const catalogue = syntheticCatalogue([0, 1]);
     const races = new RecoveredRaceState();
