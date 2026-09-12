@@ -20,6 +20,7 @@ Useful entry points include:
 - `executable_probe.py` — bounded PAL executable virtual-address reads;
 - `dialogue_trace.py` — fixed-interior dialogue/control traces;
 - `race_course_probe.py` — compile and summarize executable-referenced ordinary race courses;
+- `race_course_validation.mjs` — C00–C14 structural, grounding, overview and repeat-grid acceptance sweep;
 - `race_grid_capture.mjs` — deterministic race grid/body/paint evidence captures;
 - `sandbox_fixture.py` — low-memory derived outdoor fixture and capture workflow;
 - `car_visual_capture.py` — deterministic close-car visual captures;

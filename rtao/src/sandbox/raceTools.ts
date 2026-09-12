@@ -119,6 +119,30 @@ export async function inspectRaceCourse(courseId: number, files: readonly File[]
   }
 }
 
+export async function captureRaceCourseOverviewFromBrowserFiles(courseId: number, files: readonly File[]) {
+  if (files.length === 0) throw new Error("Provide an ISO, BIN, or BIN/CUE pair.");
+  if (!Number.isInteger(courseId) || courseId < 0 || courseId > 99) throw new RangeError("Race course overview requires an integer course ID from 0 through 99.");
+  const source = await openDirectImportSource([...files]);
+  let world: WorldView | undefined;
+  try {
+    const bytes = await source.disc.readFile(`COURSE/C${courseId.toString().padStart(2, "0")}.BIN`);
+    const mesh = compileFieldVertexColorMesh(bytes);
+    const size = { width: 1280, height: 960 } as const;
+    world = new WorldView(ensureHost(size, "rta-sandbox-race-course-overview"));
+    world.startWorld();
+    world.addCompiledFieldMesh(223, mesh);
+    world.finishWorld();
+    const blob = await world.capturePng({ id: `race-course-${courseId}`, label: `C${courseId.toString().padStart(2, "0")} — whole-course inspection`,
+      kind: "field-overview", fieldNumber: 223, size, visibilityMode: "unlimited" }, size);
+    return { courseId, triangleCount: mesh.triangleCount, dataUrl: await blobDataUrl(blob),
+      sha256: await sha256Hex(new Uint8Array(await blob.arrayBuffer())) };
+  } finally {
+    world?.dispose();
+    document.getElementById("rta-sandbox-race-course-overview")?.remove();
+    await source.cleanup();
+  }
+}
+
 export async function captureRaceGridFromBrowserFiles(activityId: number, files: readonly File[]): Promise<SandboxRaceGridCapture> {
   const source = await openDirectImportSource([...files]);
   let world: WorldView | undefined;

@@ -32,7 +32,7 @@ declare const __RTA_DEV_FIXTURE_COMPILER_FINGERPRINT__: string;
 import type { SandboxCaptureInputFile, SandboxCarVisualState, SandboxCaptureRequest, SandboxPreparedWorldInfo, SandboxFieldSurfaceSummary, SandboxDevFixtureSourceInfo, SandboxDevFixtureAssetInfo, SandboxDevFixtureManifest, SandboxCaptureResult, SandboxShopInteriorDialogueInfo, SandboxShopInteriorDialogueState, SandboxShopInteriorCensusEntry, SandboxShopInteriorDialogueEntityTrace, SandboxRaceGridCapture, SandboxRaceCatalogueSummary, SandboxRaceCourseSummary } from "./sandbox/api";
 import { blobDataUrl, cloneBytes, ensureHost, sha256Hex } from "./sandbox/browserHelpers";
 import { readSupportedIdentity, type DirectImportSource } from "./sandbox/source";
-import { captureRaceGridFromBrowserFiles, inspectRaceCatalogue, inspectRaceCourse } from "./sandbox/raceTools";
+import { captureRaceCourseOverviewFromBrowserFiles, captureRaceGridFromBrowserFiles, inspectRaceCatalogue, inspectRaceCourse } from "./sandbox/raceTools";
 interface PreparedOutdoorWorld extends SandboxPreparedWorldInfo {
   readonly worldView: WorldView;
 }
@@ -1096,5 +1096,6 @@ window.__rtaSandboxCapture = {
   inspectExecutableVirtualBytes,
   inspectRaceCatalogue,
   inspectRaceCourse,
+  captureRaceCourseOverviewFromBrowserFiles,
   captureRaceGridFromBrowserFiles,
 };
