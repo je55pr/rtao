@@ -15,6 +15,7 @@ The first ordinary-race vertical slice is integrated on `dev`. Verified foundati
 - seven-probe ground support, course collision, contact/orientation, collision response and original-course obstacle handling;
 - the enclosing ordinary vehicle frame validated against retained PAL execution on original courses;
 - rendered Peach Raceway (`COURSE/C00`) with the recovered 24-car grid and deterministic moving capture;
+- C00–C14 accepted as course geometry/collision/native-start-grid inputs: 15/15 compile and render, 360/360 recovered start positions ground, and each representative 24-car grid repeats pixel-identically;
 - Q's Factory's executable-backed race selector and `StartRace` handoff, currently launching only validated activity 0 / Peach Raceway;
 - recovered player equipment selectors passed into the Q's Factory-launched race;
 - deterministic finish/reward state, Cake credit, best-finish/licence updates and recovered-progress persistence;
@@ -27,13 +28,13 @@ Overworld interaction activation is explicit browser host policy: manual NPC/doo
 
 ## Immediate work
 
-1. Continue the race-facing UX/presentation tranche and deterministic course validation on `dev`.
-2. Keep additional course launches and unresolved native post-race dialogue branching gated until their evidence boundaries are closed.
+1. Connect the accepted C00–C14 course set to recovered licence/race availability without bypassing activity-level evidence.
+2. Bring the next ordinary race through the existing generic race pipeline, keeping unresolved post-race dialogue branching gated.
 
 ## Explicitly outside the current race gate
 
 - Q's Factory post-race dialogue/result branching whose native `resultCode` mapping has not yet been proven;
-- launching Peach Raceway II, Temple Raceway or any other unvalidated ordinary course from the selector;
+- launching additional ordinary activities from the selector until their licence/availability/progression integration is validated; course geometry acceptance alone is not a launch gate;
 - complete native scene initialization and reset/debug paths;
 - exact original race-start widget sprites/colours, countdown cue-45 playback semantics and the separate 64-update fade appearance;
 - live race position ordering: `OrdinaryRaceSession.livePositions()` implements the native ranking sort, but the Peach coordinator supplies no navigation output/distance for any car, and the human-driven car 0 runs no navigation at all, so the session reports `navigation-metrics-required` and the race HUD shows lap and finish state without a live place;
@@ -48,7 +49,7 @@ The first playable Peach Raceway slice and its Q's Factory launch path have been
 
 - CI-safe gate: `cd rtao && npm run check`
 - PAL-only gate: `npm run test:pal` with locally supplied original-game inputs
-- Race evidence: [`evidence/races/2026-09-05/`](evidence/races/2026-09-05/)
+- Race evidence: [`evidence/races/2026-09-05/`](evidence/races/2026-09-05/) plus the C00–C14 acceptance summary at [`evidence/races/2026-09-12/course-validation-summary.json`](evidence/races/2026-09-12/course-validation-summary.json)
 - Subsystem archaeology: [`archaeology/`](archaeology/)
 - Architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md)
 - Completion rules: [`development/DEFINITION_OF_DONE.md`](development/DEFINITION_OF_DONE.md)

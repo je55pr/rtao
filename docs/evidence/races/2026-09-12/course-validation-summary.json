@@ -1,0 +1,402 @@
+{
+  "authority": "European PAL SLES_513.56 and local original COURSE/Cxx packages",
+  "ordinaryRaceCount": 24,
+  "uniqueCourseCount": 15,
+  "courseIds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "pageErrorCount": 0,
+  "totals": {
+    "renderTriangles": 228072,
+    "collisionTriangles": 45969,
+    "groundedStarts": 360
+  },
+  "results": [
+    {
+      "courseId": 0,
+      "activityId": 0,
+      "activityName": "Peach Raceway",
+      "renderTriangles": 14204,
+      "collisionTriangles": 1547,
+      "renderVertices": 42612,
+      "textures": 69,
+      "groundedStartCount": 24,
+      "startYRange": [
+        1.100000023841858,
+        1.100000023841858
+      ],
+      "startSurfaceFlags": [
+        {
+          "value": 8192,
+          "count": 24
+        }
+      ],
+      "gridEntrants": 24,
+      "gridSha256": "9e920322d2636e85d86f1601f7bd4e32f09fccfdb4ba067168c798b69c4b3a67",
+      "gridRepeatIdentical": true,
+      "overviewSha256": "30a7724e6ab3d79805c1b3422ae739b09b50febc1b6969803f266aaaa4420828"
+    },
+    {
+      "courseId": 1,
+      "activityId": 2,
+      "activityName": "Temple Raceway",
+      "renderTriangles": 14048,
+      "collisionTriangles": 1687,
+      "renderVertices": 42144,
+      "textures": 68,
+      "groundedStartCount": 24,
+      "startYRange": [
+        1.100000023841858,
+        1.100000023841858
+      ],
+      "startSurfaceFlags": [
+        {
+          "value": 0,
+          "count": 24
+        }
+      ],
+      "gridEntrants": 24,
+      "gridSha256": "24f8f36d12d1a95596d5928a9a00f1eece016877f216acdf809f46f18a5a331f",
+      "gridRepeatIdentical": true,
+      "overviewSha256": "9b4ae45f14619918ecfb711d9389fff1f2f85d44bc6bbd422a2ab6e8a3f33095"
+    },
+    {
+      "courseId": 2,
+      "activityId": 4,
+      "activityName": "Desert Raceway",
+      "renderTriangles": 10134,
+      "collisionTriangles": 934,
+      "renderVertices": 30402,
+      "textures": 89,
+      "groundedStartCount": 24,
+      "startYRange": [
+        60,
+        60
+      ],
+      "startSurfaceFlags": [
+        {
+          "value": 1280,
+          "count": 24
+        }
+      ],
+      "gridEntrants": 24,
+      "gridSha256": "62a8dc2872a4b119861e58d0dd91b6abf67e019f48c758bc6db0e1af68abb46c",
+      "gridRepeatIdentical": true,
+      "overviewSha256": "36cb31849c09bd5aa99f201fac9a5e899131f52279b25249ea5a6b2eac591e93"
+    },
+    {
+      "courseId": 3,
+      "activityId": 3,
+      "activityName": "Ninja Temple Raceway",
+      "renderTriangles": 22336,
+      "collisionTriangles": 2060,
+      "renderVertices": 67008,
+      "textures": 69,
+      "groundedStartCount": 24,
+      "startYRange": [
+        10,
+        10
+      ],
+      "startSurfaceFlags": [
+        {
+          "value": 8192,
+          "count": 24
+        }
+      ],
+      "gridEntrants": 24,
+      "gridSha256": "102d55c6a929fec501819b7b5bd6d029d1ff5a975fa3cdc76dff1ca59c93ed55",
+      "gridRepeatIdentical": true,
+      "overviewSha256": "631d69974f2b30e77ee8cf17fc4e3a7a455fff0a920eaeb6af803c54477bfb72"
+    },
+    {
+      "courseId": 4,
+      "activityId": 6,
+      "activityName": "Snow Mountain Raceway",
+      "renderTriangles": 12533,
+      "collisionTriangles": 1361,
+      "renderVertices": 37599,
+      "textures": 45,
+      "groundedStartCount": 24,
+      "startYRange": [
+        10,
+        10
+      ],
+      "startSurfaceFlags": [
+        {
+          "value": 273,
+          "count": 24
+        }
+      ],
+      "gridEntrants": 24,
+      "gridSha256": "0b59f5eb2a0dae4b3909fe6dd493b8927f07c83e0920929a35c47bb38af78ff5",
+      "gridRepeatIdentical": true,
+      "overviewSha256": "bbd35fdfcead9dff7e43d55a18a43f344b4454b6846bcfe764be461e9ed31396"
+    },
+    {
+      "courseId": 5,
+      "activityId": 8,
+      "activityName": "Slick Track",
+      "renderTriangles": 14854,
+      "collisionTriangles": 2729,
+      "renderVertices": 44562,
+      "textures": 123,
+      "groundedStartCount": 24,
+      "startYRange": [
+        5,
+        5
+      ],
+      "startSurfaceFlags": [
+        {
+          "value": 1280,
+          "count": 24
+        }
+      ],
+      "gridEntrants": 24,
+      "gridSha256": "377229ad5d78ceb8027b64358635fc6d245dbf2d252216a5219dfa5fdb24a0cd",
+      "gridRepeatIdentical": true,
+      "overviewSha256": "97991cc440f42ceb1646f392eac238a9f1534b32c7811451c395722e891be7be"
+    },
+    {
+      "courseId": 6,
+      "activityId": 18,
+      "activityName": "Treasure Hunting Maze",
+      "renderTriangles": 20683,
+      "collisionTriangles": 5596,
+      "renderVertices": 62049,
+      "textures": 29,
+      "groundedStartCount": 24,
+      "startYRange": [
+        1,
+        1
+      ],
+      "startSurfaceFlags": [
+        {
+          "value": 13380,
+          "count": 24
+        }
+      ],
+      "gridEntrants": 24,
+      "gridSha256": "c96a025fc259ab6ccc526f369cf1ddbcd96e8f0f77eee0d2858fec258a1610e3",
+      "gridRepeatIdentical": true,
+      "overviewSha256": "4fc41a6dff9ffb724a489fa87fefb072a2c78e8a8dd2037e2d566c0102874e82"
+    },
+    {
+      "courseId": 7,
+      "activityId": 10,
+      "activityName": "River Raceway",
+      "renderTriangles": 17660,
+      "collisionTriangles": 2781,
+      "renderVertices": 52980,
+      "textures": 32,
+      "groundedStartCount": 24,
+      "startYRange": [
+        173,
+        173
+      ],
+      "startSurfaceFlags": [
+        {
+          "value": 1052945,
+          "count": 9
+        },
+        {
+          "value": 12561,
+          "count": 15
+        }
+      ],
+      "gridEntrants": 24,
+      "gridSha256": "872f2b966b5aa5e339c9105cac95d0571a70b17d0ec9a43f378b33c729096275",
+      "gridRepeatIdentical": true,
+      "overviewSha256": "4ff016a96fc61cb8e7523cb7753c11ba9ae6f11f7c422cfbec944921d3b3a112"
+    },
+    {
+      "courseId": 8,
+      "activityId": 15,
+      "activityName": "Tin Raceway",
+      "renderTriangles": 16297,
+      "collisionTriangles": 3533,
+      "renderVertices": 48891,
+      "textures": 57,
+      "groundedStartCount": 24,
+      "startYRange": [
+        42.48254254329782,
+        42.5
+      ],
+      "startSurfaceFlags": [
+        {
+          "value": 1057314,
+          "count": 24
+        }
+      ],
+      "gridEntrants": 24,
+      "gridSha256": "1dbe28a611edab2792e41e2e06259589c5a0a758165f9610a7808f5e4f5bd9fc",
+      "gridRepeatIdentical": true,
+      "overviewSha256": "746d1d25d68663537fb12c422a54f044b7eb76b79124312ee0d5eecd0883c976"
+    },
+    {
+      "courseId": 9,
+      "activityId": 16,
+      "activityName": "Tin Raceway",
+      "renderTriangles": 12420,
+      "collisionTriangles": 3356,
+      "renderVertices": 37260,
+      "textures": 56,
+      "groundedStartCount": 24,
+      "startYRange": [
+        42.48254254329782,
+        42.5
+      ],
+      "startSurfaceFlags": [
+        {
+          "value": 1056768,
+          "count": 24
+        }
+      ],
+      "gridEntrants": 24,
+      "gridSha256": "242907b3330d2996f927b4b91472b40049f61d628156a1fbb4fb6e4fa2d88b7d",
+      "gridRepeatIdentical": true,
+      "overviewSha256": "6d4daa092e0d9c769c02a4e412778c11006a5fbb6c833df4d7fc4c6d872d6d17"
+    },
+    {
+      "courseId": 10,
+      "activityId": 14,
+      "activityName": "Lagoon Raceway",
+      "renderTriangles": 12882,
+      "collisionTriangles": 4578,
+      "renderVertices": 38646,
+      "textures": 31,
+      "groundedStartCount": 24,
+      "startYRange": [
+        30,
+        30
+      ],
+      "startSurfaceFlags": [
+        {
+          "value": 1048849,
+          "count": 24
+        }
+      ],
+      "gridEntrants": 24,
+      "gridSha256": "82b972ab3478875f66fd3ec77e2595bd5d89b4b7bea2de8b7ec3c87b9f150b8c",
+      "gridRepeatIdentical": true,
+      "overviewSha256": "b23fc2dbedff5cbd9f0a4dc29a333514831d8e60f5347193605d56d1a6d51bea"
+    },
+    {
+      "courseId": 11,
+      "activityId": 19,
+      "activityName": "Sliding Door Race",
+      "renderTriangles": 20107,
+      "collisionTriangles": 5596,
+      "renderVertices": 60321,
+      "textures": 29,
+      "groundedStartCount": 24,
+      "startYRange": [
+        1,
+        1
+      ],
+      "startSurfaceFlags": [
+        {
+          "value": 1092,
+          "count": 22
+        },
+        {
+          "value": 9284,
+          "count": 2
+        }
+      ],
+      "gridEntrants": 24,
+      "gridSha256": "5dd1f1b973e9387c931bd366b3518cf48393f63200af549161c4d263fc176aa4",
+      "gridRepeatIdentical": true,
+      "overviewSha256": "77b360e647bfed3e84b89bd63a8ebfa8ea0e484a1e55393e4c166ad179624edd"
+    },
+    {
+      "courseId": 12,
+      "activityId": 12,
+      "activityName": "Lava Run Raceway",
+      "renderTriangles": 9769,
+      "collisionTriangles": 2741,
+      "renderVertices": 29307,
+      "textures": 41,
+      "groundedStartCount": 24,
+      "startYRange": [
+        10,
+        10
+      ],
+      "startSurfaceFlags": [
+        {
+          "value": 8465,
+          "count": 24
+        }
+      ],
+      "gridEntrants": 24,
+      "gridSha256": "f0ef6a406530e58cf6d722914e0416b1da68a6649ffc39f0e0b010404e615f56",
+      "gridRepeatIdentical": true,
+      "overviewSha256": "a3d9ab4e293abd41282fd36fdb52f5c96e5e83a3d113ca3c8a4af10d8e1169b4"
+    },
+    {
+      "courseId": 13,
+      "activityId": 20,
+      "activityName": "Highway Race",
+      "renderTriangles": 11800,
+      "collisionTriangles": 2080,
+      "renderVertices": 35400,
+      "textures": 44,
+      "groundedStartCount": 24,
+      "startYRange": [
+        100,
+        100
+      ],
+      "startSurfaceFlags": [
+        {
+          "value": 268443648,
+          "count": 24
+        }
+      ],
+      "gridEntrants": 24,
+      "gridSha256": "adb59416552d7213a8bae53a44d374dfd317e53270bc5023e0ddfb5a39a89f4a",
+      "gridRepeatIdentical": true,
+      "overviewSha256": "50aa748037bb1cd15f02a26c7a9e674e078b1d0dc9e6cdab53dd601a91786be6"
+    },
+    {
+      "courseId": 14,
+      "activityId": 22,
+      "activityName": "Drag Race",
+      "renderTriangles": 18345,
+      "collisionTriangles": 5390,
+      "renderVertices": 55035,
+      "textures": 72,
+      "groundedStartCount": 24,
+      "startYRange": [
+        100,
+        104.00675722181023
+      ],
+      "startSurfaceFlags": [
+        {
+          "value": 268443648,
+          "count": 7
+        },
+        {
+          "value": 8465,
+          "count": 17
+        }
+      ],
+      "gridEntrants": 24,
+      "gridSha256": "42baa3d60af50a69bb5fa9cb5d7c683a69f46f19dd32f4f887038dd0b3a9a25b",
+      "gridRepeatIdentical": true,
+      "overviewSha256": "60a784a04ffad985647f9dfefc30de4683dd5f41530f09dab357d91f15b9c363"
+    }
+  ]
+}

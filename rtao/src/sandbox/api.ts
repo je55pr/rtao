@@ -187,8 +187,17 @@ export interface SandboxCaptureApi {
   inspectRaceCatalogue(files: readonly File[]): Promise<SandboxRaceCatalogueSummary>;
   /** Compile one PAL COURSE/Cxx package through the shared field geometry/collision readers. */
   inspectRaceCourse(courseId: number, files: readonly File[]): Promise<SandboxRaceCourseSummary>;
+  /** Deterministic whole-course geometry overview; no gameplay launch is implied. */
+  captureRaceCourseOverviewFromBrowserFiles(courseId: number, files: readonly File[]): Promise<SandboxRaceCourseOverviewCapture>;
   /** Deterministic native grid/body/paint inspection; no simulated race movement. */
   captureRaceGridFromBrowserFiles(activityId: number, files: readonly File[]): Promise<SandboxRaceGridCapture>;
+}
+
+export interface SandboxRaceCourseOverviewCapture {
+  readonly courseId: number;
+  readonly dataUrl: string;
+  readonly sha256: string;
+  readonly triangleCount: number;
 }
 
 export interface SandboxRaceGridCapture {
