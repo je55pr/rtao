@@ -24,9 +24,17 @@ export function nativeChassisProfile(selector: number): NativeChassisProfile {
   return nativeChassisProfiles[selector]!;
 }
 
-/** Relative acceleration from an equal force after PAL's mass division. */
-export function nativeChassisForceResponseRatio(selector: number): number {
-  return nativeChassisProfiles[0]!.weight / nativeChassisProfile(selector).weight;
+/** PAL live mass source, including Big Tyre's proven +5 mass side effect. */
+export function nativeVehicleMass(chassisSelector: number, tyreSelector = 0): number {
+  if (!Number.isInteger(tyreSelector) || tyreSelector < 0 || tyreSelector > 12) {
+    throw new RangeError(`Native tyre selector must be an integer from 0 to 12; got ${tyreSelector}.`);
+  }
+  return nativeChassisProfile(chassisSelector).weight + (tyreSelector === 11 ? 5 : 0);
+}
+
+/** Relative force response against a Normal Chassis + Normal Tyre baseline. */
+export function nativeChassisForceResponseRatio(selector: number, tyreSelector = 0): number {
+  return nativeChassisProfiles[0]!.weight / nativeVehicleMass(selector, tyreSelector);
 }
 
 function profile(selector: number, name: string, price: number, weight: number): NativeChassisProfile {

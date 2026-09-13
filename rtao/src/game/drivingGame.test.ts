@@ -2,7 +2,6 @@ import { describe, expect, test } from "vitest";
 import { allWorldFieldNumbers } from "./worldTopology";
 import { DrivingWorld, flatFieldCollision, type DrivingSurfaceKind, type Vec3 } from "./worldCollision";
 import { ArcadeCarController } from "./drivingGame";
-import { aggregatePartPerformance, equipPart, defaultPartLoadout } from "./parts";
 
 function flatWorld(): DrivingWorld {
   const world = new DrivingWorld();
@@ -76,17 +75,17 @@ describe("arcade driving", () => {
     const offRoadRoad = new ArcadeCarController(new ForcedSurfaceWorld("paved-road"));
     offRoadRoad.setNativeTyreSelector(7);
     const normalOther = new ArcadeCarController(new ForcedSurfaceWorld("other"));
-    const bigOther = new ArcadeCarController(new ForcedSurfaceWorld("other"));
-    bigOther.setNativeTyreSelector(11);
+    const sportsOther = new ArcadeCarController(new ForcedSurfaceWorld("other"));
+    sportsOther.setNativeTyreSelector(1);
     for (let frame = 0; frame < 60; frame += 1) {
       const input = { throttle: 1, steering: 0, boost: false };
       normalRoad.update(1 / 60, input);
       offRoadRoad.update(1 / 60, input);
       normalOther.update(1 / 60, input);
-      bigOther.update(1 / 60, input);
+      sportsOther.update(1 / 60, input);
     }
     expect(offRoadRoad.state.speed).toBeCloseTo(normalRoad.state.speed, 8);
-    expect(bigOther.state.speed).toBeCloseTo(normalOther.state.speed, 8);
+    expect(sportsOther.state.speed).toBeCloseTo(normalOther.state.speed, 8);
   });
 
   test("applies Wet and Studless tyre coefficients on recovered wet, snow and ice surfaces", () => {
@@ -111,8 +110,7 @@ describe("arcade driving", () => {
   test("applies the selected native engine tuning", () => {
     const standard = new ArcadeCarController(flatWorld());
     const upgraded = new ArcadeCarController(flatWorld());
-    let loadout = equipPart(defaultPartLoadout, "engine", "blue-max-engine");
-    upgraded.setPartPerformance(aggregatePartPerformance(loadout));
+    upgraded.setNativeEngineSelector(2);
     for (let frame = 0; frame < 60; frame += 1) {
       standard.update(1 / 60, { throttle: 1, steering: 0, boost: false });
       upgraded.update(1 / 60, { throttle: 1, steering: 0, boost: false });
@@ -123,7 +121,7 @@ describe("arcade driving", () => {
   test("applies the PAL Light Chassis inverse-mass response to drive force", () => {
     const normal = new ArcadeCarController(flatWorld());
     const light = new ArcadeCarController(flatWorld());
-    light.setPartPerformance(aggregatePartPerformance(equipPart(defaultPartLoadout, "chassis", "light-chassis")));
+    light.setNativeChassisSelector(1);
     for (let frame = 0; frame < 60; frame += 1) {
       const input = { throttle: 1, steering: 0, boost: false };
       normal.update(1 / 60, input);
@@ -135,7 +133,7 @@ describe("arcade driving", () => {
   test("applies native Speed Transmission launch and terminal ratios", () => {
     const normal = new ArcadeCarController(flatWorld());
     const speed = new ArcadeCarController(flatWorld());
-    speed.setPartPerformance(aggregatePartPerformance(equipPart(defaultPartLoadout, "transmission", "speed-transmission")));
+    speed.setNativeTransmissionSelector(3);
     normal.update(1 / 60, { throttle: 1, steering: 0, boost: false });
     speed.update(1 / 60, { throttle: 1, steering: 0, boost: false });
     expect(speed.state.speed / normal.state.speed).toBeCloseTo(116 / 128, 8);
@@ -167,7 +165,7 @@ describe("arcade driving", () => {
   test("applies the PAL Quick Steering scalar through the live controller", () => {
     const normal = new ArcadeCarController(flatWorld());
     const quick = new ArcadeCarController(flatWorld());
-    quick.setPartPerformance(aggregatePartPerformance(equipPart(defaultPartLoadout, "steering", "quick-steering")));
+    quick.setNativeSteeringSelector(1);
     for (let frame = 0; frame < 60; frame += 1) {
       const input = { throttle: 1, steering: 1, boost: false };
       normal.update(1 / 60, input);

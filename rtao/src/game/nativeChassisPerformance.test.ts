@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { nativeChassisForceResponseRatio, nativeChassisProfile } from "./nativeChassisPerformance";
+import { nativeChassisForceResponseRatio, nativeChassisProfile, nativeVehicleMass } from "./nativeChassisPerformance";
 
 describe("native PAL chassis weights", () => {
   test("preserves executable record names, prices and weight words", () => {
@@ -16,6 +16,14 @@ describe("native PAL chassis weights", () => {
     expect(nativeChassisForceResponseRatio(2)).toBe(1.25);
     expect(nativeChassisForceResponseRatio(3)).toBeCloseTo(25 / 18);
     expect(nativeChassisForceResponseRatio(4)).toBeCloseTo(5 / 3);
+  });
+
+  test("includes Big Tyre's proven five-unit live-mass addition", () => {
+    expect(nativeVehicleMass(0, 0)).toBe(25);
+    expect(nativeVehicleMass(0, 11)).toBe(30);
+    expect(nativeVehicleMass(1, 11)).toBe(27);
+    expect(nativeChassisForceResponseRatio(0, 11)).toBeCloseTo(25 / 30);
+    expect(() => nativeVehicleMass(0, 13)).toThrow(RangeError);
   });
 
   test("rejects selectors outside the executable table", () => {

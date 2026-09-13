@@ -1193,6 +1193,10 @@ async function toggleDriving(): Promise<void> {
   drivingGame = new BrowserDrivingGameClass(drivingWorld, worldView, playerCar, handleDriveState);
   drivingGame.setPartPerformance(aggregatePartPerformance(equippedParts));
   drivingGame.setNativeTyreSelector(playerEquipmentState?.selectedItem(0, 1) ?? 0);
+  drivingGame.setNativeEngineSelector(playerEquipmentState?.selectedItem(0, 2) ?? 0);
+  drivingGame.setNativeChassisSelector(playerEquipmentState?.selectedItem(0, 3) ?? 0);
+  drivingGame.setNativeTransmissionSelector(playerEquipmentState?.selectedItem(0, 4) ?? 0);
+  drivingGame.setNativeSteeringSelector(playerEquipmentState?.selectedItem(0, 5) ?? 0);
   drivingGame.setNativeBrakeSelector(playerEquipmentState?.selectedItem(0, 6) ?? 0);
   advertisingDistanceTracker.reset();
   interactionContactTracker.clear();
@@ -2912,6 +2916,10 @@ function applyEquippedParts(): void {
   const appearance = aggregatePartsAppearance(equippedParts);
   const performance = aggregatePartPerformance(equippedParts);
   const nativeTyreSelector = playerEquipmentState?.selectedItem(0, 1) ?? 0;
+  const nativeEngineSelector = playerEquipmentState?.selectedItem(0, 2) ?? 0;
+  const nativeChassisSelector = playerEquipmentState?.selectedItem(0, 3) ?? 0;
+  const nativeTransmissionSelector = playerEquipmentState?.selectedItem(0, 4) ?? 0;
+  const nativeSteeringSelector = playerEquipmentState?.selectedItem(0, 5) ?? 0;
   const nativeBrakeSelector = playerEquipmentState?.selectedItem(0, 6) ?? 0;
   qFactoryInteriorView?.setPlayerPartsAppearance(appearance);
   qFactoryInteriorView?.setPlayerNativeTyreAppearance(nativeTyreSelector);
@@ -2921,6 +2929,10 @@ function applyEquippedParts(): void {
   playerCar?.setNativeTyreAppearance(nativeTyreSelector);
   drivingGame?.setPartPerformance(performance);
   drivingGame?.setNativeTyreSelector(nativeTyreSelector);
+  drivingGame?.setNativeEngineSelector(nativeEngineSelector);
+  drivingGame?.setNativeChassisSelector(nativeChassisSelector);
+  drivingGame?.setNativeTransmissionSelector(nativeTransmissionSelector);
+  drivingGame?.setNativeSteeringSelector(nativeSteeringSelector);
   drivingGame?.setNativeBrakeSelector(nativeBrakeSelector);
 }
 

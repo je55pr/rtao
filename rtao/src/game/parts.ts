@@ -1,7 +1,3 @@
-import { nativeEngineAccelerationRatio, nativeSteeringRatio } from "./nativeEquipmentPerformance";
-import { nativeChassisForceResponseRatio } from "./nativeChassisPerformance";
-import { nativeTransmissionLaunchAccelerationRatio, nativeTransmissionTopSpeedRatio } from "./nativeTransmissionPerformance";
-
 export const partCategoryOrder = [
   "tyres",
   "engine",
@@ -82,24 +78,24 @@ const partDefinitions: readonly PartDefinition[] = [
   part("tyres", "big-tyre", "Big Tyre", "Original oversized PAL Big Tyre geometry, raised chassis and recovered six-surface native grip profile."),
 
   part("engine", "normal-engine", "Normal Engine", "The standard Q62 engine."),
-  part("engine", "panther-engine", "Panther", "PAL drive scalar 1800 versus Normal Engine's 1500.", { acceleration: nativeEngineAccelerationRatio(1) }),
-  part("engine", "blue-max-engine", "Blue Max", "PAL drive scalar 2200 versus Normal Engine's 1500.", { acceleration: nativeEngineAccelerationRatio(2) }),
-  part("engine", "mad-v2-engine", "Mad V2", "PAL drive scalar 3300 versus Normal Engine's 1500.", { acceleration: nativeEngineAccelerationRatio(5) }),
+  part("engine", "panther-engine", "Panther", "PAL drive scalar 1800 versus Normal Engine's 1500."),
+  part("engine", "blue-max-engine", "Blue Max", "PAL drive scalar 2200 versus Normal Engine's 1500."),
+  part("engine", "mad-v2-engine", "Mad V2", "PAL drive scalar 3300 versus Normal Engine's 1500."),
 
   part("chassis", "normal-chassis", "Normal Chassis", "PAL weight word 25."),
-  part("chassis", "light-chassis", "Light Chassis", "PAL weight word 22 versus Normal Chassis' 25.", chassisPerformance(1)),
-  part("chassis", "feather-chassis", "Feather Chassis", "PAL weight word 20 versus Normal Chassis' 25.", chassisPerformance(2)),
-  part("chassis", "phantom-chassis", "Phantom Chassis", "PAL weight word 18 versus Normal Chassis' 25.", chassisPerformance(3)),
+  part("chassis", "light-chassis", "Light Chassis", "PAL weight word 22 versus Normal Chassis' 25."),
+  part("chassis", "feather-chassis", "Feather Chassis", "PAL weight word 20 versus Normal Chassis' 25."),
+  part("chassis", "phantom-chassis", "Phantom Chassis", "PAL weight word 18 versus Normal Chassis' 25."),
 
   part("transmission", "normal-transmission", "Normal Transmission", "PAL forward gears 116/162/227/318/446."),
-  part("transmission", "sports-transmission", "Sports Transmission", "PAL launch gear 116; terminal gear 490 versus Normal's 446.", transmissionPerformance(1)),
-  part("transmission", "power-transmission", "Power Transmission", "PAL launch gear 128; terminal gear 557 versus Normal's 446.", transmissionPerformance(2)),
-  part("transmission", "speed-transmission", "Speed Transmission", "PAL launch gear 128; terminal gear 660 versus Normal's 446.", transmissionPerformance(3)),
+  part("transmission", "sports-transmission", "Sports Transmission", "PAL launch gear 116; terminal gear 490 versus Normal's 446."),
+  part("transmission", "power-transmission", "Power Transmission", "PAL launch gear 128; terminal gear 557 versus Normal's 446."),
+  part("transmission", "speed-transmission", "Speed Transmission", "PAL launch gear 128; terminal gear 660 versus Normal's 446."),
 
   part("steering", "normal-steering", "Normal Steering", "The standard steering rack."),
-  part("steering", "quick-steering", "Quick Steering", "PAL steering scalar 96 versus Normal Steering's 64.", { steering: nativeSteeringRatio(1) }),
-  part("steering", "x2-quick-steering", "X2 Quick", "PAL steering scalar 128 versus Normal Steering's 64.", { steering: nativeSteeringRatio(2) }),
-  part("steering", "x3-quick-steering", "X3 Quick", "PAL steering scalar 160 versus Normal Steering's 64.", { steering: nativeSteeringRatio(3) }),
+  part("steering", "quick-steering", "Quick Steering", "PAL steering scalar 96 versus Normal Steering's 64."),
+  part("steering", "x2-quick-steering", "X2 Quick", "PAL steering scalar 128 versus Normal Steering's 64."),
+  part("steering", "x3-quick-steering", "X3 Quick", "PAL steering scalar 160 versus Normal Steering's 64."),
 
   part("brakes", "normal-pad", "Normal Pad", "PAL 32-update brake curve: gradual force from 1 to 32."),
   part("brakes", "soft-pad", "Soft Pad", "PAL curve front-loads braking force; Good for quick braking."),
@@ -336,16 +332,4 @@ function part(
 
 function nativeKey(category: number, item: number): string {
   return `${category}:${item}`;
-}
-
-function chassisPerformance(selector: number): Partial<PartPerformance> {
-  const forceResponse = nativeChassisForceResponseRatio(selector);
-  return { acceleration: forceResponse, braking: forceResponse };
-}
-
-function transmissionPerformance(selector: number): Partial<PartPerformance> {
-  return {
-    acceleration: nativeTransmissionLaunchAccelerationRatio(selector),
-    topSpeed: nativeTransmissionTopSpeedRatio(selector),
-  };
 }

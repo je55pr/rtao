@@ -1,13 +1,14 @@
 import { describe, expect, test } from "vitest";
-import { nativeEngineAccelerationRatio, nativeSteeringRatio, nativeSteeringScalars } from "./nativeEquipmentPerformance";
+import { nativeEngineAccelerationRatio, nativeEngineDriveScalars, nativeSteeringRatio, nativeSteeringScalars } from "./nativeEquipmentPerformance";
 
 describe("native equipment performance", () => {
-  test("uses the PAL engine drive scalar relative to Normal Engine", () => {
+  test("preserves all twelve PAL engine drive scalars and exact relative response", () => {
+    expect(nativeEngineDriveScalars).toEqual([1500, 1800, 2200, 2600, 2900, 3300, 3600, 3900, 4200, 4500, 6000, 30000]);
     expect(nativeEngineAccelerationRatio(0)).toBe(1);
-    expect(nativeEngineAccelerationRatio(1)).toBe(1.2);
-    expect(nativeEngineAccelerationRatio(2)).toBeCloseTo(22 / 15, 12);
+    expect(nativeEngineAccelerationRatio(3)).toBeCloseTo(26 / 15, 12);
     expect(nativeEngineAccelerationRatio(5)).toBe(2.2);
-    expect(() => nativeEngineAccelerationRatio(3)).toThrow(RangeError);
+    expect(nativeEngineAccelerationRatio(11)).toBe(20);
+    expect(() => nativeEngineAccelerationRatio(12)).toThrow(RangeError);
   });
 
   test("preserves all four PAL steering scalars and exact ratios", () => {
