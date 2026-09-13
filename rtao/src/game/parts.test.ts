@@ -28,29 +28,24 @@ describe("development parts catalogue", () => {
     const upgraded = equipPart(defaultPartLoadout, "engine", "blue-max-engine");
     expect(upgraded.engine).toBe("blue-max-engine");
     expect(upgraded.tyres).toBe(defaultPartLoadout.tyres);
-    expect(aggregatePartPerformance(upgraded).acceleration).toBeCloseTo(22 / 15);
+    expect(aggregatePartPerformance(upgraded).acceleration).toBe(1);
   });
 
-  test("applies the recovered chassis weight as an inverse-mass force response", () => {
+  test("keeps native chassis response out of the development compatibility multipliers", () => {
     const light = aggregatePartPerformance(equipPart(defaultPartLoadout, "chassis", "light-chassis"));
     const phantom = aggregatePartPerformance(equipPart(defaultPartLoadout, "chassis", "phantom-chassis"));
-    expect(light.acceleration).toBeCloseTo(25 / 22);
-    expect(light.braking).toBeCloseTo(25 / 22);
-    expect(light.steering).toBe(1);
-    expect(phantom.acceleration).toBeCloseTo(25 / 18);
-    expect(phantom.braking).toBeCloseTo(25 / 18);
+    expect(light.acceleration).toBe(1);
+    expect(light.braking).toBe(1);
+    expect(phantom.acceleration).toBe(1);
+    expect(phantom.braking).toBe(1);
   });
 
-  test("uses native transmission launch and terminal gear ratios", () => {
-    const sports = aggregatePartPerformance(equipPart(defaultPartLoadout, "transmission", "sports-transmission"));
-    const power = aggregatePartPerformance(equipPart(defaultPartLoadout, "transmission", "power-transmission"));
-    const speed = aggregatePartPerformance(equipPart(defaultPartLoadout, "transmission", "speed-transmission"));
-    expect(sports.acceleration).toBe(1);
-    expect(sports.topSpeed).toBeCloseTo(490 / 446);
-    expect(power.acceleration).toBeCloseTo(116 / 128);
-    expect(power.topSpeed).toBeCloseTo(557 / 446);
-    expect(speed.acceleration).toBeCloseTo(116 / 128);
-    expect(speed.topSpeed).toBeCloseTo(660 / 446);
+  test("keeps native transmission response out of the development compatibility multipliers", () => {
+    for (const id of ["sports-transmission", "power-transmission", "speed-transmission"]) {
+      const performance = aggregatePartPerformance(equipPart(defaultPartLoadout, "transmission", id));
+      expect(performance.acceleration).toBe(1);
+      expect(performance.topSpeed).toBe(1);
+    }
   });
 
   test("repairs unknown or obsolete saved part identifiers", () => {

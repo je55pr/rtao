@@ -1,5 +1,8 @@
 import type { Q62CarModel } from "./carView";
 import { nativeBrakeForceFraction, nativeBrakeHoldUpdates, nativeBrakeProfile } from "./nativeBrakePerformance";
+import { nativeChassisForceResponseRatio } from "./nativeChassisPerformance";
+import { nativeEngineAccelerationRatio, nativeSteeringRatio } from "./nativeEquipmentPerformance";
+import { nativeTransmissionLaunchAccelerationRatio, nativeTransmissionTopSpeedRatio } from "./nativeTransmissionPerformance";
 import { nativeTyreGripMultiplier } from "./nativeTyrePerformance";
 import type { PartPerformance } from "./parts";
 import type { DrivingSurfaceKind, DrivingWorld, Vec3 } from "./worldCollision";
@@ -39,6 +42,10 @@ export class ArcadeCarController {
   private mutable: CarState;
   private partPerformance: PartPerformance = standardPartPerformance;
   private nativeTyreSelector = 0;
+  private nativeEngineSelector = 0;
+  private nativeChassisSelector = 0;
+  private nativeTransmissionSelector = 0;
+  private nativeSteeringSelector = 0;
   private nativeBrakeSelector = 0;
   private nativeBrakeHeldUpdates = 0;
 
@@ -69,6 +76,27 @@ export class ArcadeCarController {
     // nativeTyreGripMultiplier validates the executable catalogue selector.
     nativeTyreGripMultiplier(selector, "paved-road");
     this.nativeTyreSelector = selector;
+  }
+
+  setNativeEngineSelector(selector: number): void {
+    nativeEngineAccelerationRatio(selector);
+    this.nativeEngineSelector = selector;
+  }
+
+  setNativeChassisSelector(selector: number): void {
+    nativeChassisForceResponseRatio(selector, this.nativeTyreSelector);
+    this.nativeChassisSelector = selector;
+  }
+
+  setNativeTransmissionSelector(selector: number): void {
+    nativeTransmissionLaunchAccelerationRatio(selector);
+    nativeTransmissionTopSpeedRatio(selector);
+    this.nativeTransmissionSelector = selector;
+  }
+
+  setNativeSteeringSelector(selector: number): void {
+    nativeSteeringRatio(selector);
+    this.nativeSteeringSelector = selector;
   }
 
   setNativeBrakeSelector(selector: number): void {
@@ -110,12 +138,17 @@ export class ArcadeCarController {
           : [9.5, 6, 2.8, 28];
     const compatibilityGrip = surfaceKind === "paved-road" || surfaceKind === "dry" ? this.partPerformance.pavedGrip : this.partPerformance.offroadGrip;
     const grip = compatibilityGrip * nativeTyreGripMultiplier(this.nativeTyreSelector, surfaceKind);
-    const forwardAcceleration = baseForwardAcceleration * this.partPerformance.acceleration * grip;
-    const reverseAcceleration = baseReverseAcceleration * this.partPerformance.acceleration * grip;
-    const maxForwardSpeed = baseMaxForwardSpeed * this.partPerformance.topSpeed * (0.7 + grip * 0.3);
+    const engineResponse = nativeEngineAccelerationRatio(this.nativeEngineSelector);
+    const massResponse = nativeChassisForceResponseRatio(this.nativeChassisSelector, this.nativeTyreSelector);
+    const transmissionLaunch = nativeTransmissionLaunchAccelerationRatio(this.nativeTransmissionSelector);
+    const transmissionTopSpeed = nativeTransmissionTopSpeedRatio(this.nativeTransmissionSelector);
+    const steeringResponse = nativeSteeringRatio(this.nativeSteeringSelector);
+    const forwardAcceleration = baseForwardAcceleration * this.partPerformance.acceleration * engineResponse * massResponse * transmissionLaunch * grip;
+    const reverseAcceleration = baseReverseAcceleration * this.partPerformance.acceleration * engineResponse * massResponse * transmissionLaunch * grip;
+    const maxForwardSpeed = baseMaxForwardSpeed * this.partPerformance.topSpeed * transmissionTopSpeed * (0.7 + grip * 0.3);
     const brakeActive = throttle < 0;
     this.nativeBrakeHeldUpdates = brakeActive ? Math.min(nativeBrakeHoldUpdates, this.nativeBrakeHeldUpdates + 1) : 0;
-    const opposingAcceleration = 18 * this.partPerformance.braking * grip;
+    const opposingAcceleration = 18 * this.partPerformance.braking * massResponse * grip;
     const braking = brakeActive
       ? opposingAcceleration * nativeBrakeForceFraction(this.nativeBrakeSelector, this.nativeBrakeHeldUpdates)
       : opposingAcceleration;
@@ -131,14 +164,14 @@ export class ArcadeCarController {
       if (speed > maxForwardSpeed) speed = moveTowards(speed, maxForwardSpeed, 90 * dt);
       else if (speed < -9) speed = moveTowards(speed, -9, 90 * dt);
     }
-    const steeringAngle = moveTowards(old.steeringAngle, -steering * Math.min(0.72, 0.48 * this.partPerformance.steering), 3.4 * this.partPerformance.steering * dt);
+    const steeringAngle = moveTowards(old.steeringAngle, -steering * Math.min(0.72, 0.48 * this.partPerformance.steering * steeringResponse), 3.4 * this.partPerformance.steering * steeringResponse * dt);
     let wheelSpin = old.wheelSpin - speed * dt / 0.355;
     if (Math.abs(wheelSpin) > Math.PI * 2) wheelSpin %= Math.PI * 2;
     let yaw = old.yaw;
     const speedFraction = clamp(Math.abs(speed) / 12, 0, 1);
     if (speedFraction > 0.02 && Math.abs(steering) > 0.01) {
       const direction = speed >= 0 ? 1 : -1;
-      const turnRate = lerp(0.45, 1.65, speedFraction) * this.partPerformance.steering * Math.sqrt(grip);
+      const turnRate = lerp(0.45, 1.65, speedFraction) * this.partPerformance.steering * steeringResponse * Math.sqrt(grip);
       const turnScale = clamp(Math.abs(speed) / maxForwardSpeed, 1, 5);
       yaw -= steering * direction * turnRate * turnScale * dt;
     }
@@ -249,6 +282,14 @@ export class BrowserDrivingGame {
   setPartPerformance(performance: PartPerformance): void { this.controller.setPartPerformance(performance); }
 
   setNativeTyreSelector(selector: number): void { this.controller.setNativeTyreSelector(selector); }
+
+  setNativeEngineSelector(selector: number): void { this.controller.setNativeEngineSelector(selector); }
+
+  setNativeChassisSelector(selector: number): void { this.controller.setNativeChassisSelector(selector); }
+
+  setNativeTransmissionSelector(selector: number): void { this.controller.setNativeTransmissionSelector(selector); }
+
+  setNativeSteeringSelector(selector: number): void { this.controller.setNativeSteeringSelector(selector); }
 
   setNativeBrakeSelector(selector: number): void { this.controller.setNativeBrakeSelector(selector); }
 
