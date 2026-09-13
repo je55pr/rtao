@@ -3,7 +3,7 @@ import { nativeBrakeForceFraction, nativeBrakeHoldUpdates, nativeBrakeProfile } 
 import { nativeChassisForceResponseRatio } from "./nativeChassisPerformance";
 import { nativeEngineAccelerationRatio, nativeSteeringRatio } from "./nativeEquipmentPerformance";
 import { nativeTransmissionLaunchAccelerationRatio, nativeTransmissionTopSpeedRatio } from "./nativeTransmissionPerformance";
-import { nativeTyreGripMultiplier } from "./nativeTyrePerformance";
+import { nativeTyreContactThreshold, nativeTyreGripMultiplier } from "./nativeTyrePerformance";
 import type { PartPerformance } from "./parts";
 import type { DrivingSurfaceKind, DrivingWorld, Vec3 } from "./worldCollision";
 import type { WorldView } from "./worldView";
@@ -50,7 +50,7 @@ export class ArcadeCarController {
   private nativeBrakeHeldUpdates = 0;
 
   constructor(private readonly world: DrivingWorld, fieldNumber = 223, position: Vec3 = { x: 1152, y: 31, z: 555 }, yaw = -0.1) {
-    const resolved = world.resolveFootprint(fieldNumber, position, yaw, position.y);
+    const resolved = world.resolveFootprint(fieldNumber, position, yaw, position.y, nativeTyreContactThreshold(this.nativeTyreSelector));
     this.mutable = {
       fieldNumber: resolved?.fieldNumber ?? fieldNumber,
       position: resolved?.position ?? position,
@@ -107,7 +107,7 @@ export class ArcadeCarController {
 
   teleport(fieldNumber: number, position: Vec3, yaw: number): void {
     this.nativeBrakeHeldUpdates = 0;
-    const resolved = this.world.resolveFootprint(fieldNumber, position, yaw, position.y);
+    const resolved = this.world.resolveFootprint(fieldNumber, position, yaw, position.y, nativeTyreContactThreshold(this.nativeTyreSelector));
     this.mutable = {
       fieldNumber: resolved?.fieldNumber ?? fieldNumber,
       position: resolved?.position ?? position,
@@ -179,11 +179,12 @@ export class ArcadeCarController {
     const forwardX = Math.sin(yaw), forwardZ = Math.cos(yaw);
     const moveX = forwardX * speed * dt, moveZ = forwardZ * speed * dt;
     const candidate = { x: old.position.x + moveX, y: old.position.y, z: old.position.z + moveZ };
-    let resolved = this.world.resolveFootprint(old.fieldNumber, candidate, yaw, old.position.y);
+    const contactThreshold = nativeTyreContactThreshold(this.nativeTyreSelector);
+    let resolved = this.world.resolveFootprint(old.fieldNumber, candidate, yaw, old.position.y, contactThreshold);
     let distanceMoved = resolved ? Math.hypot(moveX, moveZ) : 0;
     if (!resolved) {
-      const x = this.world.resolveFootprint(old.fieldNumber, { x: old.position.x + moveX, y: old.position.y, z: old.position.z }, yaw, old.position.y);
-      const z = this.world.resolveFootprint(old.fieldNumber, { x: old.position.x, y: old.position.y, z: old.position.z + moveZ }, yaw, old.position.y);
+      const x = this.world.resolveFootprint(old.fieldNumber, { x: old.position.x + moveX, y: old.position.y, z: old.position.z }, yaw, old.position.y, contactThreshold);
+      const z = this.world.resolveFootprint(old.fieldNumber, { x: old.position.x, y: old.position.y, z: old.position.z + moveZ }, yaw, old.position.y, contactThreshold);
       resolved = x && (!z || Math.abs(moveX) >= Math.abs(moveZ)) ? x : z;
       if (resolved) distanceMoved = resolved === x ? Math.abs(moveX) : Math.abs(moveZ);
     }

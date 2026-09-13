@@ -8,6 +8,7 @@ import { Iso9660Disc } from '../src/disc/iso9660';
 import { RawMode2SectorSource } from '../src/disc/randomAccess';
 import { readCollisionChunkDirectory, readFieldHeader } from '../src/formats/field';
 import { nativeRaceStartSeed, readRaceStartAnchors } from '../src/formats/raceCatalogue';
+import { nativeBigTyreContactThreshold, nativeTyreContactThreshold } from '../src/game/nativeTyrePerformance';
 
 const executablePath = process.env.RTA_PAL_EXECUTABLE;
 const baseline = (): NativeRaceContactInput => ({
@@ -24,6 +25,14 @@ function scalarResult(result: ReturnType<typeof produceNativeRaceContacts>) {
 }
 
 describe.skipIf(!executablePath)('PAL seven-probe contact producer', () => {
+  test('pins the free-roam Big Tyre gate to the PAL executable constant', () => {
+    const elf = new Uint8Array(readFileSync(executablePath!));
+    const data = readNativeRaceContactData(elf);
+    expect(nativeTyreContactThreshold(0)).toBe(0.5);
+    expect(nativeBigTyreContactThreshold).toBe(data.bigTyreThreshold);
+    expect(nativeTyreContactThreshold(11)).toBe(data.bigTyreThreshold);
+  });
+
   test('8192 prescribed-transform cases match scalar writes, ordering and orientation arguments', () => {
     const elf = new Uint8Array(readFileSync(executablePath!)), data = readNativeRaceContactData(elf), oracle = palRaceContactOracle(elf);
     let seed = 0x636e7463;

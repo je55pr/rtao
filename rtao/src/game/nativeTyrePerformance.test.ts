@@ -1,5 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
+  nativeBigTyreContactThreshold,
+  nativeTyreContactThreshold,
   nativeTyreGripMultiplier,
   nativeTyreGripProfile,
   nativeTyreRelativeGrip,
@@ -29,6 +31,14 @@ describe("native PAL tyre grip table", () => {
     expect(nativeTyreGripMultiplier(9, "snow")).toBeCloseTo(168 / 96);
     expect(nativeTyreGripMultiplier(9, "ice")).toBeCloseTo(196 / 64);
     expect(nativeTyreGripMultiplier(11, "other")).toBe(1);
+  });
+
+  test("uses the PAL 0.50/1.35 vertical contact thresholds", () => {
+    expect(nativeTyreContactThreshold(0)).toBe(0.5);
+    expect(nativeTyreContactThreshold(10)).toBe(0.5);
+    expect(nativeTyreContactThreshold(11)).toBe(nativeBigTyreContactThreshold);
+    expect(nativeBigTyreContactThreshold).toBe(Math.fround(1.35));
+    expect(nativeTyreContactThreshold(12)).toBe(0.5);
   });
 
   test("rejects selectors outside the executable tyre catalogue", () => {
