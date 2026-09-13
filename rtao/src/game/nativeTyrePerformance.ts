@@ -42,6 +42,16 @@ export function nativeTyreGripProfile(selector: number): NativeTyreGripProfile {
   return nativeTyreGripProfiles[selector]!;
 }
 
+export const nativeBigTyreSelector = 11;
+export const nativeStandardTyreContactThreshold = 0.5;
+export const nativeBigTyreContactThreshold = Math.fround(1.35);
+
+/** PAL 0x21C550 contact gate: Big's 0x0400 mode uses 1.35 instead of 0.50. */
+export function nativeTyreContactThreshold(selector: number): number {
+  nativeTyreGripProfile(selector);
+  return selector === nativeBigTyreSelector ? nativeBigTyreContactThreshold : nativeStandardTyreContactThreshold;
+}
+
 /** Relative coefficient versus Normal Tyre on the same native surface. */
 export function nativeTyreRelativeGrip(selector: number, surface: NativeTyreSurface): number {
   const selected = nativeTyreGripProfile(selector)[surface];

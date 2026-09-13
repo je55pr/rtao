@@ -57,6 +57,8 @@ export class FieldCollisionSampler {
         const triangles = this.triangleIndicesByChunk.get(chunkKey(neighbourX, neighbourZ));
         if (!triangles) continue;
         for (const triangleIndex of triangles) {
+          const surfaceFlags = this.collision.surfaceFlags[triangleIndex] ?? 0;
+          if ((surfaceFlags & 0x9000_0000) !== 0) continue;
           const y = this.sampleTriangleY(triangleIndex, x, z);
           if (y === undefined) continue;
           const distance = Math.abs(y - referenceY);
@@ -68,6 +70,29 @@ export class FieldCollisionSampler {
       }
     }
     return best;
+  }
+
+  sampleAuxiliaryHeight(x: number, z: number): number | undefined {
+    const chunkX = clampChunk(Math.floor(x / chunkSize));
+    const chunkZ = clampChunk(Math.floor(z / chunkSize));
+    const candidates = new Set<number>();
+    for (let dz = -1; dz <= 1; dz += 1) {
+      const neighbourZ = chunkZ + dz;
+      if (neighbourZ < 0 || neighbourZ >= gridSize) continue;
+      for (let dx = -1; dx <= 1; dx += 1) {
+        const neighbourX = chunkX + dx;
+        if (neighbourX < 0 || neighbourX >= gridSize) continue;
+        for (const triangleIndex of this.triangleIndicesByChunk.get(chunkKey(neighbourX, neighbourZ)) ?? []) candidates.add(triangleIndex);
+      }
+    }
+    let extraY: number | undefined;
+    for (const triangleIndex of [...candidates].sort((a, b) => a - b)) {
+      const surfaceFlags = this.collision.surfaceFlags[triangleIndex] ?? 0;
+      if ((surfaceFlags & 0x1000_0000) === 0 || (surfaceFlags & 0x8000_0000) !== 0) continue;
+      const y = this.sampleTriangleY(triangleIndex, x, z);
+      if (y !== undefined) extraY = y;
+    }
+    return extraY;
   }
 
   sampleHighest(x: number, z: number): GroundSample | undefined {
@@ -180,7 +205,7 @@ export class DrivingWorld {
     return this.surfaces.get(normalized.fieldNumber)?.kindAt(normalized.localPosition.x, normalized.localPosition.y, referenceY, surfaceFlags) ?? "paved-road";
   }
 
-  resolveFootprint(originFieldNumber: number, candidate: Vec3, yaw: number, referenceY: number): ResolvedFootprint | undefined {
+  resolveFootprint(originFieldNumber: number, candidate: Vec3, yaw: number, referenceY: number, contactThreshold = 0.5): ResolvedFootprint | undefined {
     const normalized = normalizeRenderPosition(originFieldNumber, { x: candidate.x, y: candidate.z });
     const localCandidate = { x: normalized.localPosition.x, y: candidate.y, z: normalized.localPosition.y };
     const contacts: ReadonlyArray<readonly [number, number]> = [
@@ -198,6 +223,13 @@ export class DrivingWorld {
       if (!sample) return undefined;
       height += sample.y;
     }
+    const frontCentre = {
+      x: localCandidate.x + 0.68 * sine,
+      y: localCandidate.y,
+      z: localCandidate.z + 0.68 * cosine,
+    };
+    const extraY = this.fields.get(normalized.fieldNumber)?.sampleAuxiliaryHeight(frontCentre.x, frontCentre.z);
+    if (extraY !== undefined && referenceY < extraY - contactThreshold) return undefined;
     const centre = this.sampleGround(normalized.fieldNumber, localCandidate, referenceY);
     return {
       fieldNumber: normalized.fieldNumber,

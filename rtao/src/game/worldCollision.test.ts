@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { allWorldFieldNumbers, fieldNumberFromAddress } from "./worldTopology";
 import { DrivingWorld, FieldCollisionSampler, flatFieldCollision, nativeDrivingSurfaceFromCollisionFlags } from "./worldCollision";
+import type { CompiledFieldCollision } from "../formats/fieldCollision";
 import type { CompiledFieldMesh } from "../formats/fieldGeometry";
 
 describe("world collision", () => {
@@ -18,6 +19,17 @@ describe("world collision", () => {
     expect(resolved).toBeDefined();
     expect(resolved?.position.z).toBeCloseTo(1599.8);
     expect(resolved?.y).toBe(7);
+  });
+
+  it("keeps PAL auxiliary surfaces out of ground sampling and applies the vertical contact gate", () => {
+    const world = new DrivingWorld();
+    const collision = auxiliaryBarrierCollision(0, 0.8);
+    world.addCompiledField(223, collision);
+    const sampler = new FieldCollisionSampler(collision);
+    expect(sampler.sampleClosest(800, 800, 0)).toEqual({ y: 0, surfaceFlags: 0 });
+    expect(sampler.sampleAuxiliaryHeight(800, 800)).toBeCloseTo(0.8, 6);
+    expect(world.resolveFootprint(223, { x: 800, y: 0, z: 800 }, 0, 0, 0.5)).toBeUndefined();
+    expect(world.resolveFootprint(223, { x: 800, y: 0, z: 800 }, 0, 0, Math.fround(1.35))?.y).toBe(0);
   });
 
   it("classifies field materials and lets authored road ribbons override them", () => {
@@ -85,5 +97,18 @@ function surfaceMesh(textureBasePointer: number, roadKind?: number): CompiledFie
       dirtRibbonCount: roadKind === 1 ? 1 : 0,
       unresolvedVertexCount: 0,
     },
+  };
+}
+
+function auxiliaryBarrierCollision(groundY: number, extraY: number): CompiledFieldCollision {
+  return {
+    triangleCount: 4,
+    positions: new Float32Array([
+      0, groundY, 0, 1600, groundY, 0, 0, groundY, 1600,
+      1600, groundY, 0, 1600, groundY, 1600, 0, groundY, 1600,
+      0, extraY, 0, 1600, extraY, 0, 0, extraY, 1600,
+      1600, extraY, 0, 1600, extraY, 1600, 0, extraY, 1600,
+    ]),
+    surfaceFlags: new Uint32Array([0, 0, 0x1000_0000, 0x1000_0000]),
   };
 }

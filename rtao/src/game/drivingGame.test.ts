@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { allWorldFieldNumbers } from "./worldTopology";
 import { DrivingWorld, flatFieldCollision, type DrivingSurfaceKind, type Vec3 } from "./worldCollision";
+import type { CompiledFieldCollision } from "../formats/fieldCollision";
 import { ArcadeCarController } from "./drivingGame";
 
 function flatWorld(): DrivingWorld {
@@ -48,6 +49,22 @@ describe("arcade driving", () => {
     expect(car.state.fieldNumber).not.toBe(223);
     expect(car.state.position.x).toBeGreaterThanOrEqual(0);
     expect(car.state.position.x).toBeLessThanOrEqual(1600);
+  });
+
+  test("uses Big Tyre's PAL 1.35 contact gate in live free-roam movement", () => {
+    const normalWorld = new DrivingWorld();
+    normalWorld.addCompiledField(223, auxiliaryBarrierCollision(0, 0.8));
+    const bigWorld = new DrivingWorld();
+    bigWorld.addCompiledField(223, auxiliaryBarrierCollision(0, 0.8));
+    const normal = new ArcadeCarController(normalWorld);
+    const big = new ArcadeCarController(bigWorld);
+    big.setNativeTyreSelector(11);
+    normal.update(1 / 60, { throttle: 1, steering: 0, boost: false });
+    big.update(1 / 60, { throttle: 1, steering: 0, boost: false });
+    expect(normal.state.distanceTravelled).toBe(0);
+    expect(normal.state.speed).toBe(0);
+    expect(big.state.distanceTravelled).toBeGreaterThan(0);
+    expect(big.state.speed).toBeGreaterThan(0);
   });
 
   test("applies executable-backed native tyre grip on classified road and dirt surfaces", () => {
@@ -175,3 +192,16 @@ describe("arcade driving", () => {
     expect(Math.abs(quick.state.yaw)).toBeGreaterThan(Math.abs(normal.state.yaw) * 1.35);
   });
 });
+
+function auxiliaryBarrierCollision(groundY: number, extraY: number): CompiledFieldCollision {
+  return {
+    triangleCount: 4,
+    positions: new Float32Array([
+      0, groundY, 0, 1600, groundY, 0, 0, groundY, 1600,
+      1600, groundY, 0, 1600, groundY, 1600, 0, groundY, 1600,
+      0, extraY, 0, 1600, extraY, 0, 0, extraY, 1600,
+      1600, extraY, 0, 1600, extraY, 1600, 0, extraY, 1600,
+    ]),
+    surfaceFlags: new Uint32Array([0, 0, 0x1000_0000, 0x1000_0000]),
+  };
+}
