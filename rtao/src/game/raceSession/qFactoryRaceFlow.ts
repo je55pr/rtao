@@ -5,8 +5,16 @@ import type { RecoveredRaceState } from "../raceProgress";
 const raceSelectOpcode = 0x08;
 const startRaceOpcode = 0x03;
 
+export const browserSupportedOrdinaryRaceActivityIds = [
+  0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17, 20, 22, 23,
+] as const;
+
+export const contactSurfaceBlockedOrdinaryRaceActivityIds = [8, 14, 18, 19, 21] as const;
+
+const browserSupportedOrdinaryRaceActivityIdSet = new Set<number>(browserSupportedOrdinaryRaceActivityIds);
+
 export function qFactoryOrdinaryRaceRuntimeSupported(activityId: number): boolean {
-  return activityId === 0 || activityId === 1 || activityId === 2;
+  return browserSupportedOrdinaryRaceActivityIdSet.has(activityId);
 }
 
 export interface QFactoryRaceOption {

@@ -4,6 +4,8 @@ import type { RaceActivityDescriptor, RaceCatalogue } from "../../formats/raceCa
 import { RecoveredCommerceState } from "../commerceProgress";
 import { nativeUnfinishedRaceIndex, RecoveredRaceState } from "../raceProgress";
 import {
+  browserSupportedOrdinaryRaceActivityIds,
+  contactSurfaceBlockedOrdinaryRaceActivityIds,
   qFactoryOrdinaryRaceRuntimeSupported,
   qFactoryRaceLaunchActivityId,
   qFactoryRaceOptions,
@@ -69,9 +71,13 @@ describe("Q's Factory race flow", () => {
   });
 
   test("keeps the browser ordinary-race runtime gate explicit", () => {
-    expect([0, 1, 2, 3].map((activityId) => [activityId, qFactoryOrdinaryRaceRuntimeSupported(activityId)])).toEqual([
-      [0, true], [1, true], [2, true], [3, false],
+    expect(browserSupportedOrdinaryRaceActivityIds).toEqual([
+      0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17, 20, 22, 23,
     ]);
+    expect(contactSurfaceBlockedOrdinaryRaceActivityIds).toEqual([8, 14, 18, 19, 21]);
+    expect(Array.from({ length: 24 }, (_, activityId) => qFactoryOrdinaryRaceRuntimeSupported(activityId))).toEqual(
+      Array.from({ length: 24 }, (_, activityId) => !contactSurfaceBlockedOrdinaryRaceActivityIds.includes(activityId as 8 | 14 | 18 | 19 | 21)),
+    );
   });
 
   test("resolves action-03 zero through current selection and preserves explicit activity IDs", () => {

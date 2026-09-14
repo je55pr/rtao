@@ -28,6 +28,8 @@ The original pass gated Q's Factory to activities 0 and 1. The later `EQUIPMENT_
 
 Deterministic browser capture metadata now contains separate 420-update scenes for activities 0, 1 and 2. The original Peach activity-0 capture remains unchanged as a compatibility regression.
 
+A later same-day compatibility census (`ORDINARY_RACE_COMPATIBILITY_CENSUS_2026-09-14.md`) widened the browser launch set to 19/24 ordinary activities. Activities 8, 14, 18, 19 and 21 remain gated because longer circulation reaches one shared unrecovered native contact-surface grip path.
+
 ## Temple follow-up
 
 Activity 2 uses selectors `[4, 7, 3, 3, 3, 3, ...]` with original opponent equipment flags `0x3000`. The 2026-09-14 issue-#30 follow-up recovered the `0x1000` and `0x2000` frame branches and their combined `0x3000` path from PAL instructions.

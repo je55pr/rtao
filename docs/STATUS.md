@@ -15,9 +15,9 @@ The first ordinary-race vertical slice is integrated on `dev`. Verified foundati
 - seven-probe ground support, course collision, contact/orientation, collision response and original-course obstacle handling;
 - the enclosing ordinary vehicle frame validated against retained PAL execution on original courses;
 - rendered Peach Raceway (`COURSE/C00`) with the recovered 24-car grid and deterministic moving capture;
-- generic ordinary-race runtime/coordinator now separates activity identity from physical `sceneId` course data; activities 1 / Peach Raceway II and 2 / Temple Raceway are PAL-validated for 420 live updates and have frozen 420-update capture metadata, with Temple retaining its original opponent `0x3000` equipment flags;
+- generic ordinary-race runtime/coordinator separates activity identity from physical `sceneId` course data; 19/24 ordinary activities are PAL-validated for the browser launch path, with frozen 420-update capture metadata retained for activities 0/1/2 and Temple retaining its original opponent `0x3000` equipment flags; activities 8/14/18/19/21 remain gated on one shared unrecovered contact-surface grip boundary;
 - C00–C14 accepted as course geometry/collision/native-start-grid inputs: 15/15 compile and render, 360/360 recovered start positions ground, and each representative 24-car grid repeats pixel-identically;
-- Q's Factory's executable-backed selector exposes each authored area range with native licence availability and saved top-six progress; its `StartRace` handoff launches validated activities 0, 1 and 2 while preserving licence locks;
+- Q's Factory's executable-backed selector exposes each authored area range with native licence availability and saved top-six progress; its `StartRace` handoff launches the 19 compatibility-census-approved activities while preserving licence locks;
 - recovered player equipment selectors passed into the Q's Factory-launched race;
 - deterministic finish/reward state, Cake credit, best-finish/licence updates and recovered-progress persistence;
 - game-facing race HUD plus a native-timed start signal driven by PAL widget states 2–6 and scene flag `0x4`, followed by a dedicated completion panel that presents the already-applied player/team places, exact Cake credit, best result and licence promotion without recalculating progression;
@@ -29,13 +29,13 @@ Overworld interaction activation is explicit browser host policy: manual NPC/doo
 
 ## Immediate work
 
-1. Continue activity-level ordinary-race validation beyond activities 0, 1 and 2 without bypassing unrecovered native branches.
+1. Recover the missing native contact-surface grip path blocking activities 8, 14, 18, 19 and 21 (issue #65), then rerun the long ordinary-race census.
 2. Continue issue #30 archaeology for the remaining low equipment `0x0004/0x0008` paths and category-specific equip side effects; `0x1000/0x2000` and combined `0x3000` are now recovered in the ordinary race frame.
 
 ## Explicitly outside the current race gate
 
 - Q's Factory post-race dialogue/result branching whose native `resultCode` mapping has not yet been proven;
-- launching ordinary activities beyond validated 0/1/2 until their activity-specific runtime path is validated; licence availability/progress is recovered, but course geometry acceptance alone is not a launch gate;
+- launching ordinary activities 8, 14, 18, 19 and 21 until their long-run contact-surface grip path is recovered; the other 19 ordinary activities passed the compatibility census;
 - complete native scene initialization and reset/debug paths;
 - exact original race-start widget sprites/colours, countdown cue-45 playback semantics and the separate 64-update fade appearance;
 - live race position ordering: `OrdinaryRaceSession.livePositions()` implements the native ranking sort, but the ordinary coordinator supplies no navigation output/distance for any car, and the human-driven car 0 runs no navigation at all, so the session reports `navigation-metrics-required` and the race HUD shows lap and finish state without a live place;
