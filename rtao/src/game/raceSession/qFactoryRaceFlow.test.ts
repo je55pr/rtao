@@ -70,7 +70,7 @@ describe("Q's Factory race flow", () => {
 
   test("keeps the browser ordinary-race runtime gate explicit", () => {
     expect([0, 1, 2, 3].map((activityId) => [activityId, qFactoryOrdinaryRaceRuntimeSupported(activityId)])).toEqual([
-      [0, true], [1, true], [2, false], [3, false],
+      [0, true], [1, true], [2, true], [3, false],
     ]);
   });
 

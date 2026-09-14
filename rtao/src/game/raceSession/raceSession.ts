@@ -166,6 +166,7 @@ export function createOrdinaryRaceInitialFrameState(input: OrdinaryRaceInitialFr
     distance: 0,
     countdownByte: 0,
     countdownHalf: 0,
+    equipmentBoostState: 0,
     verticalControl: 0,
     shiftScheduleFlag: 0,
   };
@@ -457,7 +458,7 @@ function validateCommand(command: OrdinaryRaceSessionCommand): void {
       playerCount += 1;
       if (index !== 0) throw new Error("Recovered ordinary-race player ownership requires car slot 0.");
     }
-    if ((car.equipmentFlags & 0x300c) !== 0 || (car.state.carFlags & 0x200) !== 0) {
+    if ((car.equipmentFlags & 0x000c) !== 0 || (car.state.carFlags & 0x200) !== 0) {
       throw new RangeError("Race session input enters an unrecovered equipment/reset or pre-finished path.");
     }
     validateNavigationPair(car.navigationOutput, car.navigationDistance);

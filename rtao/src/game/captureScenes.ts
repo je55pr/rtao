@@ -95,6 +95,15 @@ export const peachRaceCaptureScenes: readonly PeachRaceCaptureScene[] = [
     playerCommands: 1,
     size: comparisonSize,
   },
+  {
+    id: "temple-race-moving",
+    label: "Temple Raceway - deterministic moving frame",
+    kind: "peach-race",
+    activityId: 2,
+    updates: 420,
+    playerCommands: 1,
+    size: comparisonSize,
+  },
 ] as const;
 
 /**

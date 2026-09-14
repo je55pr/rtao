@@ -6,7 +6,7 @@ const raceSelectOpcode = 0x08;
 const startRaceOpcode = 0x03;
 
 export function qFactoryOrdinaryRaceRuntimeSupported(activityId: number): boolean {
-  return activityId === 0 || activityId === 1;
+  return activityId === 0 || activityId === 1 || activityId === 2;
 }
 
 export interface QFactoryRaceOption {

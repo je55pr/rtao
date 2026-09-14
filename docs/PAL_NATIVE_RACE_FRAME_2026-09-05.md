@@ -157,8 +157,9 @@ queries, support, VU transforms, orientation and standard collision response
 execute without hooks. The oracle remains a bounded host-float32 model, not
 a hardware-accurate PS2 emulator or a hardware capture.
 
-The frame rejects reset, debug input, outdoor/scene-28 paths and equipment
-flags `0x300C` (the uncomposed boost/mode/control branches). Wheel animation and
+The frame rejects reset, debug input, outdoor/scene-28 paths and the still-unrecovered
+low equipment flags `0x000C`. A 2026-09-14 PAL-oracle pass composed equipment flags
+`0x1000` and `0x2000` (including `0x3000`) into the ordinary frame. Wheel animation and
 the subsequent UI callback are outside the stopping point. Starting fixtures
 use recovered grid anchors and equipment values but do not execute the entire
 native entrant/scene initializer. These restrictions must remain visible when

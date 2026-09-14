@@ -16,7 +16,7 @@ function initial():NativeRaceFrameState {
   return {vehicle:createNativeRaceVehicleState(0),contact:{position:[0,0,0],referenceY:0,support:[4096,4096,4096],supportDelta:[0,0,0],
     impulses:[0,0,0],unsupportedTicks:0,runtimeFlags:0,specialState:0,yaw:0},velocity:[0,0,0,0],previousVelocity:[0,0,0,0],
     matrix:nativeRaceIdentity(),inverse:nativeRaceIdentity(),bodyMatrix:nativeRaceIdentity(),coordinates:[0,0,0,1],surfaces:Array(7).fill(0),
-    carFlags:2,positionIndex:0,distance:0,countdownByte:0,countdownHalf:0,verticalControl:0,shiftScheduleFlag:0};
+    carFlags:2,positionIndex:0,distance:0,countdownByte:0,countdownHalf:0,equipmentBoostState:0,verticalControl:0,shiftScheduleFlag:0};
 }
 function inputFor(elf:Uint8Array,state:NativeRaceFrameState):NativeRaceFrameInput {
   return {state,equipment:readNativeRaceEquipment(elf,[0,0,0,0,0,0,0]),equipmentFlags:0,globalEquipmentFlags:0,
@@ -29,13 +29,16 @@ describe.skipIf(!executablePath)('PAL assembled ordinary vehicle frame',()=>{
     const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed;};
     for(let i=0;i<1024;i++){
       const yaw=rand()&65535,base=initial(),matrix=nativeRaceYawMatrix(Math.fround(Math.fround((yaw<<16>>16)*data.contact.yawScale)/32768),data.math);
-      const state={...base,vehicle:{...base.vehicle,yaw,nativeSpeed:rand()%40001-20000},
+      const fuels=[0,50,11950,12050,29950,30100,0x40000],boostStates=[0,1,2,-2,-1,7],controls=[-1,0,1];
+      const state={...base,vehicle:{...base.vehicle,yaw,nativeSpeed:rand()%40001-20000,fuel:fuels[i%fuels.length]!},
         contact:{...base.contact,yaw,impulses:[0,rand()%1001,rand()%1001],support:[4096,i%2?4096:0,4096],specialState:i%3-1},
         velocity:[rand()%40001-20000,rand()%2001-1000,rand()%40001-20000,0] as const,
         previousVelocity:[rand()%40001-20000,rand()%2001-1000,rand()%40001-20000,0] as const,
-        matrix,inverse:inverseNativeRaceMatrix(matrix),countdownByte:i%5?0:32,countdownHalf:i%7?0:128,carFlags:i%2?2:0x80};
-      const input={...inputFor(elf,state),equipmentFlags:[0,0x40,0x100,0x400][i%4]!,
-        sceneTime:rand()%200001,highShiftSchedule:!!(i%2),commands:[0,1,2,3,5,0x2001,0x8001,0x11][i%8]!,
+        matrix,inverse:inverseNativeRaceMatrix(matrix),countdownByte:i%5?0:32,countdownHalf:i%7?0:128,
+        equipmentBoostState:boostStates[i%boostStates.length]!,verticalControl:controls[i%controls.length]!,carFlags:i%2?2:0x80};
+      const input={...inputFor(elf,state),equipmentFlags:[0,0x40,0x100,0x400,0x1000,0x2000,0x3000,0x2040][i%8]!,
+        sceneFlags:i%11===0?0x44:4,sceneTime:rand()%200001,highShiftSchedule:!!(i%2),
+        commands:[0,1,8,0x20,0x40,0x2000,0x8000,0x2008,0x8008,0x60,0xa000][i%11]!,
         obstaclePoints:[[0,2,0,-2] as const]};
       const query:Parameters<typeof advanceNativeRaceFrame>[2]=(p,_sector,index)=>({point:[p[0],Math.fround((index%3-1)/8),p[2],0],flags:i%17===0?-1:3,ceilingY:10000});
       expect(advanceNativeRaceFrame(input,data,query),`case ${i}`).toEqual(oracle.run(input,query));
@@ -80,9 +83,9 @@ describe.skipIf(!executablePath)('PAL assembled ordinary vehicle frame',()=>{
         summaries.push({course,updates:600,obstaclePoints:points.length,collisionUpdates,finalPosition:actual.contact.position,distance:actual.distance,checkpoints});
       }
       const outputSha256=hash.digest('hex');
-      expect(outputSha256).toBe('7f34e9c3d1575f46e88d6ae59bf2a478438356909e836757073c8e9e6ce74b9e');
+      expect(outputSha256).toBe('5fc1a0adce6b725daeebf9cb4d944b835cd53ee509aacb4cb62178e4fb34fece');
       if(process.env.RTA_RACE_FRAME_REPORT)writeFileSync(process.env.RTA_RACE_FRAME_REPORT,JSON.stringify({totalUpdates,courses:summaries,outputSha256,
-        boundary:'Original course collision/obstacles and native frame instructions through body/distance. Commands are supplied; effects/memset are hooks. Wheel animation, reset/debug and equipment 0x300C remain outside this gate. No playable race claim.'},null,2)+'\n');
+        boundary:'Original course collision/obstacles and native frame instructions through body/distance. Commands are supplied; effects/memset are hooks. Wheel animation, reset/debug and low equipment 0x000C remain outside this gate; 0x1000/0x2000 are composed. No playable race claim.'},null,2)+'\n');
     }finally{closeSync(handle);}
   },120000);
 });
