@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {advanceNativeRaceFrame,type NativeRaceFrameData,type NativeRaceFrameInput} from './nativeRaceFrame';
+import {advanceNativeRaceBoostEquipment,advanceNativeRaceEquipmentYaw,advanceNativeRaceFrame,type NativeRaceFrameData,type NativeRaceFrameInput} from './nativeRaceFrame';
 import {createNativeRaceVehicleState} from './nativeRaceVehicle';
 import {nativeRaceIdentity} from './nativeRaceMath';
 
@@ -12,7 +12,7 @@ function input():NativeRaceFrameInput {
   return {state:{vehicle:createNativeRaceVehicleState(0),contact:{position:[0,0,0],referenceY:0,support:[4096,4096,4096],
     supportDelta:[0,0,0],impulses:[0,0,0],unsupportedTicks:0,runtimeFlags:0,specialState:0,yaw:0},
     velocity:[256,0,0,0],previousVelocity:[0,0,0,0],matrix:nativeRaceIdentity(),inverse:nativeRaceIdentity(),bodyMatrix:nativeRaceIdentity(),
-    coordinates:[0,0,0,1],surfaces:Array(7).fill(0),carFlags:2,positionIndex:0,distance:0,countdownByte:0,countdownHalf:0,verticalControl:0,shiftScheduleFlag:0},
+    coordinates:[0,0,0,1],surfaces:Array(7).fill(0),carFlags:2,positionIndex:0,distance:0,countdownByte:0,countdownHalf:0,equipmentBoostState:0,verticalControl:0,shiftScheduleFlag:0},
     equipment:{surfaceGrips:Array(6).fill(1000),mass:20,engineScalar:100,fuelConsumption:1,steeringScalar:128,
       brakeCurve:new Uint8Array(32),gearWords:[-128,128,96,64,32,16,8,0]},equipmentFlags:0,globalEquipmentFlags:0,
     sceneFlags:4,sceneKind:0,sceneByte0B:0,sceneTime:0,raceModeByte:0,commands:1,highShiftSchedule:true,obstaclePoints:[]};
@@ -27,6 +27,24 @@ test('zero-curvature steering clears contact sideways feedback without mutating 
 test('inactive cars skip contact and unrecovered frame paths fail explicitly',()=>{
   const original=input(),inactive={...original,state:{...original.state,carFlags:0}};
   expect(advanceNativeRaceFrame(inactive,data,()=>{throw new Error('Should not query');})).toMatchObject({state:inactive.state,skipped:true});
-  for(const change of [{equipmentFlags:0x2000},{equipmentFlags:8},{sceneKind:28},{sceneFlags:0x400},{sceneByte0B:1}])
+  expect(()=>advanceNativeRaceFrame({...original,equipmentFlags:0x3000},data,query)).not.toThrow();
+  for(const change of [{equipmentFlags:4},{equipmentFlags:8},{equipmentFlags:0x0c},{sceneKind:28},{sceneFlags:0x400},{sceneByte0B:1}])
     expect(()=>advanceNativeRaceFrame({...original,...change},data,query)).toThrow('Unrecovered');
+});
+test('0x2000 boost consumes the native fuel field and preserves its signed cooldown state',()=>{
+  expect(advanceNativeRaceBoostEquipment(4,8,2,0,40000)).toEqual({state:1,fuel:39900,forwardBonus:178,soundRequests:[16]});
+  expect(advanceNativeRaceBoostEquipment(4,8,2,1,12050)).toEqual({state:2,fuel:11950,forwardBonus:44,soundRequests:[]});
+  expect(advanceNativeRaceBoostEquipment(4,0,2,2,11950)).toEqual({state:-2,fuel:11950,forwardBonus:0,soundRequests:[0x8010]});
+  expect(advanceNativeRaceBoostEquipment(4,0,2,-2,11950).state).toBe(-1);
+  expect(advanceNativeRaceBoostEquipment(4,0,2,-1,11950).state).toBe(0);
+  expect(advanceNativeRaceBoostEquipment(0,0,2,7,11950)).toMatchObject({state:0,soundRequests:[0x8010]});
+});
+
+test('0x1000 equipment control stays in -1..1 and applies PAL signed yaw steps',()=>{
+  expect(advanceNativeRaceEquipmentYaw(0x20,0,1000,1024)).toEqual({verticalControl:-1,yaw:1000});
+  expect(advanceNativeRaceEquipmentYaw(0x40,0,1000,1024)).toEqual({verticalControl:1,yaw:1000});
+  expect(advanceNativeRaceEquipmentYaw(0x60,0,1000,1024)).toEqual({verticalControl:0,yaw:1000});
+  expect(advanceNativeRaceEquipmentYaw(0x8000,0,1000,1024).yaw).toBe(998);
+  expect(advanceNativeRaceEquipmentYaw(0x2000,0,1000,1024).yaw).toBe(1002);
+  expect(advanceNativeRaceEquipmentYaw(0xa000,0,1000,1024).yaw).toBe(1002);
 });

@@ -34,7 +34,7 @@ export function palRaceFrameOracle(executable:Uint8Array) {
       v.setUint16(equipment+8,input.equipmentFlags,true);v.setUint32(0x1824270,globalEquipment,true);v.setUint16(globalEquipment+8,input.globalEquipmentFlags,true);
       for(const [off,n] of [[0x214,e.engineScalar],[0x218,e.mass],[0x23c,s.vehicle.fuel],[0x1d8,s.vehicle.steeringSpeedMemory],
         [0x1b8,s.vehicle.nativeSpeed],[0x1bc,s.vehicle.wheelSpeed],[0x1f4,s.contact.unsupportedTicks],[0x1f8,s.vehicle.runtimeFlags],[0x204,s.distance]])v.setInt32(car+off!,n!,true);
-      for(const [off,n] of [[0x198,s.carFlags],[0x240,e.fuelConsumption],[0x242,e.steeringScalar],[0x1cc,s.vehicle.curvature],
+      for(const [off,n] of [[0x198,s.carFlags],[0x20e,s.equipmentBoostState],[0x240,e.fuelConsumption],[0x242,e.steeringScalar],[0x1cc,s.vehicle.curvature],
         [0x1ce,s.vehicle.steeringAccumulator],[0x1d0,s.vehicle.engineSpeed],[0x1d4,s.vehicle.yaw],[0x1d6,s.vehicle.slipAngle],
         [0x1d2,s.vehicle.driftRate],[0x210,s.countdownHalf]])v.setInt16(car+off!,n!,true);
       e.surfaceGrips.forEach((n,i)=>v.setInt16(car+0x21c+i*2,n,true));e.gearWords.forEach((n,i)=>v.setInt16(car+0x22c+i*2,n,true));
@@ -74,7 +74,7 @@ export function palRaceFrameOracle(executable:Uint8Array) {
         velocity:ints(car+0xf0,4) as [number,number,number,number],previousVelocity:ints(car+0x100,4) as [number,number,number,number],
         matrix:floats(car,16),inverse:floats(car+0xb0,16),bodyMatrix:floats(car+0x40,16),coordinates:floats(car+0x90,4) as [number,number,number,number],
         surfaces:ints(car+0x19c,7),carFlags:v.getUint16(car+0x198,true),positionIndex:v.getUint8(car+0x247),distance:v.getInt32(car+0x204,true),
-        countdownByte:v.getInt8(car+0x212),countdownHalf:v.getInt16(car+0x210,true),verticalControl:v.getInt8(car+0x244),shiftScheduleFlag:v.getUint8(car+0x1fc)};
+        countdownByte:v.getInt8(car+0x212),countdownHalf:v.getInt16(car+0x210,true),equipmentBoostState:v.getInt16(car+0x20e,true),verticalControl:v.getInt8(car+0x244),shiftScheduleFlag:v.getUint8(car+0x1fc)};
       return {state,sceneFlags:v.getUint32(scene+0x28,true),contactFlags,obstacleFlags,diagnosticRequested,impactRequests,soundRequests,
         skipped:!!((input.sceneFlags&0x4a000)||!(s.carFlags&65535))};
     },

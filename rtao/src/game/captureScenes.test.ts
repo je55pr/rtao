@@ -85,8 +85,8 @@ describe("deterministic capture scene catalogue", () => {
     expect(day.vehicle).toEqual(night.vehicle);
   });
 
-  it("defines frozen moving captures for both validated ordinary-race activities", () => {
-    expect(peachRaceCaptureScenes).toHaveLength(2);
+  it("defines frozen moving captures for the validated ordinary-race activities", () => {
+    expect(peachRaceCaptureScenes).toHaveLength(3);
     expect(peachRaceCaptureSceneById(" PEACH-RACE-MOVING ")).toMatchObject({
       kind: "peach-race", activityId: 0, updates: 420, playerCommands: 1,
       size: { width: 1280, height: 960 },
@@ -95,8 +95,13 @@ describe("deterministic capture scene catalogue", () => {
       kind: "peach-race", activityId: 1, updates: 420, playerCommands: 1,
       size: { width: 1280, height: 960 },
     });
+    expect(peachRaceCaptureSceneById(" TEMPLE-RACE-MOVING ")).toMatchObject({
+      kind: "peach-race", activityId: 2, updates: 420, playerCommands: 1,
+      size: { width: 1280, height: 960 },
+    });
     expect(captureSceneById("peach-race-moving")).toBeUndefined();
     expect(captureSceneById("peach-race-ii-moving")).toBeUndefined();
+    expect(captureSceneById("temple-race-moving")).toBeUndefined();
   });
 
 });

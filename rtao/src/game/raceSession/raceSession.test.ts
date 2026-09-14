@@ -119,6 +119,7 @@ function entrant(carIndex: number): OrdinaryRaceEntrant {
     distance: 0,
     countdownByte: 0,
     countdownHalf: 0,
+    equipmentBoostState: 0,
     verticalControl: 0,
     shiftScheduleFlag: 0,
   };
@@ -156,6 +157,13 @@ function entrant(carIndex: number): OrdinaryRaceEntrant {
 function session(carCount: number, elapsedUpdates = 200): OrdinaryRaceSession {
   return new OrdinaryRaceSession(config(carCount, elapsedUpdates), { advanceFrame: frameAdvance });
 }describe("ordinary race session", () => {
+  test("accepts recovered 0x3000 equipment modifiers while retaining the low-bit gate", () => {
+    const base = config(2);
+    const supported = { ...base, entrants: base.entrants.map((car, index) => index === 1 ? { ...car, equipmentFlags: 0x3000 } : car) };
+    expect(() => new OrdinaryRaceSession(supported, { advanceFrame: frameAdvance })).not.toThrow();
+    const unsupported = { ...base, entrants: base.entrants.map((car, index) => index === 1 ? { ...car, equipmentFlags: 0x0008 } : car) };
+    expect(() => new OrdinaryRaceSession(unsupported, { advanceFrame: frameAdvance })).toThrow(/unrecovered equipment/);
+  });
   test("builds the evidenced post-grid ordinary-car snapshot without entering reset paths", () => {
     const player: OrdinaryRaceEntrant = {
       ...entrant(0),
