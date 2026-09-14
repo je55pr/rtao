@@ -15,8 +15,9 @@ The first ordinary-race vertical slice is integrated on `dev`. Verified foundati
 - seven-probe ground support, course collision, contact/orientation, collision response and original-course obstacle handling;
 - the enclosing ordinary vehicle frame validated against retained PAL execution on original courses;
 - rendered Peach Raceway (`COURSE/C00`) with the recovered 24-car grid and deterministic moving capture;
+- generic ordinary-race runtime/coordinator now separates activity identity from physical `sceneId` course data; activity 1 / Peach Raceway II is PAL-validated for 420 live updates and has its own deterministic capture;
 - C00–C14 accepted as course geometry/collision/native-start-grid inputs: 15/15 compile and render, 360/360 recovered start positions ground, and each representative 24-car grid repeats pixel-identically;
-- Q's Factory's executable-backed selector now exposes each authored area range with native licence availability and saved top-six progress; its `StartRace` handoff still launches only validated activity 0 / Peach Raceway;
+- Q's Factory's executable-backed selector exposes each authored area range with native licence availability and saved top-six progress; its `StartRace` handoff launches validated activities 0 and 1 while preserving licence locks;
 - recovered player equipment selectors passed into the Q's Factory-launched race;
 - deterministic finish/reward state, Cake credit, best-finish/licence updates and recovered-progress persistence;
 - game-facing race HUD plus a native-timed start signal driven by PAL widget states 2–6 and scene flag `0x4`, followed by a dedicated completion panel that presents the already-applied player/team places, exact Cake credit, best result and licence promotion without recalculating progression;
@@ -28,16 +29,16 @@ Overworld interaction activation is explicit browser host policy: manual NPC/doo
 
 ## Immediate work
 
-1. Bring the next ordinary race through the existing generic race pipeline, keeping unresolved post-race dialogue branching gated.
-2. Continue activity-level validation before removing the explicit activity-0 Q's Factory launch gate.
+1. Continue activity-level ordinary-race validation beyond activities 0 and 1 without bypassing unrecovered native branches.
+2. Recover or bound the `0x300C` equipment path before enabling activity 2 / Temple Raceway, whose PAL opponent flags are `0x3000`.
 
 ## Explicitly outside the current race gate
 
 - Q's Factory post-race dialogue/result branching whose native `resultCode` mapping has not yet been proven;
-- launching additional ordinary activities from the selector until their activity-specific runtime path is validated; licence availability/progress is recovered, but course geometry acceptance alone is not a launch gate;
+- launching ordinary activities beyond validated 0/1 until their activity-specific runtime path is validated; activity 2 / Temple Raceway is currently blocked by original opponent equipment flags `0x3000`; licence availability/progress is recovered, but course geometry acceptance alone is not a launch gate;
 - complete native scene initialization and reset/debug paths;
 - exact original race-start widget sprites/colours, countdown cue-45 playback semantics and the separate 64-update fade appearance;
-- live race position ordering: `OrdinaryRaceSession.livePositions()` implements the native ranking sort, but the Peach coordinator supplies no navigation output/distance for any car, and the human-driven car 0 runs no navigation at all, so the session reports `navigation-metrics-required` and the race HUD shows lap and finish state without a live place;
+- live race position ordering: `OrdinaryRaceSession.livePositions()` implements the native ranking sort, but the ordinary coordinator supplies no navigation output/distance for any car, and the human-driven car 0 runs no navigation at all, so the session reports `navigation-metrics-required` and the race HUD shows lap and finish state without a live place;
 - outdoor/scene-28 behavior;
 - equipment path `0x300C`;
 - wheel animation and the later UI callback;
