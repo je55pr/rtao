@@ -1,11 +1,18 @@
 import { describe, expect, test } from "vitest";
 import { readFileSync } from "node:fs";
-import { readRaceCatalogue } from "../src/formats/raceCatalogue";
+import { racePrizeCakeFromNativeFinishIndices, readRaceCatalogue } from "../src/formats/raceCatalogue";
 import { PalScalarMachine } from "../test-support/palScalarMachine";
 
 const executablePath = process.env.RTA_PAL_EXECUTABLE;
 
 describe.skipIf(!executablePath)("actual PAL race progression oracle", () => {
+  test("pins Peach Raceway II to class B and the recovered first-place Cake row", () => {
+    const bytes = new Uint8Array(readFileSync(executablePath!));
+    const activity = readRaceCatalogue(bytes).ordinaryRaces[1]!;
+    expect(activity).toMatchObject({ activityId: 1, name: "Peach Raceway II", sceneId: 0, variantId: 1 });
+    expect(racePrizeCakeFromNativeFinishIndices(activity.variantId, [0])).toBe(1_500);
+  });
+
   test("promotion uses stored top-six bests even after a worse replay result", () => {
     const bytes = new Uint8Array(readFileSync(executablePath!));
     const classCRaces = readRaceCatalogue(bytes).ordinaryRaces.filter((race) => race.variantId === 0);
