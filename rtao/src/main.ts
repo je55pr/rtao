@@ -53,6 +53,7 @@ import {
   stepNativeNumericChoice,
 } from "./game/interiorFlow";
 import type { QFactoryInteriorView, ShopInteriorRoomView } from "./game/interiorView";
+import { applyNativeDrivingEquipment } from "./game/nativeDrivingEquipment";
 import { nativeTyreGripMultiplier } from "./game/nativeTyrePerformance";
 import {
   browserCompatibilityPaintWord,
@@ -1192,12 +1193,7 @@ async function toggleDriving(): Promise<void> {
   const { BrowserDrivingGame: BrowserDrivingGameClass } = await import("./game/drivingGame");
   drivingGame = new BrowserDrivingGameClass(drivingWorld, worldView, playerCar, handleDriveState);
   drivingGame.setPartPerformance(aggregatePartPerformance(equippedParts));
-  drivingGame.setNativeTyreSelector(playerEquipmentState?.selectedItem(0, 1) ?? 0);
-  drivingGame.setNativeEngineSelector(playerEquipmentState?.selectedItem(0, 2) ?? 0);
-  drivingGame.setNativeChassisSelector(playerEquipmentState?.selectedItem(0, 3) ?? 0);
-  drivingGame.setNativeTransmissionSelector(playerEquipmentState?.selectedItem(0, 4) ?? 0);
-  drivingGame.setNativeSteeringSelector(playerEquipmentState?.selectedItem(0, 5) ?? 0);
-  drivingGame.setNativeBrakeSelector(playerEquipmentState?.selectedItem(0, 6) ?? 0);
+  applyNativeDrivingEquipment(drivingGame, playerEquipmentState);
   advertisingDistanceTracker.reset();
   interactionContactTracker.clear();
   drivingGame.start();
@@ -2916,11 +2912,6 @@ function applyEquippedParts(): void {
   const appearance = aggregatePartsAppearance(equippedParts);
   const performance = aggregatePartPerformance(equippedParts);
   const nativeTyreSelector = playerEquipmentState?.selectedItem(0, 1) ?? 0;
-  const nativeEngineSelector = playerEquipmentState?.selectedItem(0, 2) ?? 0;
-  const nativeChassisSelector = playerEquipmentState?.selectedItem(0, 3) ?? 0;
-  const nativeTransmissionSelector = playerEquipmentState?.selectedItem(0, 4) ?? 0;
-  const nativeSteeringSelector = playerEquipmentState?.selectedItem(0, 5) ?? 0;
-  const nativeBrakeSelector = playerEquipmentState?.selectedItem(0, 6) ?? 0;
   qFactoryInteriorView?.setPlayerPartsAppearance(appearance);
   qFactoryInteriorView?.setPlayerNativeTyreAppearance(nativeTyreSelector);
   shopInteriorPreviewView?.setPlayerPartsAppearance(appearance);
@@ -2928,12 +2919,7 @@ function applyEquippedParts(): void {
   playerCar?.setPartsAppearance(appearance);
   playerCar?.setNativeTyreAppearance(nativeTyreSelector);
   drivingGame?.setPartPerformance(performance);
-  drivingGame?.setNativeTyreSelector(nativeTyreSelector);
-  drivingGame?.setNativeEngineSelector(nativeEngineSelector);
-  drivingGame?.setNativeChassisSelector(nativeChassisSelector);
-  drivingGame?.setNativeTransmissionSelector(nativeTransmissionSelector);
-  drivingGame?.setNativeSteeringSelector(nativeSteeringSelector);
-  drivingGame?.setNativeBrakeSelector(nativeBrakeSelector);
+  if (drivingGame) applyNativeDrivingEquipment(drivingGame, playerEquipmentState);
 }
 
 function qFactoryRaceChoices() {
