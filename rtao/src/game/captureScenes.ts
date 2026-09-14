@@ -63,6 +63,8 @@ export interface PeachRaceCaptureScene {
   readonly id: string;
   readonly label: string;
   readonly kind: "peach-race";
+  /** Executable ordinary-race activity ID launched through the shared runtime. */
+  readonly activityId: number;
   /** Exact native 50 Hz updates advanced before the frame is frozen for capture. */
   readonly updates: number;
   /** Signed 32-bit player command mask held for every deterministic update. */
@@ -79,6 +81,16 @@ export const peachRaceCaptureScenes: readonly PeachRaceCaptureScene[] = [
     id: "peach-race-moving",
     label: "Peach Raceway - deterministic moving frame",
     kind: "peach-race",
+    activityId: 0,
+    updates: 420,
+    playerCommands: 1,
+    size: comparisonSize,
+  },
+  {
+    id: "peach-race-ii-moving",
+    label: "Peach Raceway II - deterministic moving frame",
+    kind: "peach-race",
+    activityId: 1,
     updates: 420,
     playerCommands: 1,
     size: comparisonSize,

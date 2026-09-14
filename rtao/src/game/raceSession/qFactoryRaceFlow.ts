@@ -5,6 +5,10 @@ import type { RecoveredRaceState } from "../raceProgress";
 const raceSelectOpcode = 0x08;
 const startRaceOpcode = 0x03;
 
+export function qFactoryOrdinaryRaceRuntimeSupported(activityId: number): boolean {
+  return activityId === 0 || activityId === 1;
+}
+
 export interface QFactoryRaceOption {
   readonly activity: RaceActivityDescriptor;
   readonly unlocked: boolean;

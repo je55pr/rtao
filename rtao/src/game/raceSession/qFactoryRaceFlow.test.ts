@@ -4,6 +4,7 @@ import type { RaceActivityDescriptor, RaceCatalogue } from "../../formats/raceCa
 import { RecoveredCommerceState } from "../commerceProgress";
 import { nativeUnfinishedRaceIndex, RecoveredRaceState } from "../raceProgress";
 import {
+  qFactoryOrdinaryRaceRuntimeSupported,
   qFactoryRaceLaunchActivityId,
   qFactoryRaceOptions,
   qFactoryRaceSelectionTargets,
@@ -65,6 +66,12 @@ describe("Q's Factory race flow", () => {
     races.completeOrdinaryRace(catalogue, 0, [5], new RecoveredCommerceState());
     const options = qFactoryRaceOptions(catalogue, races, 1);
     expect(options.map((option) => [option.unlocked, option.bestFinishIndex, option.completedTopSix])).toEqual([[true, 5, true], [true, nativeUnfinishedRaceIndex, false]]);
+  });
+
+  test("keeps the browser ordinary-race runtime gate explicit", () => {
+    expect([0, 1, 2, 3].map((activityId) => [activityId, qFactoryOrdinaryRaceRuntimeSupported(activityId)])).toEqual([
+      [0, true], [1, true], [2, false], [3, false],
+    ]);
   });
 
   test("resolves action-03 zero through current selection and preserves explicit activity IDs", () => {

@@ -87,8 +87,8 @@ import {
   selectedPart,
 } from "./game/parts";
 import type { RaceCompletionResult, RecoveredRaceState } from "./game/raceProgress";
-import type { PeachRaceCoordinator } from "./game/raceSession/peachRaceCoordinator";
-import { qFactoryRaceLaunchActivityId, qFactoryRaceOptions, qFactoryRaceSelectionTargets, type QFactoryRaceOption } from "./game/raceSession/qFactoryRaceFlow";
+import type { OrdinaryRaceCoordinator } from "./game/raceSession/ordinaryRaceCoordinator";
+import { qFactoryOrdinaryRaceRuntimeSupported, qFactoryRaceLaunchActivityId, qFactoryRaceOptions, qFactoryRaceSelectionTargets, type QFactoryRaceOption } from "./game/raceSession/qFactoryRaceFlow";
 import type { RaceView } from "./game/raceView";
 import {
   PartsShopCatalogueSession,
@@ -189,7 +189,7 @@ let drivingWorld: DrivingWorld | undefined;
 let drivingGame: BrowserDrivingGame | undefined;
 let playerCar: Q62CarModel | undefined;
 let peachRaceView: RaceView | undefined;
-let peachRaceCoordinator: PeachRaceCoordinator | undefined;
+let peachRaceCoordinator: OrdinaryRaceCoordinator | undefined;
 let peachRaceModels: Q62CarModel[] = [];
 let peachRaceFrame = 0;
 let peachRaceLastTimestamp = 0;
@@ -863,12 +863,16 @@ function updatePeachRaceAvailability(): void {
 }
 
 async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors: readonly number[] = Array(15).fill(0), activityId = 0, preserveTownSession = false): Promise<void> {
-  if (activityId !== 0) throw new Error(`Only validated Peach Raceway activity 0 can launch; received activity ${activityId}.`);
+  if (!qFactoryOrdinaryRaceRuntimeSupported(activityId)) throw new Error(`Ordinary activity ${activityId} remains outside the validated browser launch boundary.`);
   if (!activeDirectory || !activeManifest || !activeExecutableBytes) throw new Error("The installed PAL data is not ready.");
-  const compiled = activeManifest.compiledRaceCourses?.find((record) => record.courseId === 0);
-  const collision = activeManifest.raceCourseCollisions?.find((record) => record.courseId === 0);
-  const source = activeManifest.raceCourses?.find((record) => record.courseId === 0);
-  if (!compiled || !collision || !source) throw new Error("COURSE/C00 is not present in the completed local race cache.");
+  const activity = readRaceCatalogue(activeExecutableBytes).ordinaryRaces[activityId];
+  if (!activity || activity.activityId !== activityId) throw new Error(`Ordinary activity ${activityId} is missing from the PAL catalogue.`);
+  const courseId = activity.sceneId;
+  const compiled = activeManifest.compiledRaceCourses?.find((record) => record.courseId === courseId);
+  const collision = activeManifest.raceCourseCollisions?.find((record) => record.courseId === courseId);
+  const source = activeManifest.raceCourses?.find((record) => record.courseId === courseId);
+  const courseLabel = `COURSE/C${courseId.toString().padStart(2, "0")}`;
+  if (!compiled || !collision || !source) throw new Error(`${courseLabel} is not present in the completed local race cache.`);
 
   stopPeachRace();
   if (preserveTownSession && drivingGame && isDriving) {
@@ -881,16 +885,16 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
     stopDrivingSession();
   }
   raceToggle.disabled = true;
-  raceToggle.textContent = "Loading Peach Raceway…";
+  raceToggle.textContent = `Loading ${activity.name}…`;
   worldLocation.disabled = true;
   driveToggle.disabled = true;
   worldSimulation?.setPaused(true);
 
-  const [{ RaceView: RaceViewClass }, { PeachRaceCoordinator: Coordinator, peachRaceEntrantId },
-    { createPeachRaceRuntime }, { deserializeCompiledCollision }, { Q62CarModel: CarModel }] = await Promise.all([
+  const [{ RaceView: RaceViewClass }, { OrdinaryRaceCoordinator: Coordinator, ordinaryRaceEntrantId },
+    { createOrdinaryRaceRuntime }, { deserializeCompiledCollision }, { Q62CarModel: CarModel }] = await Promise.all([
     import("./game/raceView"),
-    import("./game/raceSession/peachRaceCoordinator"),
-    import("./game/raceSession/peachRaceRuntime"),
+    import("./game/raceSession/ordinaryRaceCoordinator"),
+    import("./game/raceSession/ordinaryRaceRuntime"),
     import("./formats/fieldCollision"),
     import("./game/carView"),
   ]);
@@ -901,13 +905,12 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
     readBytes(activeDirectory, "game/CARS/TIRE.BIN"),
     readOptionalInstalledWheelBytes(activeDirectory),
   ]);
-  const runtime = createPeachRaceRuntime({
+  const runtime = createOrdinaryRaceRuntime({
+    activityId,
     executable: activeExecutableBytes,
     courseBytes,
     compiledCollision: deserializeCompiledCollision(collisionBytes),
-    // Standalone capture supplies the validated all-standard selectors; Q's Factory may supply recovered fitted selectors.
     playerEquipmentSelectors,
-    // The special equipment flag path remains outside the validated ordinary-frame boundary.
     playerEquipmentFlags: 0,
     globalEquipmentFlags: 0,
     countdown: { elapsedUpdates: 0, fadeUpdates: 64, sceneFlags: 0, updatesPerSecond: 50 },
@@ -915,9 +918,10 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
     sceneByte0B: 0,
     raceModeByte: 0,
   });
+  if (runtime.courseId !== courseId) throw new Error(`Ordinary activity ${activityId} course mapping drifted during runtime creation.`);
   const coordinator = new Coordinator(runtime);
   const view = new RaceViewClass(viewerHost);
-  view.loadCourse(0, compiledBytes);
+  view.loadCourse(courseId, compiledBytes);
 
   const bodyBytes = new Map<number, Uint8Array>();
   const models: Q62CarModel[] = [];
@@ -947,7 +951,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
     }
     const poses = new Map(coordinator.poses().map((entry) => [entry.carIndex, entry.pose] as const));
     view.setEntrants(runtime.initialCommands.map((initial, index) => ({
-      id: peachRaceEntrantId(initial.carIndex),
+      id: ordinaryRaceEntrantId(initial.carIndex),
       object: models[index]!,
       pose: poses.get(initial.carIndex)!,
     })));
@@ -970,7 +974,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
   renderPeachRaceStartSignal(0);
   peachRaceKeys.clear();
   viewerHost.querySelector<HTMLElement>(".world-canvas")?.style.setProperty("visibility", "hidden");
-  requiredElement<HTMLElement>("viewer-title").textContent = "Peach Raceway";
+  requiredElement<HTMLElement>("viewer-title").textContent = activity.name;
   requiredElement<HTMLElement>("viewer-help").textContent = "WASD / arrows · native 50 Hz race controls · Esc to leave";
   updatePeachRaceAvailability();
   refreshGameHud();
@@ -980,10 +984,10 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
 }
 
 async function runDeterministicPeachRaceCapture(scene: PeachRaceCaptureScene): Promise<void> {
-  await startPeachRace(false);
+  await startPeachRace(false, Array(15).fill(0), scene.activityId);
   const coordinator = peachRaceCoordinator;
   const view = peachRaceView;
-  if (!coordinator || !view) throw new Error("Peach race capture could not acquire the live race runtime.");
+  if (!coordinator || !view) throw new Error("Ordinary race capture could not acquire the live race runtime.");
   const playerStart = coordinator.runtime.session.entrant(0).state.coordinates;
   for (let update = 0; update < scene.updates; update += 1) {
     coordinator.step({ sceneTime: update, playerCommands: scene.playerCommands });
@@ -992,7 +996,7 @@ async function runDeterministicPeachRaceCapture(scene: PeachRaceCaptureScene): P
   refreshGameHud();
   const playerEnd = coordinator.runtime.session.entrant(0).state.coordinates;
   const movement = Math.hypot(playerEnd[0] - playerStart[0], playerEnd[2] - playerStart[2]);
-  if (!(movement > 0.01)) throw new Error(`Deterministic Peach race capture did not move the player after ${scene.updates} updates.`);
+  if (!(movement > 0.01)) throw new Error(`Deterministic ordinary race capture did not move the player after ${scene.updates} updates.`);
 
   const blob = await view.capturePng(scene.size);
   const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
@@ -1027,7 +1031,7 @@ async function runDeterministicPeachRaceCapture(scene: PeachRaceCaptureScene): P
   image.alt = `${scene.label} PAL-backed deterministic browser-port capture`;
   root.append(header, image);
   app.append(root);
-  console.info(`Deterministic Peach race capture '${scene.id}': tick ${scene.updates}, player moved ${movement.toFixed(3)} course units, SHA-256 ${digestHex}.`);
+  console.info(`Deterministic ordinary race capture '${scene.id}': tick ${scene.updates}, player moved ${movement.toFixed(3)} course units, SHA-256 ${digestHex}.`);
 }
 
 function runPeachRaceFrame(timestamp: number): void {
@@ -1109,13 +1113,13 @@ function applyPeachRaceResultIfReady(): void {
   );
   peachRaceRewardApplied = true;
   queueRecoveredProgressSave();
-  console.info(`Peach Raceway result applied: best native finish ${result.bestFinishIndex}, +${result.prizeCake} Cake.`);
+  console.info(`${peachRaceCoordinator.runtime.activityName} result applied: best native finish ${result.bestFinishIndex}, +${result.prizeCake} Cake.`);
   refreshGameHud();
   showPeachRaceResults(result, handoff.nativeFinishIndices);
 }
 
 function showPeachRaceResults(result: RaceCompletionResult, nativeFinishIndices: readonly number[]): void {
-  const view = raceResultsView({ raceName: "Peach Raceway", completion: result, nativeFinishIndices });
+  const view = raceResultsView({ raceName: peachRaceCoordinator?.runtime.activityName ?? "Ordinary race", completion: result, nativeFinishIndices });
   raceResultsTitle.textContent = view.raceName;
   raceResultsPlaces.replaceChildren(...view.finishers.map((finisher) => {
     const row = document.createElement("div");
@@ -2929,8 +2933,8 @@ function qFactoryRaceChoices() {
 }
 
 function qFactoryRaceLaunchSupported(option: QFactoryRaceOption | undefined): boolean {
-  // RTAO implementation gate only. Native availability is carried by option.unlocked.
-  return Boolean(option?.unlocked && option.activity.activityId === 0);
+  // RTAO implementation gate only. Native availability remains licence-backed.
+  return Boolean(option?.unlocked && qFactoryOrdinaryRaceRuntimeSupported(option.activity.activityId));
 }
 
 function renderQFactoryRaceChoices(host: HTMLElement): void {
@@ -2989,15 +2993,16 @@ function launchQFactoryRace(action: DialogueActionToken): void {
   const session = qFactorySession;
   if (!session || !playerEquipmentState) return;
   const activityId = qFactoryRaceLaunchActivityId(action, session.selectedRaceActivityId);
-  if (activityId !== 0) {
-    console.warn(`Q's Factory activity ${activityId} remains outside the validated Peach Raceway launch boundary.`);
+  const option = qFactoryRaceChoices().find((candidate) => candidate.activity.activityId === activityId);
+  if (!qFactoryRaceLaunchSupported(option)) {
+    console.warn(`Q's Factory activity ${activityId} is locked or remains outside the validated browser launch boundary.`);
     return;
   }
   const selectors = playerEquipmentState.selectorEntries()[0] ?? Array(15).fill(0);
-  console.info(`Q's Factory launching executable-selected activity ${activityId} with recovered Q62 equipment selectors.`);
+  console.info(`Q's Factory launching executable-selected activity ${activityId} (${option!.activity.name}) with recovered Q62 equipment selectors.`);
   void startPeachRace(true, selectors, activityId, true).catch((error) => {
     stopPeachRace();
-    showError("Peach Raceway could not start from Q's Factory.", error);
+    showError(`${option!.activity.name} could not start from Q's Factory.`, error);
   });
 }
 
@@ -3039,13 +3044,14 @@ function renderQFactoryDialogue(): void {
   if (external) {
     const presentation = describeInteriorHostAction(external);
     const raceSelection = external.opcode === raceSelectActionOpcode;
-    const peachLaunch = external.opcode === startRaceActionOpcode && session.selectedRaceActivityId === 0;
+    const selectedRaceOption = selectedRace ? qFactoryRaceChoices().find((option) => option.activity.activityId === selectedRace.activityId) : undefined;
+    const supportedRaceLaunch = external.opcode === startRaceActionOpcode && qFactoryRaceLaunchSupported(selectedRaceOption);
     requiredElement<HTMLElement>("factory-action-title").textContent = raceSelection ? "Race selector" : presentation.title;
     requiredElement<HTMLElement>("factory-action-detail").textContent = raceSelection
-      ? "Peach Town's executable selector exposes its authored race range. Only independently validated Peach Raceway can launch in this milestone."
-      : peachLaunch ? "Launch the selected Peach Raceway session with Q62's recovered fitted equipment." : presentation.detail;
+      ? "Peach Town's executable selector exposes its authored race range. Runtime support is independently validated per ordinary race."
+      : supportedRaceLaunch ? `Launch ${selectedRace!.name} with Q62's recovered fitted equipment.` : presentation.detail;
     hostAction.hidden = false;
-    returnButton.textContent = raceSelection ? "Cancel race selection" : peachLaunch ? "Start Peach Raceway"
+    returnButton.textContent = raceSelection ? "Cancel race selection" : supportedRaceLaunch ? `Start ${selectedRace!.name}`
       : presentation.returnSlot ? "Return to Q's Factory" : (presentation.leaveLabel ?? "Return to town");
     returnButton.hidden = false;
   } else {

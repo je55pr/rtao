@@ -85,16 +85,18 @@ describe("deterministic capture scene catalogue", () => {
     expect(day.vehicle).toEqual(night.vehicle);
   });
 
-  it("defines one frozen moving Peach Raceway capture outside the outdoor catalogue", () => {
-    expect(peachRaceCaptureScenes).toHaveLength(1);
-    const scene = peachRaceCaptureSceneById(" PEACH-RACE-MOVING ");
-    expect(scene).toMatchObject({
-      kind: "peach-race",
-      updates: 420,
-      playerCommands: 1,
+  it("defines frozen moving captures for both validated ordinary-race activities", () => {
+    expect(peachRaceCaptureScenes).toHaveLength(2);
+    expect(peachRaceCaptureSceneById(" PEACH-RACE-MOVING ")).toMatchObject({
+      kind: "peach-race", activityId: 0, updates: 420, playerCommands: 1,
+      size: { width: 1280, height: 960 },
+    });
+    expect(peachRaceCaptureSceneById(" PEACH-RACE-II-MOVING ")).toMatchObject({
+      kind: "peach-race", activityId: 1, updates: 420, playerCommands: 1,
       size: { width: 1280, height: 960 },
     });
     expect(captureSceneById("peach-race-moving")).toBeUndefined();
+    expect(captureSceneById("peach-race-ii-moving")).toBeUndefined();
   });
 
 });
