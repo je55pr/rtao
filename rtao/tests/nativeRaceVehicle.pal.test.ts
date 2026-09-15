@@ -27,7 +27,7 @@ describe.skipIf(!executablePath)('PAL composed vehicle stages', () => {
     }
   });
 
-  test.each([false,true])('composed command/force/traction/drift state matches the original full call sequence (native VU: %s)', (nativeVu) => {
+  test.each([false,true])('composed command/force/traction/drift state matches the original full call sequence across raw surface slots 0-7 (native VU: %s)', (nativeVu) => {
     const executable = bytes(), m = new PalScalarMachine(executable), v = m.view;
     const mathData=readNativeRaceMathData(executable);
     const car = 0x1000000, local = 0x1001000, scene = 0x1002000, support = 0x1003000, curve = 0x1004000, runtimeEquipment = 0x1005000;
@@ -41,8 +41,9 @@ describe.skipIf(!executablePath)('PAL composed vehicle stages', () => {
         steeringAccumulator: rand() % 65 - 32, steeringSpeedMemory: rand() % 50001, engineSpeed: rand() % 10001,
         nativeSpeed: rand() % 60001 - 30000, brakeHold: rand() % 33, fuel: rand() % 0x40001,
         slipAngle: rand() % 12001 - 6000, driftRate: rand() % 1025 - 512 };
+      const sampledSurfaceIndex = rand() % 8;
       const contact = { localForwardSpeed: rand() % 60001 - 30000, localSideSpeed: rand() % 10001 - 5000,
-        surfaceIndex: rand() % 6, driveContact: (rand() >>> 31) !== 0, contactAccelerationY: rand() % 179 - 89,
+        surfaceIndex: i < 8 ? i : sampledSurfaceIndex, driveContact: (rand() >>> 31) !== 0, contactAccelerationY: rand() % 179 - 89,
         contactAllowsYaw: true };
       const commands = [0, 1, 2, 3, 5, 9, 0x2001, 0x8002][rand() >>> 29]!, sceneFlags = i % 7 === 0 ? 0 : 4;
       m.memory.set(equipment.brakeCurve, curve); v.setUint32(car + 0x200, curve, true); v.setUint32(car + 0x184, runtimeEquipment, true);

@@ -82,6 +82,20 @@ export interface NativeRaceContactInput {
   readonly contactAllowsYaw: boolean;
 }
 
+/** 0x21B1C0 indexes car +0x21C with the low-three-bit contact surface.
+ * 0x218F70 copies six tyre words; the 0x219354 car-record memset leaves the
+ * following slots 6 and 7 as exact zeroes. They are race-local padding, not
+ * additional tyre coefficients. */
+export function nativeRaceContactGripWord(equipment: NativeRaceEquipment, surfaceIndex: number): number {
+  if (!Number.isInteger(surfaceIndex) || surfaceIndex < 0 || surfaceIndex > 7) {
+    throw new RangeError('Unresolved native contact surface.');
+  }
+  if (surfaceIndex >= 6) return 0;
+  const gripWord = equipment.surfaceGrips[surfaceIndex];
+  if (gripWord === undefined) throw new RangeError('Unresolved native contact surface.');
+  return gripWord;
+}
+
 /**
  * Scalar composition of 0x0021B1C0, through its drift callback. The caller
  * supplies native contact and transforms the returned local velocity using the
@@ -91,8 +105,7 @@ export function advanceNativeRaceVehicle(state: NativeRaceVehicleState, equipmen
   contact: NativeRaceContactInput, commands: number, sceneFlags: number, highShiftSchedule = true): {
     state: NativeRaceVehicleState; localForwardSpeed: number; localSideSpeed: number; slipMagnitude: number;
   } {
-  const gripWord = equipment.surfaceGrips[contact.surfaceIndex];
-  if (gripWord === undefined) throw new RangeError('Unresolved native contact surface.');
+  const gripWord = nativeRaceContactGripWord(equipment, contact.surfaceIndex);
   const gear = advanceNativeGear({ gear: state.gear, localForwardSpeed: contact.localForwardSpeed, commands, gearWords: equipment.gearWords, highShiftSchedule });
   const steering = advanceNativeSteering({ commands, accumulator: state.steeringAccumulator, speedMemory: state.steeringSpeedMemory,
     localForwardSpeed: contact.localForwardSpeed, steeringScalar: equipment.steeringScalar });

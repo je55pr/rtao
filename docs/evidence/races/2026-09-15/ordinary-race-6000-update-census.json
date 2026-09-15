@@ -1,0 +1,352 @@
+{
+  "updatesPerActivity": 6000,
+  "activities": [
+    {
+      "activityId": 0,
+      "activityName": "Peach Raceway",
+      "courseId": 0,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        1,
+        3
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 1,
+      "maxCompletedLaps": 2,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 1,
+      "activityName": "Peach Raceway II",
+      "courseId": 0,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        1,
+        3
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 1,
+      "maxCompletedLaps": 3,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 2,
+      "activityName": "Temple Raceway",
+      "courseId": 1,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        1,
+        3
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 1,
+      "maxCompletedLaps": 3,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 3,
+      "activityName": "Ninja Temple Raceway",
+      "courseId": 3,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        3
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 1,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 4,
+      "activityName": "Desert Raceway",
+      "courseId": 2,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        1
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 1,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 5,
+      "activityName": "Night Glow Raceway",
+      "courseId": 2,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        1
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 1,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 6,
+      "activityName": "Snow Mountain Raceway",
+      "courseId": 4,
+      "encounteredLowThreeBitSurfaces": [
+        1
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 2,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 7,
+      "activityName": "Miner 49er Raceway",
+      "courseId": 4,
+      "encounteredLowThreeBitSurfaces": [
+        1
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 2,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 8,
+      "activityName": "Slick Track",
+      "courseId": 5,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        1,
+        7
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 1,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 9,
+      "activityName": "Oval Raceway",
+      "courseId": 5,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        1
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 1,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 10,
+      "activityName": "River Raceway",
+      "courseId": 7,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        1,
+        3
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 1,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 11,
+      "activityName": "Snow Mountain Raceway",
+      "courseId": 7,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        1,
+        3
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 1,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 12,
+      "activityName": "Lava Run Raceway",
+      "courseId": 12,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        1
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 1,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 13,
+      "activityName": "Sunny Beach Raceway",
+      "courseId": 12,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        1
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 1,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 14,
+      "activityName": "Lagoon Raceway",
+      "courseId": 10,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        1,
+        3,
+        7
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 1,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 15,
+      "activityName": "Tin Raceway",
+      "courseId": 8,
+      "encounteredLowThreeBitSurfaces": [
+        1,
+        2,
+        3
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 1,
+      "maxCompletedLaps": 2,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 16,
+      "activityName": "Tin Raceway",
+      "courseId": 9,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        3
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 1,
+      "maxCompletedLaps": 3,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 17,
+      "activityName": "Endurance Run",
+      "courseId": 8,
+      "encounteredLowThreeBitSurfaces": [
+        1,
+        2,
+        3
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 1,
+      "maxCompletedLaps": 3,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 18,
+      "activityName": "Treasure Hunting Maze",
+      "courseId": 6,
+      "encounteredLowThreeBitSurfaces": [
+        4,
+        5,
+        7
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 1,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 19,
+      "activityName": "Sliding Door Race",
+      "courseId": 11,
+      "encounteredLowThreeBitSurfaces": [
+        4,
+        5,
+        7
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 1,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 20,
+      "activityName": "Highway Race",
+      "courseId": 13,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        1
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 2,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 21,
+      "activityName": "Rock Climbing",
+      "courseId": 13,
+      "encounteredLowThreeBitSurfaces": [
+        0,
+        1,
+        7
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 2,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 22,
+      "activityName": "Drag Race",
+      "courseId": 14,
+      "encounteredLowThreeBitSurfaces": [
+        1,
+        3
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 1,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    },
+    {
+      "activityId": 23,
+      "activityName": "Golf",
+      "courseId": 14,
+      "encounteredLowThreeBitSurfaces": [
+        1,
+        3
+      ],
+      "completedUpdates": 6000,
+      "playerCompletedLaps": 0,
+      "maxCompletedLaps": 1,
+      "finalStatus": "completed-window",
+      "sessionPhase": "racing"
+    }
+  ]
+}
