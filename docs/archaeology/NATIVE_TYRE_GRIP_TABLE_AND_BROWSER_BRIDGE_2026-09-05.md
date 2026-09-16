@@ -50,6 +50,12 @@ The values independently match the published Japanese HG2 technical parts table,
 
 The same PAL copy function contains a separate 17/16 enhancement path for a teammate/player-state flag. That behaviour is not part of the player tyre selector bridge in this checkpoint.
 
+### Race contact slots 6/7 are zero padding, not tyre fields
+
+A later race-consumer recovery on 2026-09-15 closes an important distinction. `0x0021B1C0` can index the race car grip area with a low-three-bit contact surface value, so raw indices 0..7 are addressable. This does **not** make the native tyre record eight fields wide. Car initialization at `0x00219354` first zeroes the 624-byte car record; `0x00218F70` then copies only the six tyre words to car `+0x21C..+0x226`. The adjacent halfwords `+0x228` and `+0x22A`, corresponding to race contact slots 6 and 7, remain exact zero. Gear words start at `+0x22C`.
+
+The browser race resolver therefore maps slots 0..5 to the six recovered coefficients above, maps 6/7 to zero, and rejects values outside 0..7. `readNativeRaceEquipment()` intentionally remains six entries wide. These two zero-filled race slots are not additional Dry/Off-road/Wet/Grass/Snow/Ice-style coefficients, and this race-specific recovery does not change free-roam `NativeTyreSurface` or collision-flag mapping semantics.
+
 ## Browser handling bridge
 
 `web/src/game/nativeTyrePerformance.ts` is the authoritative tyre table. It exposes:

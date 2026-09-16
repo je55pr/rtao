@@ -23,7 +23,7 @@ function inputFor(elf:Uint8Array,state:NativeRaceFrameState):NativeRaceFrameInpu
     sceneFlags:4,sceneKind:0,sceneByte0B:0,sceneTime:0,raceModeByte:0,commands:1,highShiftSchedule:true,obstaclePoints:[]};
 }
 describe.skipIf(!executablePath)('PAL assembled ordinary vehicle frame',()=>{
-  test('1024 complete update cases match independently executed gravity, drive, support, orientation and response',()=>{
+  test('1024 complete update cases match independently executed gravity, drive, support, orientation and response across surface slots 0-7',()=>{
     const elf=new Uint8Array(readFileSync(executablePath!)),data=readNativeRaceFrameData(elf),oracle=palRaceFrameOracle(elf);
     let seed=0x21c920;
     const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed;};
@@ -34,8 +34,9 @@ describe.skipIf(!executablePath)('PAL assembled ordinary vehicle frame',()=>{
         contact:{...base.contact,yaw,impulses:[0,rand()%1001,rand()%1001],support:[4096,i%2?4096:0,4096],specialState:i%3-1},
         velocity:[rand()%40001-20000,rand()%2001-1000,rand()%40001-20000,0] as const,
         previousVelocity:[rand()%40001-20000,rand()%2001-1000,rand()%40001-20000,0] as const,
-        matrix,inverse:inverseNativeRaceMatrix(matrix),countdownByte:i%5?0:32,countdownHalf:i%7?0:128,
-        equipmentBoostState:boostStates[i%boostStates.length]!,verticalControl:controls[i%controls.length]!,carFlags:i%2?2:0x80};
+        matrix,inverse:inverseNativeRaceMatrix(matrix),surfaces:base.surfaces.map((surface,index)=>index===0?i%8:surface),
+        countdownByte:i%5?0:32,countdownHalf:i%7?0:128,equipmentBoostState:boostStates[i%boostStates.length]!,
+        verticalControl:controls[i%controls.length]!,carFlags:i%2?2:0x80};
       const input={...inputFor(elf,state),equipmentFlags:[0,0x40,0x100,0x400,0x1000,0x2000,0x3000,0x2040][i%8]!,
         sceneFlags:i%11===0?0x44:4,sceneTime:rand()%200001,highShiftSchedule:!!(i%2),
         commands:[0,1,8,0x20,0x40,0x2000,0x8000,0x2008,0x8008,0x60,0xa000][i%11]!,

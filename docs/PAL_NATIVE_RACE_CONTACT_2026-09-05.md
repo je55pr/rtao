@@ -77,6 +77,17 @@ equipment may halve retained impulses using signed truncation. Surface words
 0..2 can become `(surface0 & 0x3000) | 0x100651`. Physical interpretations of
 these raw surface/state values are deliberately not inferred.
 
+The downstream race drive consumer at `0x0021B1C0` uses the low three bits of
+the first contact surface as a halfword index from car `+0x21C`. This permits
+raw indices 0..7. Car initialization at `0x00219354` clears the 624-byte record,
+and equipment setup `0x00218F70` overwrites only the six tyre-grip halfwords at
+`+0x21C..+0x226`; therefore index 6 (`+0x228`) and index 7 (`+0x22A`) retain exact
+zero until consumed. Gear words start at `+0x22C`. These are zero-filled race
+slots, **not** extra tyre coefficients. The composed PAL consumer and full-frame
+oracle regressions cover both 6 and 7; the 2026-09-15 all-activity long sweep
+encountered slot 7 on activities 8, 14, 18, 19 and 21 and completed all 6,000
+updates for each.
+
 With all three supports zero the unsupported counter increments. The
 **previous** counter must be at least 65 to set runtime bit 1 and replace all
 three impulses with their signed integer average. Any support resets the

@@ -6,10 +6,8 @@ const raceSelectOpcode = 0x08;
 const startRaceOpcode = 0x03;
 
 export const browserSupportedOrdinaryRaceActivityIds = [
-  0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17, 20, 22, 23,
+  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
 ] as const;
-
-export const contactSurfaceBlockedOrdinaryRaceActivityIds = [8, 14, 18, 19, 21] as const;
 
 const browserSupportedOrdinaryRaceActivityIdSet = new Set<number>(browserSupportedOrdinaryRaceActivityIds);
 
