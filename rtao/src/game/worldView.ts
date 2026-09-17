@@ -66,6 +66,69 @@ const crownSway = { swayHz: 1.45, swayAmplitude: 0.045, crossHz: 1.07, crossAmpl
 
 type AnimatedFieldObjectKind = Extract<FieldObjectKind, "turbine-rotor" | "palm-crown">;
 
+function createOutdoorSceneResources(name: string, compiled: CompiledFieldMesh): SectorRenderResources {
+  const textures = compiled.textures.map((source) => {
+    const texture = new THREE.DataTexture(source.rgba, source.width, source.height, THREE.RGBAFormat, THREE.UnsignedByteType);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = source.wrapS === 0 ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+    texture.wrapT = source.wrapT === 0 ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+    texture.magFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearFilter;
+    texture.generateMipmaps = false;
+    texture.needsUpdate = true;
+    return texture;
+  });
+  const materialMap = new Map<string, THREE.MeshBasicMaterial>();
+  const group = new THREE.Group();
+  group.name = name;
+  compiled.batches.forEach((batch, index) => {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(batch.positions, 3));
+    if (batch.billboard) geometry.setAttribute("anchor", new THREE.BufferAttribute(batch.anchors, 3));
+    geometry.setAttribute("color", new THREE.BufferAttribute(batch.colors, 3, true));
+    geometry.setAttribute("warmColor", new THREE.BufferAttribute(batch.warmColors, 3, true));
+    geometry.setAttribute("nightColor", new THREE.BufferAttribute(batch.nightColors, 3, true));
+    geometry.setAttribute("uv", new THREE.BufferAttribute(batch.uvs, 2));
+    setBatchBounds(geometry, batch);
+    const materialBaseKey = `${batch.textureIndex}|${batch.textureFunction}|${batch.rgbaColorComponent ? 1 : 0}|${batch.hasTransparency ? 1 : 0}|${batch.billboard ? 1 : 0}`;
+    const approximateMaterialKey = `${materialBaseKey}|approx`;
+    let approximateMaterial = materialMap.get(approximateMaterialKey);
+    if (!approximateMaterial) {
+      approximateMaterial = createFieldMaterial(batch, textures, "approximate");
+      materialMap.set(approximateMaterialKey, approximateMaterial);
+    }
+    const approximateMesh = new THREE.Mesh(geometry, approximateMaterial);
+    approximateMesh.name = `${group.name} batch ${index}`;
+    approximateMesh.userData.rtaNightOnly = batch.nightOnly;
+    approximateMesh.userData.rtaRenderPath = batch.billboard ? "all" : "approximate";
+    approximateMesh.renderOrder = batch.hasTransparency ? 2 : (!batch.billboard && batch.chunkIndex === 64 ? 0 : 1);
+    group.add(approximateMesh);
+    if (!batch.billboard) {
+      for (const pass of ["authentic-depth", "authentic-rgb"] as const) {
+        const materialKey = `${materialBaseKey}|${pass}`;
+        let material = materialMap.get(materialKey);
+        if (!material) {
+          material = createFieldMaterial(batch, textures, pass);
+          materialMap.set(materialKey, material);
+        }
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.name = `${group.name} batch ${index} ${pass}`;
+        mesh.userData.rtaNightOnly = batch.nightOnly;
+        mesh.userData.rtaRenderPath = pass;
+        mesh.renderOrder = 1000 + index * 2 + (pass === "authentic-rgb" ? 1 : 0);
+        group.add(mesh);
+      }
+    }
+  });
+  return {
+    group,
+    textures,
+    materials: [...materialMap.values()],
+    triangles: compiled.triangleCount,
+    primitives: compiled.primitiveCount,
+  };
+}
+
 export function nativeFourthColumnToRenderColumn(column: NativeFourthColumn): NativeFourthColumn {
   return [fieldExtent * column[3] - column[0], column[1], column[2], column[3]];
 }
@@ -102,6 +165,8 @@ export class WorldView {
   private readonly resizeObserver: ResizeObserver;
   private readonly worldGroup = new THREE.Group();
   private readonly sectors = new Map<number, SectorRenderResources>();
+  private readonly specialOutdoorScenes = new Map<number, SectorRenderResources>();
+  private activeSpecialOutdoorAreaCode: number | undefined;
   private readonly actors = new Map<string, WorldActorRenderState>();
   private readonly horizon: THREE.Mesh;
   private sky: THREE.Mesh | undefined;
@@ -165,85 +230,23 @@ export class WorldView {
 
   addCompiledFieldMesh(fieldNumber: number, compiled: CompiledFieldMesh): WorldViewStats {
     if (this.sectors.has(fieldNumber)) throw new Error(`FLD/${fieldNumber.toString().padStart(3, "0")} is already loaded.`);
-    const textures = compiled.textures.map((source) => {
-      const texture = new THREE.DataTexture(source.rgba, source.width, source.height, THREE.RGBAFormat, THREE.UnsignedByteType);
-      texture.colorSpace = THREE.SRGBColorSpace;
-      texture.wrapS = source.wrapS === 0 ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-      texture.wrapT = source.wrapT === 0 ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-      texture.magFilter = THREE.LinearFilter;
-      texture.minFilter = THREE.LinearFilter;
-      texture.generateMipmaps = false;
-      texture.needsUpdate = true;
-      return texture;
-    });
-    const materialMap = new Map<string, THREE.MeshBasicMaterial>();
-    const group = new THREE.Group();
-    group.name = `FLD/${fieldNumber.toString().padStart(3, "0")}`;
-
-    compiled.batches.forEach((batch, index) => {
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute("position", new THREE.BufferAttribute(batch.positions, 3));
-      if (batch.billboard) geometry.setAttribute("anchor", new THREE.BufferAttribute(batch.anchors, 3));
-      geometry.setAttribute("color", new THREE.BufferAttribute(batch.colors, 3, true));
-      geometry.setAttribute("warmColor", new THREE.BufferAttribute(batch.warmColors, 3, true));
-      geometry.setAttribute("nightColor", new THREE.BufferAttribute(batch.nightColors, 3, true));
-      geometry.setAttribute("uv", new THREE.BufferAttribute(batch.uvs, 2));
-      setBatchBounds(geometry, batch);
-
-      const materialBaseKey = `${batch.textureIndex}|${batch.textureFunction}|${batch.rgbaColorComponent ? 1 : 0}|${batch.hasTransparency ? 1 : 0}|${batch.billboard ? 1 : 0}`;
-      const approximateMaterialKey = `${materialBaseKey}|approx`;
-      let approximateMaterial = materialMap.get(approximateMaterialKey);
-      if (!approximateMaterial) {
-        approximateMaterial = createFieldMaterial(batch, textures, "approximate");
-        materialMap.set(approximateMaterialKey, approximateMaterial);
-      }
-      const approximateMesh = new THREE.Mesh(geometry, approximateMaterial);
-      approximateMesh.name = `${group.name} batch ${index}`;
-      approximateMesh.userData.rtaNightOnly = batch.nightOnly;
-      approximateMesh.userData.rtaRenderPath = batch.billboard ? "all" : "approximate";
-      // HG2's chunk-64 static layer contains facade/backing fills which sit
-      // underneath local cutout/detail geometry. Keep that proven ordering while
-      // still submitting every alpha-bearing batch after opaque geometry.
-      approximateMesh.renderOrder = batch.hasTransparency ? 2 : (!batch.billboard && batch.chunkIndex === 64 ? 0 : 1);
-      group.add(approximateMesh);
-
-      // The real outdoor pass uses context-2 TEST with AFAIL=RGB_ONLY at AREF=127.
-      // WebGL cannot disable depth writes conditionally per fragment, so Original
-      // PS2 mode emulates that state with two adjacent draws over one geometry:
-      // passing-alpha fragments establish colour+depth; failed-alpha fragments
-      // blend RGB with depth writes disabled. Extended/Unlimited retain the fast
-      // single-draw approximation above.
-      if (!batch.billboard) {
-        for (const pass of ["authentic-depth", "authentic-rgb"] as const) {
-          const materialKey = `${materialBaseKey}|${pass}`;
-          let material = materialMap.get(materialKey);
-          if (!material) {
-            material = createFieldMaterial(batch, textures, pass);
-            materialMap.set(materialKey, material);
-          }
-          const mesh = new THREE.Mesh(geometry, material);
-          mesh.name = `${group.name} batch ${index} ${pass}`;
-          mesh.userData.rtaNightOnly = batch.nightOnly;
-          mesh.userData.rtaRenderPath = pass;
-          mesh.renderOrder = 1000 + index * 2 + (pass === "authentic-rgb" ? 1 : 0);
-          group.add(mesh);
-        }
-      }
-    });
-
+    const resources = createOutdoorSceneResources(`FLD/${fieldNumber.toString().padStart(3, "0")}`, compiled);
     const offset = relativeRenderTranslation(this.originFieldNumber, fieldNumber);
-    group.position.set(offset.x, 0, offset.y);
-    this.worldGroup.add(group);
-    this.sectors.set(fieldNumber, {
-      group,
-      textures,
-      materials: [...materialMap.values()],
-      triangles: compiled.triangleCount,
-      primitives: compiled.primitiveCount,
-    });
+    resources.group.position.set(offset.x, 0, offset.y);
+    this.worldGroup.add(resources.group);
+    this.sectors.set(fieldNumber, resources);
     this.attachChoroCoinsToSector(fieldNumber);
     this.applyOutdoorState();
     return this.stats();
+  }
+
+  addCompiledSpecialOutdoorScene(areaCode: number, compiled: CompiledFieldMesh): void {
+    if (this.specialOutdoorScenes.has(areaCode)) throw new Error(`Special outdoor area-code ${areaCode} is already loaded.`);
+    const resources = createOutdoorSceneResources(`ACTION special-outdoor area-code ${areaCode}`, compiled);
+    resources.group.visible = false;
+    this.scene.add(resources.group);
+    this.specialOutdoorScenes.set(areaCode, resources);
+    this.applyOutdoorState();
   }
 
   finishWorld(): WorldViewStats {
@@ -582,17 +585,36 @@ export class WorldView {
     cameraLift = 6.1,
   ): void {
     if (!this.vehicle) return;
+    this.activateStandardWorld();
     if (this.originFieldNumber !== fieldNumber) {
       this.originFieldNumber = fieldNumber;
       this.positionSectors();
       snap = true;
     }
+    this.updateDrivingPose(position, yaw, pitch, roll, snap, cameraLift);
+  }
+
+  updateSpecialOutdoorDriving(
+    areaCode: number,
+    position: { x: number; y: number; z: number },
+    yaw: number,
+    pitch: number,
+    roll: number,
+    snap = false,
+    cameraLift = 6.1,
+  ): void {
+    if (!this.vehicle) return;
+    if (this.activeSpecialOutdoorAreaCode !== areaCode) snap = true;
+    this.activateSpecialOutdoor(areaCode);
+    this.updateDrivingPose(position, yaw, pitch, roll, snap, cameraLift);
+  }
+
+  private updateDrivingPose(position: { x: number; y: number; z: number }, yaw: number, pitch: number, roll: number, snap: boolean, cameraLift: number): void {
+    if (!this.vehicle) return;
     this.vehicle.position.set(position.x, position.y + 0.02, position.z);
     this.vehicle.rotation.order = "YXZ";
     this.vehicle.rotation.set(-pitch, yaw, roll);
     const forwardX = Math.sin(yaw), forwardZ = Math.cos(yaw);
-    // Peach's dense roofs can sit directly behind the authored spawn. A slightly
-    // elevated chase pose keeps the player car visible without clipping the town.
     const desiredCamera = new THREE.Vector3(position.x - forwardX * 7.8, position.y + cameraLift, position.z - forwardZ * 7.8);
     const desiredTarget = new THREE.Vector3(position.x, position.y + 0.72, position.z);
     if (snap || !this.chaseReady) {
@@ -615,9 +637,26 @@ export class WorldView {
     this.showWorldOverview();
   }
 
+  private activateStandardWorld(): void {
+    this.activeSpecialOutdoorAreaCode = undefined;
+    this.worldGroup.visible = true;
+    for (const resources of this.specialOutdoorScenes.values()) resources.group.visible = false;
+  }
+
+  private activateSpecialOutdoor(areaCode: number): void {
+    const selected = this.specialOutdoorScenes.get(areaCode);
+    if (!selected) throw new Error(`Special outdoor area-code ${areaCode} is not loaded.`);
+    this.activeSpecialOutdoorAreaCode = areaCode;
+    this.worldGroup.visible = false;
+    for (const [candidateAreaCode, resources] of this.specialOutdoorScenes) {
+      resources.group.visible = candidateAreaCode === areaCode;
+    }
+  }
+
   focusField(fieldNumber: number): boolean {
     const selected = this.sectors.get(fieldNumber);
     if (!selected) return false;
+    this.activateStandardWorld();
     this.controls.enabled = true;
     this.originFieldNumber = fieldNumber;
     this.positionSectors();
@@ -640,6 +679,7 @@ export class WorldView {
 
   showWorldOverview(): void {
     if (this.sectors.size === 0) return;
+    this.activateStandardWorld();
     this.controls.enabled = true;
     this.originFieldNumber = 223;
     this.positionSectors();
@@ -884,8 +924,9 @@ export class WorldView {
   private applyOutdoorState(): void {
     const atmosphere = outdoorAtmosphere(this.timeOfDayUnits);
     const weights = new THREE.Vector3(atmosphere.weights.day, atmosphere.weights.warm, atmosphere.weights.night);
+    const outdoorScenes = [...this.sectors.values(), ...this.specialOutdoorScenes.values()];
 
-    for (const sector of this.sectors.values()) {
+    for (const sector of outdoorScenes) {
       for (const material of sector.materials) {
         const target = material.userData.rtaTimeWeights as THREE.Vector3 | undefined;
         target?.copy(weights);
@@ -908,7 +949,7 @@ export class WorldView {
     // Ordinary fields reproduce HG2's separate linear GS-fog and VU-alpha
     // stages in their material shader. THREE.Fog cannot represent both starts.
     this.scene.fog = null;
-    for (const sector of this.sectors.values()) {
+    for (const sector of outdoorScenes) {
       for (const material of sector.materials) {
         const atmosphereTarget = material.userData.rtaAtmosphereColor as THREE.Color | undefined;
         atmosphereTarget?.copy(fog);
@@ -970,6 +1011,17 @@ export class WorldView {
       this.worldGroup.remove(sector.group);
     }
     this.sectors.clear();
+    for (const resources of this.specialOutdoorScenes.values()) {
+      resources.group.traverse((object) => {
+        if (object instanceof THREE.Mesh) object.geometry.dispose();
+      });
+      for (const material of resources.materials) material.dispose();
+      for (const texture of resources.textures) texture.dispose();
+      this.scene.remove(resources.group);
+    }
+    this.specialOutdoorScenes.clear();
+    this.activeSpecialOutdoorAreaCode = undefined;
+    this.worldGroup.visible = true;
     this.animatedDynamicObjects.length = 0;
     this.lastFrameTimestamp = 0;
     this.animationSeconds = 0;

@@ -2,7 +2,7 @@ import { BlobSource, type RandomAccessSource } from "../disc/randomAccess";
 import type { GameIdentity } from "../formats/gameIdentity";
 import { appStorageDirectoryName } from "./storageChannel";
 
-export const cacheSchemaVersion = 4;
+export const cacheSchemaVersion = 5;
 const appDirectoryName = appStorageDirectoryName(import.meta.env.VITE_RTA_CHANNEL);
 
 export interface CachedFileRecord {
@@ -58,6 +58,22 @@ export interface CompiledRaceCourseCollisionRecord {
   readonly triangleCount: number;
 }
 
+export interface CompiledSpecialOutdoorRecord {
+  readonly areaCode: number;
+  readonly sourcePath: string;
+  readonly path: string;
+  readonly cacheVersion?: number;
+  readonly vertexCount: number;
+  readonly triangleCount: number;
+  readonly primitiveCount: number;
+}
+
+export interface CompiledSpecialOutdoorCollisionRecord {
+  readonly areaCode: number;
+  readonly path: string;
+  readonly triangleCount: number;
+}
+
 export interface ImportManifest {
   readonly schemaVersion: number;
   readonly importId: string;
@@ -75,6 +91,8 @@ export interface ImportManifest {
   readonly raceCourses?: RaceCourseSummaryRecord[];
   readonly compiledRaceCourses?: CompiledRaceCourseRecord[];
   readonly raceCourseCollisions?: CompiledRaceCourseCollisionRecord[];
+  readonly compiledSpecialOutdoors?: CompiledSpecialOutdoorRecord[];
+  readonly specialOutdoorCollisions?: CompiledSpecialOutdoorCollisionRecord[];
   /**
    * DEV-ONLY: set when `?devdisc` imported a subset of fields to fit a small
    * browser-storage quota. Such an install lists only those fields and must not

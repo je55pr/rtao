@@ -14,7 +14,14 @@ export interface DriveInput {
   readonly boost: boolean;
 }
 
+export type CarOutdoorLocation =
+  | { readonly kind: "standard-world"; readonly fieldNumber: number }
+  | { readonly kind: "special-outdoor"; readonly areaCode: number };
+
 export interface CarState {
+  /** Native scene identity. Special outdoor scenes never masquerade as an FLD. */
+  readonly location: CarOutdoorLocation;
+  /** Compatibility field for ordinary-world UI/contact code; -1 outside FLD topology. */
   readonly fieldNumber: number;
   readonly position: Vec3;
   readonly yaw: number;
@@ -51,8 +58,10 @@ export class ArcadeCarController {
 
   constructor(private readonly world: DrivingWorld, fieldNumber = 223, position: Vec3 = { x: 1152, y: 31, z: 555 }, yaw = -0.1) {
     const resolved = world.resolveFootprint(fieldNumber, position, yaw, position.y, nativeTyreContactThreshold(this.nativeTyreSelector));
+    const resolvedFieldNumber = resolved?.fieldNumber ?? fieldNumber;
     this.mutable = {
-      fieldNumber: resolved?.fieldNumber ?? fieldNumber,
+      location: { kind: "standard-world", fieldNumber: resolvedFieldNumber },
+      fieldNumber: resolvedFieldNumber,
       position: resolved?.position ?? position,
       yaw,
       speed: 0,
@@ -110,6 +119,33 @@ export class ArcadeCarController {
     this.relocate(fieldNumber, { x: position.x, y: current.position.y, z: position.z }, current.yaw);
   }
 
+  enterSpecialOutdoor(areaCode: number, position: { readonly x: number; readonly z: number }): void {
+    const current = this.mutable;
+    const candidate = { x: position.x, y: current.position.y, z: position.z };
+    const resolved = this.world.resolveSpecialOutdoorFootprint(
+      areaCode,
+      candidate,
+      current.yaw,
+      current.position.y,
+      nativeTyreContactThreshold(this.nativeTyreSelector),
+    );
+    this.nativeBrakeHeldUpdates = 0;
+    this.mutable = {
+      location: { kind: "special-outdoor", areaCode },
+      fieldNumber: -1,
+      position: resolved?.position ?? candidate,
+      yaw: current.yaw,
+      speed: 0,
+      steeringAngle: 0,
+      wheelSpin: 0,
+      pitch: 0,
+      roll: 0,
+      surfaceFlags: resolved?.surfaceFlags ?? 0,
+      surfaceKind: this.world.specialOutdoorDrivingSurface(areaCode, resolved?.position ?? candidate, resolved?.y ?? candidate.y),
+      distanceTravelled: current.distanceTravelled,
+    };
+  }
+
   /** Dev/probe relocation. Player-facing area transitions use enterArea instead. */
   teleport(fieldNumber: number, position: Vec3, yaw: number): void {
     this.relocate(fieldNumber, position, yaw);
@@ -118,8 +154,10 @@ export class ArcadeCarController {
   private relocate(fieldNumber: number, position: Vec3, yaw: number): void {
     this.nativeBrakeHeldUpdates = 0;
     const resolved = this.world.resolveFootprint(fieldNumber, position, yaw, position.y, nativeTyreContactThreshold(this.nativeTyreSelector));
+    const resolvedFieldNumber = resolved?.fieldNumber ?? fieldNumber;
     this.mutable = {
-      fieldNumber: resolved?.fieldNumber ?? fieldNumber,
+      location: { kind: "standard-world", fieldNumber: resolvedFieldNumber },
+      fieldNumber: resolvedFieldNumber,
       position: resolved?.position ?? position,
       yaw,
       speed: 0,
@@ -138,7 +176,9 @@ export class ArcadeCarController {
     const throttle = clamp(input.throttle, -1, 1);
     const steering = clamp(input.steering, -1, 1);
     const boost = input.boost ? 5 : 1;
-    const surfaceKind = this.world.drivingSurface(old.fieldNumber, old.position, old.position.y);
+    const surfaceKind = old.location.kind === "special-outdoor"
+      ? this.world.specialOutdoorDrivingSurface(old.location.areaCode, old.position, old.position.y)
+      : this.world.drivingSurface(old.fieldNumber, old.position, old.position.y);
     const [baseForwardAcceleration, baseReverseAcceleration, coastDrag, baseMaxForwardSpeed] = surfaceKind === "dirt"
       ? [8.4, 5.5, 3.4, 23.5]
       : surfaceKind === "grass"
@@ -190,27 +230,32 @@ export class ArcadeCarController {
     const moveX = forwardX * speed * dt, moveZ = forwardZ * speed * dt;
     const candidate = { x: old.position.x + moveX, y: old.position.y, z: old.position.z + moveZ };
     const contactThreshold = nativeTyreContactThreshold(this.nativeTyreSelector);
-    let resolved = this.world.resolveFootprint(old.fieldNumber, candidate, yaw, old.position.y, contactThreshold);
+    const resolveCandidate = (position: Vec3) => old.location.kind === "special-outdoor"
+      ? this.world.resolveSpecialOutdoorFootprint(old.location.areaCode, position, yaw, old.position.y, contactThreshold)
+      : this.world.resolveFootprint(old.fieldNumber, position, yaw, old.position.y, contactThreshold);
+    let resolved = resolveCandidate(candidate);
     let distanceMoved = resolved ? Math.hypot(moveX, moveZ) : 0;
     if (!resolved) {
-      const x = this.world.resolveFootprint(old.fieldNumber, { x: old.position.x + moveX, y: old.position.y, z: old.position.z }, yaw, old.position.y, contactThreshold);
-      const z = this.world.resolveFootprint(old.fieldNumber, { x: old.position.x, y: old.position.y, z: old.position.z + moveZ }, yaw, old.position.y, contactThreshold);
+      const x = resolveCandidate({ x: old.position.x + moveX, y: old.position.y, z: old.position.z });
+      const z = resolveCandidate({ x: old.position.x, y: old.position.y, z: old.position.z + moveZ });
       resolved = x && (!z || Math.abs(moveX) >= Math.abs(moveZ)) ? x : z;
       if (resolved) distanceMoved = resolved === x ? Math.abs(moveX) : Math.abs(moveZ);
     }
     if (!resolved) {
       speed = 0;
-      resolved = {
-        fieldNumber: old.fieldNumber,
-        position: old.position,
-        y: old.position.y,
-        surfaceFlags: old.surfaceFlags,
-      };
+      resolved = { position: old.position, y: old.position.y, surfaceFlags: old.surfaceFlags };
     }
 
-    const attitude = this.groundAttitude(resolved.fieldNumber, resolved.position, yaw, old.pitch, old.roll, dt);
+    const resolvedFieldNumber = "fieldNumber" in resolved && typeof resolved.fieldNumber === "number"
+      ? resolved.fieldNumber
+      : old.fieldNumber;
+    const nextLocation: CarOutdoorLocation = old.location.kind === "special-outdoor"
+      ? old.location
+      : { kind: "standard-world", fieldNumber: resolvedFieldNumber };
+    const attitude = this.groundAttitude(nextLocation, resolved.position, yaw, old.pitch, old.roll, dt);
     this.mutable = {
-      fieldNumber: resolved.fieldNumber,
+      location: nextLocation,
+      fieldNumber: nextLocation.kind === "standard-world" ? nextLocation.fieldNumber : -1,
       position: { x: resolved.position.x, y: attitude.y, z: resolved.position.z },
       yaw,
       speed,
@@ -224,16 +269,21 @@ export class ArcadeCarController {
     };
   }
 
-  private groundAttitude(fieldNumber: number, position: Vec3, yaw: number, pitch: number, roll: number, dt: number): { y: number; pitch: number; roll: number } {
+  private groundAttitude(location: CarOutdoorLocation, position: Vec3, yaw: number, pitch: number, roll: number, dt: number): { y: number; pitch: number; roll: number } {
     const contacts: ReadonlyArray<readonly [number, number]> = [
       [-0.741544, 0.68], [0.741544, 0.68], [-0.724481, -0.66], [0.724481, -0.66],
     ];
     const sine = Math.sin(yaw), cosine = Math.cos(yaw);
-    const heights = contacts.map(([x, z]) => this.world.sampleGround(fieldNumber, {
-      x: position.x + x * cosine + z * sine,
-      y: position.y,
-      z: position.z - x * sine + z * cosine,
-    }, position.y)?.y);
+    const heights = contacts.map(([x, z]) => {
+      const point = {
+        x: position.x + x * cosine + z * sine,
+        y: position.y,
+        z: position.z - x * sine + z * cosine,
+      };
+      return location.kind === "special-outdoor"
+        ? this.world.sampleSpecialOutdoorGround(location.areaCode, point, position.y)?.y
+        : this.world.sampleGround(location.fieldNumber, point, position.y)?.y;
+    });
     if (heights.some((height) => height === undefined)) return { y: position.y, pitch, roll };
     const [fl = position.y, fr = position.y, rl = position.y, rr = position.y] = heights as number[];
     const targetPitch = Math.atan2((fl + fr - rl - rr) * 0.5, 1.34);
@@ -319,6 +369,14 @@ export class BrowserDrivingGame {
     this.applyState(this.controller.state, true);
   }
 
+  enterSpecialOutdoor(areaCode: number, position: { readonly x: number; readonly z: number }): void {
+    this.keys.clear();
+    this.controller.enterSpecialOutdoor(areaCode, position);
+    this.accumulator = 0;
+    this.lastTime = performance.now();
+    this.applyState(this.controller.state, true);
+  }
+
   private readonly frame = (time: number): void => {
     if (!this.running) return;
     if (this.paused) {
@@ -344,14 +402,21 @@ export class BrowserDrivingGame {
     let cameraLift = 4.2;
     for (let step = 1; step <= 6; step += 1) {
       const distance = 7.8 * step / 6;
-      const obstruction = this.world.sampleHighest(state.fieldNumber, {
+      const point = {
         x: state.position.x - forwardX * distance,
         y: state.position.y,
         z: state.position.z - forwardZ * distance,
-      });
+      };
+      const obstruction = state.location.kind === "special-outdoor"
+        ? this.world.sampleSpecialOutdoorHighest(state.location.areaCode, point)
+        : this.world.sampleHighest(state.fieldNumber, point);
       if (obstruction) cameraLift = Math.max(cameraLift, obstruction.y - state.position.y + 1.8);
     }
-    this.view.updateDriving(state.fieldNumber, state.position, state.yaw, state.pitch, state.roll, snap, cameraLift);
+    if (state.location.kind === "special-outdoor") {
+      this.view.updateSpecialOutdoorDriving(state.location.areaCode, state.position, state.yaw, state.pitch, state.roll, snap, cameraLift);
+    } else {
+      this.view.updateDriving(state.location.fieldNumber, state.position, state.yaw, state.pitch, state.roll, snap, cameraLift);
+    }
     this.onState(state);
   }
 

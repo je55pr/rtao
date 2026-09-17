@@ -42,6 +42,24 @@ describe("arcade driving", () => {
     expect(car.state.distanceTravelled).toBe(drivenDistance);
   });
 
+  test("enters Cloud Hill through special-outdoor collision without inventing FLD/064", () => {
+    const world = flatWorld();
+    world.addCompiledSpecialOutdoor(64, flatFieldCollision());
+    const car = new ArcadeCarController(world);
+    const initialDistance = car.state.distanceTravelled;
+
+    car.enterSpecialOutdoor(64, { x: 767.77001953125, z: 725 });
+
+    expect(car.state.location).toEqual({ kind: "special-outdoor", areaCode: 64 });
+    expect(car.state.fieldNumber).toBe(-1);
+    expect(car.state.position.x).toBeCloseTo(767.77001953125, 8);
+    expect(car.state.position.z).toBe(725);
+    expect(car.state.distanceTravelled).toBe(initialDistance);
+    car.update(1 / 60, { throttle: 1, steering: 0, boost: false });
+    expect(car.state.location).toEqual({ kind: "special-outdoor", areaCode: 64 });
+    expect(car.state.fieldNumber).toBe(-1);
+  });
+
   test("drives through an X sector seam without losing collision", () => {
     const car = new ArcadeCarController(flatWorld());
     car.teleport(223, { x: 1598, y: 0, z: 800 }, Math.PI / 2);

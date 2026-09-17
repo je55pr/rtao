@@ -7,6 +7,7 @@ import { carAssetPath } from "../formats/carPath";
 import { readOverworldCatalogue, type OverworldCatalogue } from "../formats/overworld";
 import { ordinaryRaceCourseIds as selectOrdinaryRaceCourseIds, readRaceCatalogue } from "../formats/raceCatalogue";
 import { bodyShopBodyIds, peachBodyShopStock } from "../game/bodyCatalog";
+import { cloudHillSpecialOutdoorScene } from "../game/specialOutdoor";
 import {
   cacheSchemaVersion,
   createImportDirectory,
@@ -21,6 +22,8 @@ import {
   type CompiledFieldRecord,
   type CompiledRaceCourseCollisionRecord,
   type CompiledRaceCourseRecord,
+  type CompiledSpecialOutdoorCollisionRecord,
+  type CompiledSpecialOutdoorRecord,
   type FieldSummaryRecord,
   type ImportManifest,
   type RaceCourseSummaryRecord,
@@ -112,6 +115,8 @@ export async function importGame(
     const raceCourses: RaceCourseSummaryRecord[] = [];
     const compiledRaceCourses: CompiledRaceCourseRecord[] = [];
     const raceCourseCollisions: CompiledRaceCourseCollisionRecord[] = [];
+    const compiledSpecialOutdoors: CompiledSpecialOutdoorRecord[] = [];
+    const specialOutdoorCollisions: CompiledSpecialOutdoorCollisionRecord[] = [];
     const fieldTotal = selected.filter((entry) => /^FLD\/\d{3}\.BIN$/i.test(entry.path)).length;
     const raceCourseTotal = selected.filter((entry) => /^COURSE\/C\d{2}\.BIN$/i.test(entry.path)).length;
     let compiledFieldCount = 0;
@@ -133,6 +138,8 @@ export async function importGame(
       raceCourses: [...raceCourses].sort((a, b) => a.courseId - b.courseId),
       compiledRaceCourses: [...compiledRaceCourses].sort((a, b) => a.courseId - b.courseId),
       raceCourseCollisions: [...raceCourseCollisions].sort((a, b) => a.courseId - b.courseId),
+      compiledSpecialOutdoors: [...compiledSpecialOutdoors].sort((a, b) => a.areaCode - b.areaCode),
+      specialOutdoorCollisions: [...specialOutdoorCollisions].sort((a, b) => a.areaCode - b.areaCode),
       ...(devFieldSet ? { devPartialFields: [...devFieldSet].sort((a, b) => a - b) } : {}),
     });
 
@@ -141,7 +148,8 @@ export async function importGame(
         const label = `Caching ${entry.path}`;
         const isField = /^FLD\/\d{3}\.BIN$/i.test(entry.path);
         const isRaceCourse = /^COURSE\/C\d{2}\.BIN$/i.test(entry.path);
-        if (isField || isRaceCourse) {
+        const isSpecialOutdoor = entry.path.toUpperCase() === cloudHillSpecialOutdoorScene.sourcePath;
+        if (isField || isRaceCourse || isSpecialOutdoor) {
           const bytes = await disc.readFile(entry.path);
           await writeBytes(importDirectory, `game/${entry.path}`, bytes);
           if (isField) {
@@ -169,7 +177,7 @@ export async function importGame(
             await writeBytes(importDirectory, collisionPath, serializeCompiledCollision(collision));
             collisionFields.push({ fieldNumber: summary.fieldNumber, path: collisionPath, triangleCount: collision.triangleCount });
             compiledFieldCount += 1;
-          } else {
+          } else if (isRaceCourse) {
             const summary = summarizeRaceCourse(entry, bytes);
             raceCourses.push(summary);
             progress(
@@ -194,6 +202,24 @@ export async function importGame(
             await writeBytes(importDirectory, collisionPath, serializeCompiledCollision(collision));
             raceCourseCollisions.push({ courseId: summary.courseId, path: collisionPath, triangleCount: collision.triangleCount });
             compiledRaceCourseCount += 1;
+          } else {
+            progress("compile", "Compiling Cloud Hill special outdoor scene", 0, 1);
+            const mesh = compileFieldVertexColorMesh(bytes);
+            const collision = compileFieldCollision(bytes);
+            const compiledPath = `compiled/special-outdoor-${cloudHillSpecialOutdoorScene.areaCode}.mesh`;
+            await writeBytes(importDirectory, compiledPath, serializeCompiledField(mesh));
+            compiledSpecialOutdoors.push({
+              areaCode: cloudHillSpecialOutdoorScene.areaCode,
+              sourcePath: cloudHillSpecialOutdoorScene.sourcePath,
+              path: compiledPath,
+              cacheVersion: compiledFieldCacheVersion,
+              vertexCount: mesh.vertexCount,
+              triangleCount: mesh.triangleCount,
+              primitiveCount: mesh.primitiveCount,
+            });
+            const collisionPath = `compiled/special-outdoor-collision-${cloudHillSpecialOutdoorScene.areaCode}.bin`;
+            await writeBytes(importDirectory, collisionPath, serializeCompiledCollision(collision));
+            specialOutdoorCollisions.push({ areaCode: cloudHillSpecialOutdoorScene.areaCode, path: collisionPath, triangleCount: collision.triangleCount });
           }
           completedBytes += entry.size;
           progress("cache", label, completedBytes, totalBytes);
@@ -311,6 +337,7 @@ async function selectRuntimeFiles(
     await add("CARS/Q150.BIN", false);
   }
   for (const path of await listMatchingOptional(disc, "SHOP", /^T\d{2}\.BIN$/i)) await add(path, false);
+  if (!devFieldSet) await add(cloudHillSpecialOutdoorScene.sourcePath, true);
   if (ordinaryRaceCourseIds) {
     for (const courseId of ordinaryRaceCourseIds) {
       await add(`COURSE/C${courseId.toString().padStart(2, "0")}.BIN`, true);

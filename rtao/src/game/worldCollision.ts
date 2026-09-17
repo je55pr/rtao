@@ -159,6 +159,8 @@ export class FieldCollisionSampler {
 export class DrivingWorld {
   private readonly fields = new Map<number, FieldCollisionSampler>();
   private readonly surfaces = new Map<number, FieldDrivingSurfaceSampler>();
+  private readonly specialOutdoorScenes = new Map<number, FieldCollisionSampler>();
+  private readonly specialOutdoorSurfaces = new Map<number, FieldDrivingSurfaceSampler>();
 
   addField(fieldNumber: number, bytes: Uint8Array): void {
     this.fields.set(fieldNumber, new FieldCollisionSampler(deserializeCompiledCollision(bytes)));
@@ -176,6 +178,62 @@ export class DrivingWorld {
 
   addCompiledFieldSurface(fieldNumber: number, mesh: CompiledFieldMesh): void {
     this.surfaces.set(fieldNumber, new FieldDrivingSurfaceSampler(mesh));
+  }
+
+  addCompiledSpecialOutdoor(areaCode: number, collision: CompiledFieldCollision): void {
+    this.specialOutdoorScenes.set(areaCode, new FieldCollisionSampler(collision));
+  }
+
+  addCompiledSpecialOutdoorSurface(areaCode: number, mesh: CompiledFieldMesh): void {
+    this.specialOutdoorSurfaces.set(areaCode, new FieldDrivingSurfaceSampler(mesh));
+  }
+
+  sampleSpecialOutdoorGround(areaCode: number, position: Vec3, referenceY: number): GroundSample | undefined {
+    return this.specialOutdoorScenes.get(areaCode)?.sampleClosest(position.x, position.z, referenceY);
+  }
+
+  sampleSpecialOutdoorHighest(areaCode: number, position: Vec3): GroundSample | undefined {
+    return this.specialOutdoorScenes.get(areaCode)?.sampleHighest(position.x, position.z);
+  }
+
+  specialOutdoorDrivingSurface(areaCode: number, position: Vec3, referenceY = position.y): DrivingSurfaceKind {
+    const collision = this.specialOutdoorScenes.get(areaCode)?.sampleClosest(position.x, position.z, referenceY);
+    return this.specialOutdoorSurfaces.get(areaCode)?.kindAt(position.x, position.z, referenceY, collision?.surfaceFlags) ?? "paved-road";
+  }
+
+  resolveSpecialOutdoorFootprint(
+    areaCode: number,
+    candidate: Vec3,
+    yaw: number,
+    referenceY: number,
+    contactThreshold = 0.5,
+  ): Omit<ResolvedFootprint, "fieldNumber"> | undefined {
+    const sampler = this.specialOutdoorScenes.get(areaCode);
+    if (!sampler) return undefined;
+    const contacts: ReadonlyArray<readonly [number, number]> = [
+      [-0.66, 0.68], [0.66, 0.68], [-0.66, -0.66], [0.66, -0.66],
+    ];
+    const sine = Math.sin(yaw), cosine = Math.cos(yaw);
+    let height = 0;
+    for (const [localX, localZ] of contacts) {
+      const sample = sampler.sampleClosest(
+        candidate.x + localX * cosine + localZ * sine,
+        candidate.z - localX * sine + localZ * cosine,
+        referenceY,
+      );
+      if (!sample) return undefined;
+      height += sample.y;
+    }
+    const frontCentreX = candidate.x + 0.68 * sine;
+    const frontCentreZ = candidate.z + 0.68 * cosine;
+    const extraY = sampler.sampleAuxiliaryHeight(frontCentreX, frontCentreZ);
+    if (extraY !== undefined && referenceY < extraY - contactThreshold) return undefined;
+    const centre = sampler.sampleClosest(candidate.x, candidate.z, referenceY);
+    return {
+      position: { x: candidate.x, y: height / contacts.length, z: candidate.z },
+      y: height / contacts.length,
+      surfaceFlags: centre?.surfaceFlags ?? 0,
+    };
   }
 
   get fieldCount(): number {

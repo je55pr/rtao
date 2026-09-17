@@ -46,6 +46,11 @@ import { applyRecoveredDialogueHostAction } from "./game/dialogueProgress";
 import type { BrowserDrivingGame, CarState } from "./game/drivingGame";
 import { applyRecoveredEquipmentHostAction, fitOwnedNativeEquipmentPart, type RecoveredEquipmentState } from "./game/equipmentProgress";
 import { findNearestFixedInteraction } from "./game/fixedInteractionProximity";
+import {
+  cloudHillSpecialOutdoorScene,
+  readSpecialOutdoorFixedInteractions,
+  resolveSpecialOutdoorWarpEntry,
+} from "./game/specialOutdoor";
 import { resolveWarpWorldEntry, runRegisteredCityWarp } from "./game/warpTravel";
 import { ContactEdgeTracker } from "./game/interactionContact";
 import {
@@ -217,6 +222,9 @@ let activeDirectory: FileSystemDirectoryHandle | undefined;
 let activeManifest: ImportManifest | undefined;
 const loadedWorldFieldNumbers = new Set<number>();
 const loadingWorldFields = new Map<number, Promise<void>>();
+const loadedSpecialOutdoorAreaCodes = new Set<number>();
+const loadingSpecialOutdoorAreas = new Map<number, Promise<void>>();
+let specialOutdoorInteractions: FixedInteractionDefinition[] = [];
 let lastPrefetchedWorldField: number | undefined;
 let activeExecutableBytes: Uint8Array | undefined;
 let choroCoinPlacements: readonly ChoroCoinPlacement[] = [];
@@ -551,6 +559,9 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   choroCoinPlacements = [];
   loadedWorldFieldNumbers.clear();
   loadingWorldFields.clear();
+  loadedSpecialOutdoorAreaCodes.clear();
+  loadingSpecialOutdoorAreas.clear();
+  specialOutdoorInteractions = [];
   lastPrefetchedWorldField = undefined;
   emptyState.hidden = true;
   importCard.hidden = true;
@@ -715,7 +726,11 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   console.info(`ChoroQ coins: ${choroCoinPlacements.length - (playerDialogueState?.choroCoinCollectedCount ?? 0)}/${choroCoinPlacements.length} uncollected PAL placements rendered.`);
   updatePeachRaceAvailability();
   overworldCatalogue = readOverworldCatalogue(executableBytes);
-  console.info(`Persistent fixed interactions: ${overworldCatalogue.interactions.length} authored zones mapped into ${new Set(overworldCatalogue.interactions.map((zone) => zone.fieldNumber)).size} standard world sectors.`);
+  const cloudHillDescriptor = overworldCatalogue.authoredAreas.find((area) => area.areaIndex === cloudHillSpecialOutdoorScene.areaIndex);
+  specialOutdoorInteractions = cloudHillDescriptor
+    ? readSpecialOutdoorFixedInteractions(executableBytes, cloudHillSpecialOutdoorScene, cloudHillDescriptor.fixedInteractionCount)
+    : [];
+  console.info(`Persistent fixed interactions: ${overworldCatalogue.interactions.length} standard-world zones plus ${specialOutdoorInteractions.length} Cloud Hill special-outdoor zones.`);
   await loadDialogueCatalogue(executableBytes);
   const captureId = parameters.get("capture");
   const captureScene = captureId ? captureSceneById(captureId) : undefined;
@@ -824,6 +839,33 @@ async function ensureWorldFieldLoaded(fieldNumber: number): Promise<void> {
   })();
   loadingWorldFields.set(fieldNumber, task);
   try { await task; } finally { loadingWorldFields.delete(fieldNumber); }
+}
+
+async function ensureSpecialOutdoorLoaded(areaCode: number): Promise<void> {
+  if (loadedSpecialOutdoorAreaCodes.has(areaCode)) return;
+  const existing = loadingSpecialOutdoorAreas.get(areaCode);
+  if (existing) return existing;
+  if (!activeManifest || activeManifest.installStage === "bootstrap" || !activeDirectory || !worldView || !drivingWorld) {
+    throw new Error(`Special outdoor area-code ${areaCode} is unavailable until the completed install is active.`);
+  }
+  const compiled = activeManifest.compiledSpecialOutdoors?.find((record) => record.areaCode === areaCode);
+  const collisionRecord = activeManifest.specialOutdoorCollisions?.find((record) => record.areaCode === areaCode);
+  if (!compiled || !collisionRecord) throw new Error(`Special outdoor area-code ${areaCode} is not present in the completed local cache.`);
+  const task = (async () => {
+    const [[meshBytes, collisionBytes], { deserializeCompiledField }, { deserializeCompiledCollision }] = await Promise.all([
+      Promise.all([readBytes(activeDirectory!, compiled.path), readBytes(activeDirectory!, collisionRecord.path)]),
+      import("./formats/fieldGeometry"),
+      import("./formats/fieldCollision"),
+    ]);
+    const mesh = deserializeCompiledField(meshBytes);
+    const collision = deserializeCompiledCollision(collisionBytes);
+    worldView!.addCompiledSpecialOutdoorScene(areaCode, mesh);
+    drivingWorld!.addCompiledSpecialOutdoorSurface(areaCode, mesh);
+    drivingWorld!.addCompiledSpecialOutdoor(areaCode, collision);
+    loadedSpecialOutdoorAreaCodes.add(areaCode);
+  })();
+  loadingSpecialOutdoorAreas.set(areaCode, task);
+  try { await task; } finally { loadingSpecialOutdoorAreas.delete(areaCode); }
 }
 
 async function loadLazyFieldDynamicObjects(fieldNumber: number): Promise<void> {
@@ -1276,7 +1318,7 @@ function handleDriveState(state: CarState): void {
   accumulateAdvertisingDistance(state);
   handleChoroCoinPickup(state);
   handleAutomaticInteractionContact(state);
-  if (activeManifest?.installStage !== "bootstrap" && lastPrefetchedWorldField !== state.fieldNumber) {
+  if (state.location.kind === "standard-world" && activeManifest?.installStage !== "bootstrap" && lastPrefetchedWorldField !== state.fieldNumber) {
     lastPrefetchedWorldField = state.fieldNumber;
     void ensureNearbyWorldFields(state.fieldNumber).catch((error) => console.warn("Nearby driving-sector prefetch failed.", error));
   }
@@ -1293,7 +1335,7 @@ function handleDriveState(state: CarState): void {
 }
 
 function handleChoroCoinPickup(state: CarState): void {
-  if (!playerDialogueState || choroCoinPlacements.length === 0) return;
+  if (state.location.kind !== "standard-world" || !playerDialogueState || choroCoinPlacements.length === 0) return;
   const pickup = collectNearbyChoroCoin(playerDialogueState, choroCoinPlacements, state.fieldNumber, state.position);
   if (!pickup) return;
   worldView?.removeChoroCoin(pickup.placement.index);
@@ -1332,10 +1374,13 @@ type OverworldInteractionTarget =
 
 function contactInteractionTargets(state: CarState): OverworldInteractionTarget[] {
   if (!playerCar) return [];
-  const residentTargets = (worldSimulation?.contacts(state.fieldNumber, state.position, state.yaw, playerCar.localBounds) ?? [])
-    .filter((resident) => residentGreetings.get(resident.definition.name.toLowerCase())?.pages.length)
-    .map((resident) => ({ key: `resident:${resident.id}`, resident }));
-  const fixed = findNearestFixedInteraction(overworldCatalogue?.interactions ?? [], state.fieldNumber, state.position, 0)?.interaction;
+  const residentTargets = state.location.kind === "standard-world"
+    ? (worldSimulation?.contacts(state.fieldNumber, state.position, state.yaw, playerCar.localBounds) ?? [])
+        .filter((resident) => residentGreetings.get(resident.definition.name.toLowerCase())?.pages.length)
+        .map((resident) => ({ key: `resident:${resident.id}`, resident }))
+    : [];
+  const interactions = state.location.kind === "special-outdoor" ? specialOutdoorInteractions : (overworldCatalogue?.interactions ?? []);
+  const fixed = findNearestFixedInteraction(interactions, state.fieldNumber, state.position, 0)?.interaction;
   return fixed
     ? [...residentTargets, { key: `fixed:${fixed.areaIndex}:${fixed.localIndex}`, interaction: fixed }]
     : residentTargets;
@@ -1346,6 +1391,10 @@ function overworldInteractionUiBusy(): boolean {
     || shopInteriorPreviewLoading || qFactoryLoading || pauseMenuOpen || peachRaceCoordinator);
 }
 
+function isQFactoryInteraction(interaction: FixedInteractionDefinition): boolean {
+  return interaction.localIndex === 0 && /^Q's Factory/i.test(interaction.name);
+}
+
 function activateOverworldInteraction(target: OverworldInteractionTarget): boolean {
   if ("resident" in target) {
     const greeting = residentGreetings.get(target.resident.definition.name.toLowerCase());
@@ -1353,7 +1402,7 @@ function activateOverworldInteraction(target: OverworldInteractionTarget): boole
     startResidentDialogue(target.resident.definition.name, greeting.pages);
     return true;
   }
-  if (target.interaction.areaIndex === 1 && target.interaction.localIndex === 0) {
+  if (isQFactoryInteraction(target.interaction)) {
     void startQFactoryInterior(target.interaction).catch((error) => showError("Q's Factory could not be opened.", error));
   } else {
     void startShopInteriorPreview(target.interaction).catch((error) => showError(`${target.interaction.name} interior atlas could not be opened.`, error));
@@ -1371,15 +1420,17 @@ function handleAutomaticInteractionContact(state: CarState): void {
 }
 
 function manualInteractionTarget(state: CarState): OverworldInteractionTarget | undefined {
-  const resident = worldSimulation?.nearest(state.fieldNumber, state.position, 5);
+  const resident = state.location.kind === "standard-world" ? worldSimulation?.nearest(state.fieldNumber, state.position, 5) : undefined;
   if (resident) return { key: `resident:${resident.id}`, resident };
-  const interaction = findNearestFixedInteraction(overworldCatalogue?.interactions ?? [], state.fieldNumber, state.position)?.interaction;
+  const interactions = state.location.kind === "special-outdoor" ? specialOutdoorInteractions : (overworldCatalogue?.interactions ?? []);
+  const interaction = findNearestFixedInteraction(interactions, state.fieldNumber, state.position)?.interaction;
   return interaction ? { key: `fixed:${interaction.areaIndex}:${interaction.localIndex}`, interaction } : undefined;
 }
 
 function nearbyPrompt(state: CarState): string | undefined {
-  const resident = worldSimulation?.nearest(state.fieldNumber, state.position, 5);
-  const interaction = findNearestFixedInteraction(overworldCatalogue?.interactions ?? [], state.fieldNumber, state.position);
+  const resident = state.location.kind === "standard-world" ? worldSimulation?.nearest(state.fieldNumber, state.position, 5) : undefined;
+  const interactions = state.location.kind === "special-outdoor" ? specialOutdoorInteractions : (overworldCatalogue?.interactions ?? []);
+  const interaction = findNearestFixedInteraction(interactions, state.fieldNumber, state.position);
   const label = resident?.definition.name ?? interaction?.interaction.name;
   return label ? `Nearby · ${label} · E ${resident ? "talk" : "enter"}` : undefined;
 }
@@ -1409,10 +1460,13 @@ function currentGameHudState(driveState?: CarState): GameHudState {
   }
   const state = driveState ?? drivingGame?.controller.state;
   if (isDriving && state) {
+    const location = state.location;
     return {
       mode: "driving",
       cake,
-      location: fieldDisplayName(state.fieldNumber),
+      location: location.kind === "special-outdoor"
+        ? (overworldCatalogue?.authoredAreas.find((area) => area.areaCode === location.areaCode)?.name ?? "Cloud Hill")
+        : fieldDisplayName(state.fieldNumber),
       speedKph: Math.round(Math.abs(state.speed) * 3.6),
       nearby: nearbyPrompt(state),
     };
@@ -1445,7 +1499,7 @@ function refreshDebugOverlay(): void {
   const rows = liveDiagnosticsRows({
     mode: peachRaceCoordinator ? "race" : isDriving ? "driving" : "overview",
     fps: debugFrameRate.fps,
-    fieldNumber: state?.fieldNumber,
+    fieldNumber: state?.location.kind === "standard-world" ? state.fieldNumber : undefined,
     position: state?.position,
     surface: state?.surfaceKind,
     loadedSectors: loadedWorldFieldNumbers.size,
@@ -2087,8 +2141,24 @@ async function warpToRegisteredCity(areaIndex: number): Promise<void> {
 
   await runRegisteredCityWarp(areaIndex, playerDialogueState, overworldCatalogue.authoredAreas, async (destination) => {
     const { intent } = destination;
+    if (intent.kind === "special-outdoor") {
+      if (!activeExecutableBytes) throw new Error("The PAL executable is unavailable for the special-outdoor Warp entry.");
+      const entry = resolveSpecialOutdoorWarpEntry(destination, activeExecutableBytes);
+      await ensureSpecialOutdoorLoaded(intent.areaCode);
+      const game = drivingGame;
+      if (!game || !isDriving) throw new Error("The outdoor driving session ended while Warp was loading.");
+      closePauseMenu();
+      game.enterSpecialOutdoor(intent.areaCode, entry.position);
+      playerDialogueState!.currentAreaIndex = destination.areaIndex;
+      interactionContactTracker.update(contactInteractionTargets(game.controller.state).map((target) => target.key));
+      requiredElement<HTMLElement>("viewer-title").textContent = destination.name;
+      sceneFade.flash();
+      lastPrefetchedWorldField = undefined;
+      console.info(`Warp entered ${destination.name} through ${entry.scene.sourcePath} at native selector ${intent.rawEntrySelector} / Q's Factory return edge.`);
+      return;
+    }
     if (intent.kind !== "standard-world" || intent.fieldNumber === undefined) {
-      throw new Error(`${intent.name} uses the native ${intent.kind} scene path, which the browser outdoor runtime does not reconstruct yet.`);
+      throw new Error(`${intent.name} uses the native ${intent.kind} scene path, which this outdoor runtime does not host.`);
     }
     const fieldNumber = intent.fieldNumber;
     const entry = resolveWarpWorldEntry(destination, overworldCatalogue!.interactions);
@@ -2835,7 +2905,7 @@ function endActiveInterior(): void {
 
 async function startQFactoryInterior(interaction: FixedInteractionDefinition): Promise<void> {
   if (qFactorySession || qFactoryLoading || shopInteriorPreviewInteraction || shopInteriorPreviewLoading) return;
-  if (!drivingGame || !activeDirectory || !activeManifest || !qFactoryDialogueEntity || !playerDialogueState) {
+  if (!drivingGame || !activeDirectory || !activeManifest || !activeExecutableBytes || !playerDialogueState) {
     throw new Error("The Q's Factory scene dependencies are not ready.");
   }
   const staffPath = carAssetPath(interaction.bodyId);
@@ -2860,7 +2930,7 @@ async function startQFactoryInterior(interaction: FixedInteractionDefinition): P
   sizeFactoryStage();
   sceneFade.flash();
   try {
-    const [{ readShopInteriorBackdrop }, { DialogueFlow: DialogueFlowClass }, { QFactoryInteriorView: InteriorViewClass }, { Q62CarModel: CarModelClass }, shopBytes, tireBytes, wheelBytes, playerBytes, staffBytes] = await Promise.all([
+    const [{ readShopInteriorBackdrop }, { DialogueFlow: DialogueFlowClass, readDialogueEntityAtIndex }, { QFactoryInteriorView: InteriorViewClass }, { Q62CarModel: CarModelClass }, shopBytes, tireBytes, wheelBytes, playerBytes, staffBytes] = await Promise.all([
       import("./formats/shopInterior"),
       import("./formats/dialogue"),
       import("./game/interiorView"),
@@ -2887,7 +2957,11 @@ async function startQFactoryInterior(interaction: FixedInteractionDefinition): P
       staffModel,
     );
     playerDialogueState.currentAreaIndex = interaction.areaIndex;
-    const flow = new DialogueFlowClass(qFactoryDialogueEntity, playerDialogueState, 0x04);
+    const dialogueEntity = qFactoryDialogueEntity?.areaIndex === interaction.areaIndex
+      && qFactoryDialogueEntity.entityIndex === interaction.localIndex
+      ? qFactoryDialogueEntity
+      : readDialogueEntityAtIndex(activeExecutableBytes, interaction.areaIndex, interaction.localIndex);
+    const flow = new DialogueFlowClass(dialogueEntity, playerDialogueState, 0x04);
     qFactorySession = { flow, choiceIndex: defaultChoiceIndex(flow.currentChoices), interaction, raceOptionIndex: 0 };
     queueRecoveredProgressSave();
     renderQFactoryDialogue();
