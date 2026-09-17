@@ -27,6 +27,17 @@ export interface OverworldCatalogue {
   readonly residents: OutdoorResidentDefinition[];
   readonly interactions: FixedInteractionDefinition[];
 }
+export interface AuthoredAreaDescriptor {
+  readonly areaIndex: number;
+  readonly name: string;
+  readonly areaCode: number;
+  readonly fixedInteractionCount: number;
+  readonly outdoorResidentCount: number;
+  readonly fieldNumber?: number;
+}
+export interface AuthoredOverworldCatalogue extends OverworldCatalogue {
+  readonly authoredAreas: AuthoredAreaDescriptor[];
+}
 
 const areaDescriptorTable = 0x002c04b0;
 const interactionPointerTable = 0x002c2710;
@@ -35,19 +46,36 @@ const spawnPointerTable = 0x002c4ef0;
 const routePointerTable = 0x002dba28;
 const authoredAreaCount = 22;
 
-export function readOverworldCatalogue(bytes: Uint8Array): OverworldCatalogue {
+export function readAuthoredAreaCatalogue(bytes: Uint8Array): AuthoredAreaDescriptor[] {
   const elf = new Elf32AddressSpace(bytes);
-  const residents: OutdoorResidentDefinition[] = [];
-  const interactions: FixedInteractionDefinition[] = [];
+  const result: AuthoredAreaDescriptor[] = [];
   for (let areaIndex = 0; areaIndex < authoredAreaCount; areaIndex += 1) {
     const descriptorAddress = areaDescriptorTable + areaIndex * 8;
     const name = elf.asciiZ(elf.u32(descriptorAddress));
     const rawCode = elf.u32(descriptorAddress + 4) & 0xffff;
     const areaCode = rawCode >= 0x8000 ? rawCode - 0x10000 : rawCode;
     const counts = elf.bytes(descriptorAddress + 6, 2);
-    const fixedCount = counts[0] ?? 0, outdoorCount = counts[1] ?? 0;
     const fieldNumber = resolveFieldNumber(name, areaCode);
-    if (fieldNumber < 0) continue;
+    result.push({
+      areaIndex, name, areaCode,
+      fixedInteractionCount: counts[0] ?? 0,
+      outdoorResidentCount: counts[1] ?? 0,
+      ...(fieldNumber >= 0 ? { fieldNumber } : {}),
+    });
+  }
+  return result;
+}
+
+export function readOverworldCatalogue(bytes: Uint8Array): AuthoredOverworldCatalogue {
+  const elf = new Elf32AddressSpace(bytes);
+  const authoredAreas = readAuthoredAreaCatalogue(bytes);
+  const residents: OutdoorResidentDefinition[] = [];
+  const interactions: FixedInteractionDefinition[] = [];
+  for (const descriptor of authoredAreas) {
+    const { areaIndex } = descriptor;
+    const fixedCount = descriptor.fixedInteractionCount, outdoorCount = descriptor.outdoorResidentCount;
+    const fieldNumber = descriptor.fieldNumber;
+    if (fieldNumber === undefined) continue;
     const residentBlock = elf.u32(residentPointerTable + areaIndex * 4);
 
     // Descriptor zero is a bootstrap/special-world slot: it has resident counts,
@@ -108,7 +136,7 @@ export function readOverworldCatalogue(bytes: Uint8Array): OverworldCatalogue {
       }
     }
   }
-  return { residents, interactions };
+  return { authoredAreas, residents, interactions };
 }
 
 

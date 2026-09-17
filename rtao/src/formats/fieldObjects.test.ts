@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findPalmCrownAnchors, findTurbineAnchors } from "./fieldObjects";
+import { fieldObjectSectionTransforms, findPalmCrownAnchors, findTurbineAnchors, nativeFieldCentreNeighbourTranslationIndex, papayaFieldObjectPlacement, papayaSectionTransforms, peachFieldObjectPlacement, staticFieldObjectPlacementForField } from "./fieldObjects";
 import type { FieldRenderPrimitive } from "./fieldGeometry";
 
 interface FakeSpec {
@@ -96,5 +96,63 @@ describe("findPalmCrownAnchors", () => {
     expect(findPalmCrownAnchors([
       primitive({ center: [200, 550], base: 10, top: 90, footprint: 4, tex: 13787 }),
     ])).toHaveLength(0);
+  });
+});
+
+
+describe("FLD/223 giant Peach placement", () => {
+  it("locks the PAL-authored field, Extra[1], centre neighbour and sparse submission mapping", () => {
+    expect(peachFieldObjectPlacement.fieldNumber).toBe(223);
+    expect(peachFieldObjectPlacement.extraIndex).toBe(1);
+    expect(peachFieldObjectPlacement.neighbourSelector).toBe(3);
+    expect(peachFieldObjectPlacement.sections.map((section) => section.meshIndex)).toEqual([0, 2]);
+    expect(staticFieldObjectPlacementForField(223)).toBe(peachFieldObjectPlacement);
+  });
+
+  it("preserves the exact recovered source fourth columns, including non-affine w", () => {
+    expect(peachFieldObjectPlacement.sections.map((section) => section.source)).toEqual([
+      [1053.5, 1014.0, 1054.9000244, 1015.5999756],
+      [437.5, 30.2000008, 535.0, 1.0],
+    ]);
+    expect(fieldObjectSectionTransforms(peachFieldObjectPlacement)).toEqual([
+      { meshIndex: 0, fourthColumn: [1053.5, 1014.0, 1054.9000244, 1015.5999756] },
+      { meshIndex: 2, fourthColumn: [437.5, 30.2000008, 535.0, 1.0] },
+    ]);
+  });
+
+  it("keeps sparse mesh selection while applying native neighbour translation lane-wise", () => {
+    const northWest = fieldObjectSectionTransforms(peachFieldObjectPlacement, 0);
+    expect(northWest.map((section) => section.meshIndex)).toEqual([0, 2]);
+    expect(northWest[0]!.fourthColumn).toEqual([253.5, 1014.0, 2654.9000244, 1015.5999756]);
+    expect(northWest[1]!.fourthColumn).toEqual([-362.5, 30.2000008, 2135.0, 1.0]);
+  });
+});
+
+
+describe("FLD/233 giant Papaya placement", () => {
+  it("locks the PAL-authored field, Extra[1], neighbour slot and three-mesh mapping", () => {
+    expect(papayaFieldObjectPlacement.fieldNumber).toBe(233);
+    expect(papayaFieldObjectPlacement.extraIndex).toBe(1);
+    expect(papayaFieldObjectPlacement.neighbourSelector).toBe(3);
+    expect(papayaFieldObjectPlacement.sections.map((section) => section.meshIndex)).toEqual([0, 1, 2]);
+  });
+
+  it("reconstructs the exact native fourth columns in the field-local centre copy", () => {
+    expect(nativeFieldCentreNeighbourTranslationIndex).toBe(3);
+    expect(papayaSectionTransforms(nativeFieldCentreNeighbourTranslationIndex)).toEqual([
+      { meshIndex: 0, fourthColumn: [1057.65, 1010.45, 1070, 1015] },
+      { meshIndex: 1, fourthColumn: [765.77, 40.63, 1207.7, 1] },
+      { meshIndex: 2, fourthColumn: [1107.8, 40.38, 875.43, 1] },
+    ]);
+  });
+
+  it("adds the recovered 0x2A2430 neighbour vector lane-wise", () => {
+    const northWest = papayaSectionTransforms(0)[1]!;
+    expect(northWest.meshIndex).toBe(1);
+    northWest.fourthColumn.forEach((value, index) => expect(value).toBeCloseTo([-34.23, 40.63, 2807.7, 1][index]!));
+
+    const southEast = papayaSectionTransforms(6)[2]!;
+    expect(southEast.meshIndex).toBe(2);
+    southEast.fourthColumn.forEach((value, index) => expect(value).toBeCloseTo([1907.8, 40.38, -724.57, 1][index]!));
   });
 });

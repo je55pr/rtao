@@ -37,6 +37,7 @@ describe("recovered dialogue progress", () => {
       paintWord: null,
       quickPicPhotos: [],
       metFixedInteractions: [],
+      choroCoinIndices: [],
       advertisingDistanceUnits: [0, 0, 0, 0, 0],
       raceLicenseClass: 0,
       ordinaryRaceFinishIndices: Array(24).fill(0xff),
@@ -300,6 +301,37 @@ describe("recovered dialogue progress", () => {
 
     const restored = restoreRecoveredDialogueStateSave(saved, new DialogueRuntimeState());
     expect(restored.metFixedInteractionEntries()).toEqual([[6, 9], [6, 16]]);
+  });
+
+  test("persists recovered ChoroQ coin indices and filters malformed entries", () => {
+    const state = new DialogueRuntimeState();
+    for (const index of [99, 0, 42]) expect(state.collectChoroCoin(index)).toBe(true);
+    const saved = createRecoveredDialogueStateSave(state, "2026-09-16T00:00:00.000Z");
+    expect(saved).toMatchObject({ schemaVersion: 10, choroCoinIndices: [0, 42, 99] });
+
+    const restored = restoreRecoveredDialogueStateSave({
+      ...saved,
+      choroCoinIndices: [99, 42, -1, 100, 42, 1.5],
+    }, new DialogueRuntimeState());
+    expect(restored.choroCoinEntries()).toEqual([42, 99]);
+    expect(restored.choroCoinCollectedCount).toBe(2);
+  });
+
+  test("branches pre-text 0x1a when the recovered ChoroQ coin count reaches the threshold", () => {
+    const entity: DialogueEntity = {
+      areaIndex: 9, entityIndex: 13, entityAddress: 0, name: "Coine",
+      variants: [
+        variant(1, [{ kind: "control", offset: 0, opcode: DialogueOpcode.BranchIfChoroCoinCountAtLeast, operands: new Uint8Array([20, 8]), phase: "pre-text" }], ["Need more coins"]),
+        variant(8, [], ["Oh, you have 20 coins!"]),
+      ],
+    };
+    const enough = new DialogueRuntimeState();
+    for (let index = 0; index < 20; index += 1) enough.collectChoroCoin(index);
+    expect(new DialogueFlow(entity, enough, 1).currentSlot).toBe(8);
+
+    const short = new DialogueRuntimeState();
+    for (let index = 0; index < 19; index += 1) short.collectChoroCoin(index);
+    expect(new DialogueFlow(entity, short, 1).currentSlot).toBe(1);
   });
 
   test("carries a granted football through a save and consumes it in the PAL-style branch", () => {

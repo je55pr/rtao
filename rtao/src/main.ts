@@ -12,11 +12,13 @@ import { raceResultsView } from "./app/raceResultsModel";
 import { raceStartSignalView } from "./app/raceStartPresentation";
 import { SceneFade } from "./app/sceneTransition";
 import { carAssetPath } from "./formats/carPath";
+import type { ChoroCoinPlacement } from "./formats/choroCoins";
 import type { DialogueActionToken, DialogueEntity, DialogueFlow, DialogueRuntimeState, DialogueVariant } from "./formats/dialogue";
-import type { FixedInteractionDefinition, OverworldCatalogue } from "./formats/overworld";
+import type { AuthoredOverworldCatalogue, FixedInteractionDefinition } from "./formats/overworld";
 import { isQuickPicPhotoNumber } from "./formats/quickPic";
 import { readRaceCatalogue } from "./formats/raceCatalogue";
 import { AdvertisingDistanceTracker } from "./game/advertisingDistanceTracker";
+import { dialogueAreaTransitionIntent } from "./game/areaTransition";
 import { BodyShopCatalogueSession, reconstructedBodyShopStock } from "./game/bodyCatalog";
 import {
   type CarVisualCaptureScene,
@@ -38,6 +40,7 @@ import {
   type RecoveredCommerceState,
   sellIndexedPart,
 } from "./game/commerceProgress";
+import { collectNearbyChoroCoin } from "./game/choroCoinProgress";
 import { applyRecoveredDialogueHostAction } from "./game/dialogueProgress";
 import type { BrowserDrivingGame, CarState } from "./game/drivingGame";
 import { applyRecoveredEquipmentHostAction, fitOwnedNativeEquipmentPart, type RecoveredEquipmentState } from "./game/equipmentProgress";
@@ -50,6 +53,7 @@ import {
   fixedInteriorStartSlot,
   nativeNumericChoiceInitialValue,
   nativeNumericChoiceTarget,
+  returnFromInteriorHostAction,
   stepNativeNumericChoice,
 } from "./game/interiorFlow";
 import type { QFactoryInteriorView, ShopInteriorRoomView } from "./game/interiorView";
@@ -121,6 +125,7 @@ const shopOrServiceActionOpcode = 0x13;
 const paintShopActionOpcode = 0x03;
 const quickPicPhotoActionOpcode = 0x11;
 const advertisingRewardActionOpcode = 0x16;
+const transitionActionOpcode = 0x14;
 installAppShell(app);
 
 const {
@@ -205,6 +210,7 @@ const loadedWorldFieldNumbers = new Set<number>();
 const loadingWorldFields = new Map<number, Promise<void>>();
 let lastPrefetchedWorldField: number | undefined;
 let activeExecutableBytes: Uint8Array | undefined;
+let choroCoinPlacements: readonly ChoroCoinPlacement[] = [];
 let isDriving = false;
 let playUiActive = false;
 let debugOverlayVisible = false;
@@ -213,7 +219,7 @@ const debugFrameRate = new FrameRateSampler();
 let pauseMenuOpen = false;
 let pauseReturnFocus: HTMLElement | undefined;
 let worldSimulation: BrowserWorldSimulation | undefined;
-let overworldCatalogue: OverworldCatalogue | undefined;
+let overworldCatalogue: AuthoredOverworldCatalogue | undefined;
 let residentGreetings = new Map<string, DialogueVariant>();
 let activeDialogue: { speaker: string; pages: string[]; pageIndex: number } | undefined;
 let qFactoryDialogueEntity: DialogueEntity | undefined;
@@ -526,6 +532,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   drivingWorld = undefined;
   activeDirectory = undefined;
   activeManifest = undefined;
+  choroCoinPlacements = [];
   loadedWorldFieldNumbers.clear();
   loadingWorldFields.clear();
   lastPrefetchedWorldField = undefined;
@@ -625,7 +632,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
     (field) => field.sectionCount >= 5 && (!startupFieldSet || startupFieldSet.has(field.fieldNumber)),
   );
   if (dynamicObjectFields.length > 0) {
-    const [{ readFieldObjectAsset, findTurbineAnchors, findPalmCrownAnchors }, { readFieldRenderPrimitives }] = await Promise.all([
+    const [{ readFieldObjectAsset, findTurbineAnchors, findPalmCrownAnchors, fieldObjectSectionTransforms, staticFieldObjectPlacementForField }, { readFieldRenderPrimitives }] = await Promise.all([
       import("./formats/fieldObjects"),
       import("./formats/fieldGeometry"),
     ]);
@@ -645,6 +652,14 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
         await nextFrame();
         continue;
       }
+      const staticPlacement = staticFieldObjectPlacementForField(field.fieldNumber);
+      if (staticPlacement && asset.kind === "prop") {
+        const sections = fieldObjectSectionTransforms(staticPlacement);
+        worldView.addStaticFieldObject(field.fieldNumber, asset, sections);
+        dynamicInstances += sections.length;
+        await nextFrame();
+        continue;
+      }
       if (asset.kind !== "turbine-rotor" && asset.kind !== "palm-crown") continue;
       const primitives = readFieldRenderPrimitives(raw);
       const anchors = asset.kind === "turbine-rotor"
@@ -655,7 +670,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
       dynamicInstances += anchors.length;
       await nextFrame();
     }
-    if (dynamicInstances > 0) console.info(`Dynamic field objects: ${dynamicInstances} instances rendered (geometry/texture evidence-backed; animation, facing & scale host-approximated).`);
+    if (dynamicInstances > 0) console.info(`Dynamic field objects: ${dynamicInstances} sections/instances rendered (Peach/Papaya landmark placement PAL-backed; rotor/crown animation, facing & scale host-approximated).`);
   }
   const collisionWorld = [...(upgradedManifest.collisionFields ?? [])]
     .filter((field) => !startupFieldSet || startupFieldSet.has(field.fieldNumber))
@@ -669,11 +684,19 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
     if ((index & 7) === 7) await nextFrame();
   }
   console.info(`Authored roads: ${roadRibbons} minimap ribbons (${pavedRibbons} paved, ${dirtRibbons} dirt), ${unresolvedRoadVertices} unresolved projected vertices.`);
-  const [{ readOverworldCatalogue }, executableBytes] = await Promise.all([
+  const [{ readOverworldCatalogue }, { readChoroCoinPlacements }, { readHg2ObjectAsset }, executableBytes, coinBytes] = await Promise.all([
     import("./formats/overworld"),
+    import("./formats/choroCoins"),
+    import("./formats/fieldObjects"),
     readBytes(directory, `game/${upgradedManifest.identity.bootExecutable}`),
+    readBytes(directory, "game/SYS/COIN.BIN"),
   ]);
   activeExecutableBytes = executableBytes;
+  choroCoinPlacements = readChoroCoinPlacements(executableBytes);
+  const choroCoinAsset = readHg2ObjectAsset(coinBytes);
+  if (!choroCoinAsset?.texture) throw new Error("SYS/COIN.BIN does not contain the expected textured MSCALF-4 ChoroQ coin object.");
+  worldView.setChoroCoins(choroCoinAsset, choroCoinPlacements, playerDialogueState?.choroCoinEntries() ?? []);
+  console.info(`ChoroQ coins: ${choroCoinPlacements.length - (playerDialogueState?.choroCoinCollectedCount ?? 0)}/${choroCoinPlacements.length} uncollected PAL placements rendered.`);
   updatePeachRaceAvailability();
   overworldCatalogue = readOverworldCatalogue(executableBytes);
   console.info(`Persistent fixed interactions: ${overworldCatalogue.interactions.length} authored zones mapped into ${new Set(overworldCatalogue.interactions.map((zone) => zone.fieldNumber)).size} standard world sectors.`);
@@ -791,13 +814,19 @@ async function loadLazyFieldDynamicObjects(fieldNumber: number): Promise<void> {
   if (!activeManifest || !activeDirectory || !worldView) return;
   const field = activeManifest.fields.find((candidate) => candidate.fieldNumber === fieldNumber);
   if (!field || field.sectionCount < 5) return;
-  const [{ readFieldObjectAsset, findTurbineAnchors, findPalmCrownAnchors }, { readFieldRenderPrimitives }] = await Promise.all([
+  const [{ readFieldObjectAsset, findTurbineAnchors, findPalmCrownAnchors, fieldObjectSectionTransforms, staticFieldObjectPlacementForField }, { readFieldRenderPrimitives }] = await Promise.all([
     import("./formats/fieldObjects"),
     import("./formats/fieldGeometry"),
   ]);
   const raw = await readBytes(activeDirectory, `game/${field.path}`);
   const asset = readFieldObjectAsset(raw);
-  if (!asset || (asset.kind !== "turbine-rotor" && asset.kind !== "palm-crown")) return;
+  if (!asset) return;
+  const staticPlacement = staticFieldObjectPlacementForField(fieldNumber);
+  if (staticPlacement && asset.kind === "prop") {
+    worldView.addStaticFieldObject(fieldNumber, asset, fieldObjectSectionTransforms(staticPlacement));
+    return;
+  }
+  if (asset.kind !== "turbine-rotor" && asset.kind !== "palm-crown") return;
   const primitives = readFieldRenderPrimitives(raw);
   const anchors = asset.kind === "turbine-rotor" ? findTurbineAnchors(primitives) : findPalmCrownAnchors(primitives);
   if (anchors.length > 0) worldView.addFieldDynamicObjects(fieldNumber, asset, anchors);
@@ -1229,6 +1258,7 @@ function armFujiProbe(): void {
 function handleDriveState(state: CarState): void {
   refreshGameHud(state);
   accumulateAdvertisingDistance(state);
+  handleChoroCoinPickup(state);
   handleAutomaticInteractionContact(state);
   if (activeManifest?.installStage !== "bootstrap" && lastPrefetchedWorldField !== state.fieldNumber) {
     lastPrefetchedWorldField = state.fieldNumber;
@@ -1244,6 +1274,15 @@ function handleDriveState(state: CarState): void {
   } else {
     armFujiProbe();
   }
+}
+
+function handleChoroCoinPickup(state: CarState): void {
+  if (!playerDialogueState || choroCoinPlacements.length === 0) return;
+  const pickup = collectNearbyChoroCoin(playerDialogueState, choroCoinPlacements, state.fieldNumber, state.position);
+  if (!pickup) return;
+  worldView?.removeChoroCoin(pickup.placement.index);
+  queueRecoveredProgressSave();
+  console.info(`ChoroQ coin ${pickup.placement.index} collected (${pickup.collectedCount}/${choroCoinPlacements.length}).`);
 }
 
 function accumulateAdvertisingDistance(state: CarState): void {
@@ -1907,14 +1946,30 @@ function chooseShopInteriorDialogue(index: number): void {
   renderShopInteriorDialogue();
 }
 
+function interceptAreaTransition(action: DialogueActionToken, source: string, closeInterior: () => void): boolean {
+  if (action.opcode !== transitionActionOpcode) return false;
+  if (!overworldCatalogue) throw new Error("The authored PAL area catalogue is unavailable for an area transition.");
+  const intent = dialogueAreaTransitionIntent(action, overworldCatalogue.authoredAreas);
+  if (!intent) return false;
+  const destination = intent.kind === "standard-world"
+    ? `${intent.name} / FLD/${String(intent.fieldNumber).padStart(3, "0")}`
+    : intent.kind === "special-outdoor"
+      ? `${intent.name} / special area-code ${intent.areaCode}`
+      : `${intent.name} / bootstrap-special`;
+  console.info(`${source} action 0x14 requests ${destination}; raw entry selector ${intent.rawEntrySelector} is preserved without inferred semantics.`);
+  closeInterior();
+  return true;
+}
+
 function returnFromShopInteriorHostAction(): void {
   const session = shopInteriorSession;
   const action = session?.flow.currentExternalAction;
   if (!session || !action) return;
+  if (interceptAreaTransition(action, session.entity.name, endShopInteriorPreview)) return;
   const presentation = describeFixedInteriorHostAction(session.entity.name, action);
   if (!presentation.returnSlot) { endShopInteriorPreview(); return; }
   console.info(`${session.entity.name} host action ${presentation.title} returned to slot 0x${presentation.returnSlot.toString(16).padStart(2, "0")}.`);
-  session.flow.returnFromExternalAction(presentation.returnSlot);
+  if (!returnFromInteriorHostAction(session.flow, action, presentation)) { endShopInteriorPreview(); return; }
   queueRecoveredProgressSave();
   if (session.flow.ended) { endShopInteriorPreview(); return; }
   session.choiceIndex = defaultChoiceIndex(session.flow.currentChoices);
@@ -2709,10 +2764,11 @@ function returnFromQFactoryHostAction(): void {
   const session = qFactorySession;
   const action = session?.flow.currentExternalAction;
   if (!session || !action) return;
+  if (interceptAreaTransition(action, "Q's Factory", endQFactoryInterior)) return;
   const presentation = describeInteriorHostAction(action);
   if (!presentation.returnSlot) { endQFactoryInterior(); return; }
   console.info(`Q's Factory host action ${presentation.title} returned to slot 0x${presentation.returnSlot.toString(16).padStart(2, "0")}.`);
-  session.flow.returnFromExternalAction(presentation.returnSlot);
+  if (!returnFromInteriorHostAction(session.flow, action, presentation)) { endQFactoryInterior(); return; }
   if (session.flow.ended) { endQFactoryInterior(); return; }
   session.choiceIndex = defaultChoiceIndex(session.flow.currentChoices);
   renderQFactoryDialogue();

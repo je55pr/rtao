@@ -41,6 +41,84 @@ export interface FieldObjectAsset {
 
 const dynamicObjectVuPrograms = new Set([4, 10]);
 
+export type NativeFourthColumn = readonly [number, number, number, number];
+
+export interface FieldObjectSectionTransform {
+  readonly meshIndex: number;
+  readonly fourthColumn: NativeFourthColumn;
+}
+
+export interface StaticFieldObjectPlacement {
+  readonly fieldNumber: number;
+  readonly extraIndex: number;
+  readonly neighbourSelector: number;
+  readonly sections: readonly {
+    readonly meshIndex: number;
+    readonly source: NativeFourthColumn;
+  }[];
+}
+
+/** PAL executable `0x2A2430`: native neighbour translations used by field-object matrices. */
+export const nativeFieldNeighbourTranslations: readonly NativeFourthColumn[] = [
+  [-800, 0, 1600, 0], [800, 0, 1600, 0], [-1600, 0, 0, 0], [0, 0, 0, 0],
+  [1600, 0, 0, 0], [-800, 0, -1600, 0], [800, 0, -1600, 0],
+];
+export const nativeFieldCentreNeighbourTranslationIndex = 3;
+
+/**
+ * PAL-authored static Extra[1] landmarks whose draw callbacks and per-section
+ * fourth columns have been recovered. The section list is intentionally sparse:
+ * a decoded mesh is not presentation evidence unless the native callback submits it.
+ */
+export const peachFieldObjectPlacement = {
+  fieldNumber: 223,
+  extraIndex: 1,
+  neighbourSelector: 3,
+  sections: [
+    { meshIndex: 0, source: [1053.5, 1014.0, 1054.9000244, 1015.5999756] as NativeFourthColumn },
+    { meshIndex: 2, source: [437.5, 30.2000008, 535.0, 1.0] as NativeFourthColumn },
+  ],
+} as const satisfies StaticFieldObjectPlacement;
+
+export const papayaFieldObjectPlacement = {
+  fieldNumber: 233,
+  extraIndex: 1,
+  neighbourSelector: 3,
+  sections: [
+    { meshIndex: 0, source: [1057.65, 1010.45, 1070, 1015] as NativeFourthColumn },
+    { meshIndex: 1, source: [765.77, 40.63, 1207.7, 1] as NativeFourthColumn },
+    { meshIndex: 2, source: [1107.8, 40.38, 875.43, 1] as NativeFourthColumn },
+  ],
+} as const satisfies StaticFieldObjectPlacement;
+
+export const staticFieldObjectPlacements: readonly StaticFieldObjectPlacement[] = [
+  peachFieldObjectPlacement,
+  papayaFieldObjectPlacement,
+];
+
+export function staticFieldObjectPlacementForField(fieldNumber: number): StaticFieldObjectPlacement | undefined {
+  return staticFieldObjectPlacements.find((placement) => placement.fieldNumber === fieldNumber);
+}
+
+export function fieldObjectSectionTransforms(
+  placement: StaticFieldObjectPlacement,
+  neighbourTranslationIndex = placement.neighbourSelector,
+): FieldObjectSectionTransform[] {
+  const neighbour = nativeFieldNeighbourTranslations[neighbourTranslationIndex];
+  if (!neighbour) throw new Error(`Invalid native field neighbour translation index ${neighbourTranslationIndex}.`);
+  return placement.sections.map(({ meshIndex, source }) => ({
+    meshIndex,
+    fourthColumn: [
+      source[0] + neighbour[0], source[1] + neighbour[1],
+      source[2] + neighbour[2], source[3] + neighbour[3],
+    ],
+  }));
+}
+
+export function papayaSectionTransforms(neighbourTranslationIndex: number): FieldObjectSectionTransform[] {
+  return fieldObjectSectionTransforms(papayaFieldObjectPlacement, neighbourTranslationIndex);
+}
+
 /**
  * Reads the Extra[1] object container from a raw FLD file, when present. Returns
  * `null` for fields without a recognisable dynamic-object container.
@@ -56,14 +134,21 @@ export function readFieldObjectAsset(bytes: Uint8Array): FieldObjectAsset | null
   const extra = header.extras[1]!;
   const slice = bytes.subarray(extra.offset, extra.offset + extra.length);
 
+  return readHg2ObjectAsset(slice);
+}
+
+/**
+ * Decodes a standalone HG2 MSCALF-4/10 object container. `SYS/COIN.BIN` uses
+ * the same object layout as FLD Extra[1], but carries a PSMT4 image with a CT32
+ * CLUT rather than the PSMT8 texture used by the recovered field props.
+ */
+export function readHg2ObjectAsset(bytes: Uint8Array): FieldObjectAsset | null {
   let container;
   try {
-    container = readHg2Header(slice);
+    container = readHg2Header(bytes);
   } catch {
     return null;
   }
-  // The trailing "texture immediately before EOF" section is optional; treat any
-  // section that decodes as a textured MSCALF-4 mesh as geometry.
   const meshes: FieldObjectMesh[] = [];
   let texture: DecodedTexture | null = null;
   let radiusSquared = 0;
@@ -72,7 +157,7 @@ export function readFieldObjectAsset(bytes: Uint8Array): FieldObjectAsset | null
     const sectionOffset = container.offsets[sectionIndex]!;
     let primitives: CarPrimitive[];
     try {
-      primitives = readCarMeshPart(slice, sectionOffset + 0x10);
+      primitives = readCarMeshPart(bytes, sectionOffset + 0x10);
     } catch {
       primitives = [];
     }
@@ -84,10 +169,14 @@ export function readFieldObjectAsset(bytes: Uint8Array): FieldObjectAsset | null
       meshes.push(mesh.mesh);
     } else if (!texture) {
       try {
-        const uploads = readTextureUploads(slice, sectionOffset, container.offsets[sectionIndex + 1]! - sectionOffset);
-        texture = decodeIndexedTexture(uploads, 8);
+        const uploads = readTextureUploads(bytes, sectionOffset, container.offsets[sectionIndex + 1]! - sectionOffset);
+        try {
+          texture = decodeIndexedTexture(uploads, 8);
+        } catch {
+          texture = decodeIndexedTexture(uploads, 4);
+        }
       } catch {
-        // Not a PSMT8 texture DMA section; ignore.
+        // Not a supported indexed texture DMA section; ignore.
       }
     }
   }
@@ -97,7 +186,7 @@ export function readFieldObjectAsset(bytes: Uint8Array): FieldObjectAsset | null
   const triangleCount = meshes.reduce((sum, mesh) => sum + mesh.positions.length / 9, 0);
   // The rotor is the lone large single-section object (FLD/213). The coastal
   // palm crown is the proven 1+2+3-frond object: three tiny low-poly sections.
-  // Everything else — giant fruit landmarks, trees, signs, bridges — is a prop.
+  // Everything else — including standalone SYS/COIN.BIN — is a prop.
   const kind: FieldObjectKind = meshes.length === 1 && radius > 20
     ? "turbine-rotor"
     : (meshes.length === 3 && triangleCount <= 24 && radius < 10 ? "palm-crown" : "prop");

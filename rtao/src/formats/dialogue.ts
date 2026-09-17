@@ -1,4 +1,5 @@
 import { Elf32AddressSpace } from "./elf32";
+import { CHORO_COIN_COUNT } from "./choroCoins";
 import { isQuickPicPhotoNumber, QUICK_PIC_PHOTO_COUNT } from "./quickPic";
 
 export enum DialogueOpcode {
@@ -7,7 +8,7 @@ export enum DialogueOpcode {
   NewLine = 0x0a, BranchIfResultCodeEquals = 0x0b, PageBreak = 0x0c, Unknown0d = 0x0d,
   BranchByRallyStage = 0x0e, SetFlag = 0x0f, ClearFlag = 0x10, ClearIndexedFlag = 0x11, Action10 = 0x12,
   SetRallyStage = 0x13, Transition = 0x14, Unknown15 = 0x15, Unknown16 = 0x16, RegisterMyCityResident = 0x17,
-  Unknown18 = 0x18, Unknown19 = 0x19, Unknown1a = 0x1a, WorldGrandPrixUnlockGate = 0x1b,
+  Unknown18 = 0x18, Unknown19 = 0x19, BranchIfChoroCoinCountAtLeast = 0x1a, WorldGrandPrixUnlockGate = 0x1b,
   BranchIfCurrentAreaEquals = 0x1c, Unknown1d = 0x1d,
 }
 
@@ -332,6 +333,8 @@ export class DialogueRuntimeState {
   private readonly quickPicPhotos = new Set<number>();
   /** Fixed interactions whose executable first-meeting bit has been cleared. */
   private readonly metFixedInteractions = new Set<number>();
+  /** PAL ChoroQ coin indices whose native availability bits have been cleared. */
+  private readonly collectedChoroCoins = new Set<number>();
   private progressRevision = 0;
   currentAreaIndex = 1;
   rallyStage = 0;
@@ -452,6 +455,24 @@ export class DialogueRuntimeState {
       .sort((a, b) => a - b)
       .map((key) => Object.freeze([(key >>> 5) & 0x1f, key & 0x1f] as const));
   }
+
+  get choroCoinCollectedCount(): number { return this.collectedChoroCoins.size; }
+
+  hasCollectedChoroCoin(index: number): boolean {
+    return Number.isInteger(index) && index >= 0 && index < CHORO_COIN_COUNT && this.collectedChoroCoins.has(index);
+  }
+
+  collectChoroCoin(index: number): boolean {
+    if (!Number.isInteger(index) || index < 0 || index >= CHORO_COIN_COUNT) throw new RangeError(`ChoroQ coin index must be 0..${CHORO_COIN_COUNT - 1}.`);
+    if (this.collectedChoroCoins.has(index)) return false;
+    this.collectedChoroCoins.add(index);
+    this.progressRevision += 1;
+    return true;
+  }
+
+  choroCoinEntries(): readonly number[] {
+    return [...this.collectedChoroCoins].sort((a, b) => a - b);
+  }
 }
 
 function indexedFlagKey(namespace: number, index: number): number {
@@ -549,6 +570,7 @@ export class DialogueFlow {
         else if (control.opcode === DialogueOpcode.ClearFlag) this.state.flags.delete(op[0] ?? 0);
         else if (control.opcode === DialogueOpcode.ClearIndexedFlag) this.state.clearIndexedFlag(op[0] ?? 0, op[1] ?? 0);
         else if (control.opcode === DialogueOpcode.SetRallyStage) this.state.rallyStage = op[0] ?? 0;
+        else if (control.opcode === DialogueOpcode.BranchIfChoroCoinCountAtLeast && this.state.choroCoinCollectedCount >= (op[0] ?? 0)) { target = op[1] ?? 0; branched = true; }
         else if (control.opcode === DialogueOpcode.WorldGrandPrixUnlockGate && this.state.worldGrandPrixUnlocked) { target = op[0] ?? 0; branched = true; }
         else if (control.opcode === DialogueOpcode.BranchIfCurrentAreaEquals && this.state.currentAreaIndex === op[0]) { target = op[1] ?? 0; branched = true; }
         else if (![DialogueOpcode.SetFlag, DialogueOpcode.ClearFlag, DialogueOpcode.ClearIndexedFlag, DialogueOpcode.SetRallyStage].includes(control.opcode)) this.ignoredControls.push(control);

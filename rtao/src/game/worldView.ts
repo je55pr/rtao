@@ -1,8 +1,10 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { deserializeCompiledField, type CompiledFieldBatch, type CompiledFieldMesh } from "../formats/fieldGeometry";
-import type { FieldObjectAsset } from "../formats/fieldObjects";
+import type { ChoroCoinPlacement } from "../formats/choroCoins";
+import type { FieldObjectAsset, FieldObjectKind, FieldObjectSectionTransform, NativeFourthColumn } from "../formats/fieldObjects";
 import type { SkyTextureSet } from "../formats/skyTexture";
+import { choroCoinRenderPosition } from "./choroCoinProgress";
 import type { CaptureSize, CarVisualCaptureScene, FieldOverviewCaptureScene, WorldOverviewCaptureScene } from "./captureScenes";
 import { renderPng } from "./renderCapture";
 import { fieldExtent, relativeRenderTranslation } from "./worldTopology";
@@ -31,10 +33,19 @@ interface SectorDynamicResources {
   readonly animated: AnimatedDynamicObject[];
 }
 
+interface ChoroCoinRenderResources {
+  readonly placements: readonly ChoroCoinPlacement[];
+  readonly collectedIndices: Set<number>;
+  readonly geometries: THREE.BufferGeometry[];
+  readonly material: THREE.Material;
+  readonly texture: THREE.Texture | undefined;
+  readonly instances: Map<number, THREE.Object3D>;
+}
+
 interface AnimatedDynamicObject {
   readonly object: THREE.Object3D;
   readonly motion: "rotor-spin" | "crown-sway";
-  /** Deterministic per-instance offset so identical objects animate out of step. */
+  /** Motion phase offset; PAL-proven crown instances share one timing phase. */
   readonly phaseSeed: number;
   readonly groupIndex: number;
 }
@@ -52,6 +63,29 @@ const approximateRotorFacingYaw = 0;
 const approximateRotorScale = 0.42;
 /** Palm-crown sway, ported from the C# reference's PalmCrownMesh. */
 const crownSway = { swayHz: 1.45, swayAmplitude: 0.045, crossHz: 1.07, crossAmplitude: 0.022, groupPhaseStep: 0.42 };
+
+type AnimatedFieldObjectKind = Extract<FieldObjectKind, "turbine-rotor" | "palm-crown">;
+
+export function nativeFourthColumnToRenderColumn(column: NativeFourthColumn): NativeFourthColumn {
+  return [fieldExtent * column[3] - column[0], column[1], column[2], column[3]];
+}
+
+export function dynamicObjectPhaseSeed(
+  kind: AnimatedFieldObjectKind,
+  anchor: Readonly<{ x: number; z: number }>,
+  instanceIndex: number,
+): number {
+  if (kind === "palm-crown") return 0;
+  return instanceIndex * 0.73 + anchor.x * 0.011 + anchor.z * 0.007;
+}
+
+export function visibleChoroCoinPlacements(
+  placements: readonly ChoroCoinPlacement[],
+  fieldNumber: number,
+  collectedIndices: ReadonlySet<number>,
+): readonly ChoroCoinPlacement[] {
+  return placements.filter((placement) => placement.fieldNumber === fieldNumber && !collectedIndices.has(placement.index));
+}
 
 interface WorldActorRenderState {
   readonly object: THREE.Object3D;
@@ -80,6 +114,7 @@ export class WorldView {
   private originFieldNumber = 223;
   private frameHandle = 0;
   private readonly animatedDynamicObjects: AnimatedDynamicObject[] = [];
+  private choroCoins: ChoroCoinRenderResources | undefined;
   private lastFrameTimestamp = 0;
   private animationSeconds = 0;
 
@@ -206,6 +241,7 @@ export class WorldView {
       triangles: compiled.triangleCount,
       primitives: compiled.primitiveCount,
     });
+    this.attachChoroCoinsToSector(fieldNumber);
     this.applyOutdoorState();
     return this.stats();
   }
@@ -214,6 +250,78 @@ export class WorldView {
     if (this.sectors.size === 0) throw new Error("The compiled world contains no sectors.");
     this.showWorldOverview();
     return this.stats();
+  }
+
+  /**
+   * Installs the PAL-authored ChoroQ coin mesh at each executable-authored
+   * placement that has not already been collected. Animation/VFX are deliberately
+   * absent until their native object update has been recovered.
+   */
+  setChoroCoins(asset: FieldObjectAsset, placements: readonly ChoroCoinPlacement[], collectedIndices: readonly number[]): void {
+    this.clearChoroCoins();
+    if (asset.meshes.length === 0 || placements.length === 0) return;
+    const geometries = asset.meshes.map((mesh) => {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(mesh.positions, 3));
+      geometry.setAttribute("normal", new THREE.BufferAttribute(mesh.normals, 3));
+      geometry.setAttribute("uv", new THREE.BufferAttribute(mesh.uvs, 2));
+      geometry.computeBoundingSphere();
+      return geometry;
+    });
+    let texture: THREE.Texture | undefined;
+    if (asset.texture) {
+      texture = new THREE.DataTexture(asset.texture.rgba, asset.texture.width, asset.texture.height, THREE.RGBAFormat, THREE.UnsignedByteType);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.magFilter = THREE.LinearFilter;
+      texture.minFilter = THREE.LinearFilter;
+      texture.generateMipmaps = false;
+      texture.needsUpdate = true;
+    }
+    this.choroCoins = {
+      placements,
+      collectedIndices: new Set(collectedIndices),
+      geometries,
+      material: createDynamicObjectMaterial(texture),
+      texture,
+      instances: new Map(),
+    };
+    for (const fieldNumber of this.sectors.keys()) this.attachChoroCoinsToSector(fieldNumber);
+  }
+
+  removeChoroCoin(index: number): void {
+    const resources = this.choroCoins;
+    if (!resources) return;
+    resources.collectedIndices.add(index);
+    resources.instances.get(index)?.removeFromParent();
+    resources.instances.delete(index);
+  }
+
+  private attachChoroCoinsToSector(fieldNumber: number): void {
+    const resources = this.choroCoins;
+    const sector = this.sectors.get(fieldNumber);
+    if (!resources || !sector) return;
+    for (const placement of visibleChoroCoinPlacements(resources.placements, fieldNumber, resources.collectedIndices)) {
+      if (resources.instances.has(placement.index)) continue;
+      const position = choroCoinRenderPosition(placement);
+      const mount = new THREE.Group();
+      mount.name = `ChoroQ coin ${placement.index}`;
+      mount.position.set(position.x, position.y, position.z);
+      for (const geometry of resources.geometries) mount.add(new THREE.Mesh(geometry, resources.material));
+      sector.group.add(mount);
+      resources.instances.set(placement.index, mount);
+    }
+  }
+
+  private clearChoroCoins(): void {
+    const resources = this.choroCoins;
+    if (!resources) return;
+    for (const instance of resources.instances.values()) instance.removeFromParent();
+    for (const geometry of resources.geometries) geometry.dispose();
+    resources.material.dispose();
+    resources.texture?.dispose();
+    this.choroCoins = undefined;
   }
 
   /**
@@ -226,6 +334,7 @@ export class WorldView {
     const sector = this.sectors.get(fieldNumber);
     if (!sector || sector.dynamic || asset.meshes.length === 0 || anchors.length === 0) return;
     if (asset.kind !== "turbine-rotor" && asset.kind !== "palm-crown") return;
+    const objectKind = asset.kind;
 
     const geometries = asset.meshes.map((mesh) => {
       const geometry = new THREE.BufferGeometry();
@@ -254,11 +363,11 @@ export class WorldView {
     anchors.forEach((anchor, instanceIndex) => {
       const mount = new THREE.Group();
       mount.position.set(anchor.x, anchor.y, anchor.z);
-      // Deterministic per-instance phase from the C# palm-crown formula, reused
-      // for the rotors so a wind farm does not spin in perfect lockstep.
-      const phaseSeed = instanceIndex * 0.73 + anchor.x * 0.011 + anchor.z * 0.007;
+      // PAL FLD/220 footage proves palm crowns share one sway timing phase. Keep
+      // the existing host-derived per-instance phase only for turbine rotors.
+      const phaseSeed = dynamicObjectPhaseSeed(objectKind, anchor, instanceIndex);
 
-      if (asset.kind === "turbine-rotor") {
+      if (objectKind === "turbine-rotor") {
         mount.rotation.y = approximateRotorFacingYaw;
         mount.scale.setScalar(approximateRotorScale);
         const rotor = new THREE.Group();
@@ -281,6 +390,51 @@ export class WorldView {
 
     this.animatedDynamicObjects.push(...animated);
     sector.dynamic = { geometries, material, texture, animated };
+  }
+
+  /**
+   * Renders a PAL-authored static Extra[1] landmark using only the mesh sections
+   * its recovered native callback actually submits. Each submitted mesh keeps its
+   * recovered fourth-column transform; the sector group contributes the equivalent
+   * current neighbour displacement after the X-axis reflection. GS material nuance
+   * beyond the decoded embedded alpha texture remains approximate.
+   */
+  addStaticFieldObject(fieldNumber: number, asset: FieldObjectAsset, sections: readonly FieldObjectSectionTransform[]): void {
+    const sector = this.sectors.get(fieldNumber);
+    if (!sector || sector.dynamic || asset.kind !== "prop" || sections.length === 0) return;
+
+    const geometries = sections.map((section) => {
+      const mesh = asset.meshes[section.meshIndex];
+      if (!mesh) throw new Error(`FLD/${fieldNumber} static landmark references missing mesh ${section.meshIndex}.`);
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(mesh.positions, 3));
+      geometry.setAttribute("normal", new THREE.BufferAttribute(mesh.normals, 3));
+      geometry.setAttribute("uv", new THREE.BufferAttribute(mesh.uvs, 2));
+      geometry.computeBoundingSphere();
+      return geometry;
+    });
+    let texture: THREE.Texture | undefined;
+    if (asset.texture) {
+      texture = new THREE.DataTexture(asset.texture.rgba, asset.texture.width, asset.texture.height, THREE.RGBAFormat, THREE.UnsignedByteType);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.magFilter = THREE.LinearFilter;
+      texture.minFilter = THREE.LinearFilter;
+      texture.generateMipmaps = false;
+      texture.needsUpdate = true;
+    }
+    const material = createDynamicObjectMaterial(texture);
+    sections.forEach((section, index) => {
+      const mount = new THREE.Group();
+      mount.name = `FLD/${fieldNumber} static landmark mesh ${section.meshIndex}`;
+      const [x, y, z, w] = nativeFourthColumnToRenderColumn(section.fourthColumn);
+      mount.matrixAutoUpdate = false;
+      mount.matrix.set(1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z, 0, 0, 0, w);
+      mount.add(new THREE.Mesh(geometries[index]!, material));
+      sector.group.add(mount);
+    });
+    sector.dynamic = { geometries, material, texture, animated: [] };
   }
 
   /**
@@ -801,6 +955,7 @@ export class WorldView {
     this.vehicle?.removeFromParent();
     this.vehicle = undefined;
     this.clearWorldActors();
+    this.clearChoroCoins();
     for (const sector of this.sectors.values()) {
       sector.group.traverse((object) => {
         if (object instanceof THREE.Mesh) object.geometry.dispose();

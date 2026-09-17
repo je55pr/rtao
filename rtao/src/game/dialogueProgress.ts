@@ -1,3 +1,4 @@
+import { CHORO_COIN_COUNT } from "../formats/choroCoins";
 import type { DialogueActionToken, DialogueRuntimeState } from "../formats/dialogue";
 import { isQuickPicPhotoNumber, QUICK_PIC_COMPLETION_STAMP_ID } from "../formats/quickPic";
 import { RecoveredCommerceState } from "./commerceProgress";
@@ -19,6 +20,7 @@ export interface RecoveredDialogueStateSave {
   readonly paintWord: number | null;
   readonly quickPicPhotos: readonly number[];
   readonly metFixedInteractions: readonly (readonly [number, number])[];
+  readonly choroCoinIndices: readonly number[];
   readonly advertisingDistanceUnits: readonly number[];
   readonly raceLicenseClass: number;
   readonly ordinaryRaceFinishIndices: readonly number[];
@@ -40,7 +42,7 @@ export function isRestorableRecoveredSave(value: unknown): value is RecoveredDia
 /**
  * Serialises only recovered executable-backed progress: indexed ownership and
  * flags, stamps, Cake, native car configuration, Quick-Pic completion bits,
- * fixed-interaction first meetings, advertising counters, and the native licence
+ * fixed-interaction first meetings, ChoroQ coin collection, advertising counters, and the native licence
  * class with its 24 ordinary-race best-finish bytes.
  *
  * Only the current schema is readable. Earlier schemas are deliberately not
@@ -64,6 +66,7 @@ export function createRecoveredDialogueStateSave(
     paintWord: equipment.paintWord ?? null,
     quickPicPhotos: state.quickPicPhotoEntries(),
     metFixedInteractions: state.metFixedInteractionEntries(),
+    choroCoinIndices: state.choroCoinEntries(),
     advertisingDistanceUnits: commerce.advertisingDistanceEntries(),
     raceLicenseClass: races.licenseClass,
     ordinaryRaceFinishIndices: races.finishEntries(),
@@ -103,6 +106,9 @@ export function restoreRecoveredDialogueStateSave(
       if (!Number.isInteger(localIndex) || localIndex < 0 || localIndex >= 32) continue;
       state.markFixedInteractionMet(areaIndex, localIndex);
     }
+  }
+  if (Array.isArray(record.choroCoinIndices)) {
+    for (const index of record.choroCoinIndices) if (Number.isInteger(index) && index >= 0 && index < CHORO_COIN_COUNT) state.collectChoroCoin(index);
   }
   commerce.restoreAdvertisingDistanceUnits(record.advertisingDistanceUnits);
   races.restore(record.raceLicenseClass, record.ordinaryRaceFinishIndices);
