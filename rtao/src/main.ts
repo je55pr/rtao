@@ -45,6 +45,7 @@ import { applyRecoveredDialogueHostAction } from "./game/dialogueProgress";
 import type { BrowserDrivingGame, CarState } from "./game/drivingGame";
 import { applyRecoveredEquipmentHostAction, fitOwnedNativeEquipmentPart, type RecoveredEquipmentState } from "./game/equipmentProgress";
 import { findNearestFixedInteraction } from "./game/fixedInteractionProximity";
+import { resolveWarpWorldEntry, runRegisteredCityWarp } from "./game/warpTravel";
 import { ContactEdgeTracker } from "./game/interactionContact";
 import {
   defaultChoiceIndex,
@@ -1944,6 +1945,36 @@ function chooseShopInteriorDialogue(index: number): void {
   if (session.flow.ended) { endShopInteriorPreview(); return; }
   session.choiceIndex = defaultChoiceIndex(session.flow.currentChoices);
   renderShopInteriorDialogue();
+}
+
+async function warpToRegisteredCity(areaIndex: number): Promise<void> {
+  if (!playerDialogueState || !overworldCatalogue) throw new Error("Recovered Warp state is unavailable.");
+  if (!drivingGame || !isDriving) throw new Error("Warp travel requires an active outdoor driving session.");
+
+  await runRegisteredCityWarp(areaIndex, playerDialogueState, overworldCatalogue.authoredAreas, async (destination) => {
+    const { intent } = destination;
+    if (intent.kind !== "standard-world" || intent.fieldNumber === undefined) {
+      throw new Error(`${intent.name} uses the native ${intent.kind} scene path, which the browser outdoor runtime does not reconstruct yet.`);
+    }
+    const fieldNumber = intent.fieldNumber;
+    const entry = resolveWarpWorldEntry(destination, overworldCatalogue!.interactions);
+    await ensureWorldFieldLoaded(fieldNumber);
+    if (!loadedWorldFieldNumbers.has(fieldNumber)) {
+      throw new Error(`${intent.name} / FLD/${String(fieldNumber).padStart(3, "0")} is not present in the completed local cache.`);
+    }
+    const game = drivingGame;
+    if (!game || !isDriving) throw new Error("The outdoor driving session ended while Warp was loading.");
+
+    closePauseMenu();
+    game.enterArea(fieldNumber, entry.position);
+    playerDialogueState!.currentAreaIndex = destination.areaIndex;
+    interactionContactTracker.update(contactInteractionTargets(game.controller.state).map((target) => target.key));
+    requiredElement<HTMLElement>("viewer-title").textContent = destination.name;
+    sceneFade.flash();
+    lastPrefetchedWorldField = fieldNumber;
+    void ensureNearbyWorldFields(fieldNumber).catch((error) => console.warn("Warp destination prefetch failed.", error));
+    console.info(`Warp entered ${destination.name} at native selector ${intent.rawEntrySelector} / Q's Factory return edge.`);
+  });
 }
 
 function interceptAreaTransition(action: DialogueActionToken, source: string, closeInterior: () => void): boolean {

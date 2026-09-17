@@ -105,7 +105,17 @@ export class ArcadeCarController {
     this.nativeBrakeSelector = selector;
   }
 
+  enterArea(fieldNumber: number, position: { readonly x: number; readonly z: number }): void {
+    const current = this.mutable;
+    this.relocate(fieldNumber, { x: position.x, y: current.position.y, z: position.z }, current.yaw);
+  }
+
+  /** Dev/probe relocation. Player-facing area transitions use enterArea instead. */
   teleport(fieldNumber: number, position: Vec3, yaw: number): void {
+    this.relocate(fieldNumber, position, yaw);
+  }
+
+  private relocate(fieldNumber: number, position: Vec3, yaw: number): void {
     this.nativeBrakeHeldUpdates = 0;
     const resolved = this.world.resolveFootprint(fieldNumber, position, yaw, position.y, nativeTyreContactThreshold(this.nativeTyreSelector));
     this.mutable = {
@@ -299,6 +309,14 @@ export class BrowserDrivingGame {
     this.accumulator = 0;
     this.lastTime = performance.now();
     if (paused) this.keys.clear();
+  }
+
+  enterArea(fieldNumber: number, position: { readonly x: number; readonly z: number }): void {
+    this.keys.clear();
+    this.controller.enterArea(fieldNumber, position);
+    this.accumulator = 0;
+    this.lastTime = performance.now();
+    this.applyState(this.controller.state, true);
   }
 
   private readonly frame = (time: number): void => {
