@@ -1268,3 +1268,25 @@ h1 em { color: var(--red); font-style: normal; }
 .race-results-best.updated { color: #a84c25; }
 .race-results-promotion { padding: 8px 10px; background: rgba(39, 34, 52, .08); border-radius: 6px; }
 .race-results-panel > .primary-button { width: 100%; margin-top: 14px; padding: 11px 14px; }
+
+.pause-wide-button:disabled { opacity: .42; cursor: default; }
+.pause-warp-destinations { display: grid; gap: 6px; }
+.pause-warp-destination {
+  position: relative;
+  width: 100%;
+  padding: 10px 12px 10px 30px;
+  color: var(--ink);
+  background: rgba(255,252,245,.68);
+  border: 1px solid rgba(39,34,52,.2);
+  border-radius: 6px;
+  font: 600 13px Consolas, "Courier New", monospace;
+  text-align: left;
+  cursor: pointer;
+}
+.pause-warp-destination.selected { background: #f5c94d; border-color: var(--ink); }
+.pause-warp-destination.selected::before { content: ">"; position: absolute; left: 12px; }
+.pause-warp-destination:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.pause-warp-destination:disabled { cursor: wait; opacity: .6; }
+.pause-warp-hint, .pause-warp-feedback { margin: 10px 0 0; font: 10px/1.4 Consolas, "Courier New", monospace; }
+.pause-warp-hint { color: #746c7b; }
+.pause-warp-feedback { color: #8a2f22; }

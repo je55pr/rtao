@@ -37,6 +37,13 @@ export interface AppDomBindings {
   debugOverlay: HTMLElement;
   debugLiveRows: HTMLElement;
   pauseOverlay: HTMLElement;
+  pauseTitle: HTMLElement;
+  pauseRoot: HTMLElement;
+  pauseWarp: HTMLButtonElement;
+  pauseWarpMenu: HTMLElement;
+  pauseWarpDestinations: HTMLElement;
+  pauseWarpFeedback: HTMLElement;
+  pauseWarpBack: HTMLButtonElement;
   pauseStopDriving: HTMLButtonElement;
   pauseResume: HTMLButtonElement;
 }
@@ -79,6 +86,13 @@ export function bindAppDom(): AppDomBindings {
     debugOverlay: requiredElement<HTMLElement>("debug-overlay"),
     debugLiveRows: requiredElement<HTMLElement>("debug-live-rows"),
     pauseOverlay: requiredElement<HTMLElement>("pause-overlay"),
+    pauseTitle: requiredElement<HTMLElement>("pause-title"),
+    pauseRoot: requiredElement<HTMLElement>("pause-root"),
+    pauseWarp: requiredElement<HTMLButtonElement>("pause-warp"),
+    pauseWarpMenu: requiredElement<HTMLElement>("pause-warp-menu"),
+    pauseWarpDestinations: requiredElement<HTMLElement>("pause-warp-destinations"),
+    pauseWarpFeedback: requiredElement<HTMLElement>("pause-warp-feedback"),
+    pauseWarpBack: requiredElement<HTMLButtonElement>("pause-warp-back"),
     pauseStopDriving: requiredElement<HTMLButtonElement>("pause-stop-driving"),
     pauseResume: requiredElement<HTMLButtonElement>("pause-resume"),
   };

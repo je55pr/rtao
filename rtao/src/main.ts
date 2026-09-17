@@ -11,6 +11,7 @@ import { RecoveredProgressStore } from "./app/recoveredProgressStore";
 import { raceResultsView } from "./app/raceResultsModel";
 import { raceStartSignalView } from "./app/raceStartPresentation";
 import { SceneFade } from "./app/sceneTransition";
+import { createWarpMenuState, moveWarpMenuSelection, selectedWarpMenuDestination, type WarpMenuState } from "./app/warpMenuState";
 import { carAssetPath } from "./formats/carPath";
 import type { ChoroCoinPlacement } from "./formats/choroCoins";
 import type { DialogueActionToken, DialogueEntity, DialogueFlow, DialogueRuntimeState, DialogueVariant } from "./formats/dialogue";
@@ -166,6 +167,13 @@ const {
   debugOverlay,
   debugLiveRows,
   pauseOverlay,
+  pauseTitle,
+  pauseRoot,
+  pauseWarp,
+  pauseWarpMenu,
+  pauseWarpDestinations,
+  pauseWarpFeedback,
+  pauseWarpBack,
   pauseStopDriving,
   pauseResume,
 } = bindAppDom();
@@ -218,6 +226,9 @@ let debugOverlayVisible = false;
 let debugOverlayFrame = 0;
 const debugFrameRate = new FrameRateSampler();
 let pauseMenuOpen = false;
+let pauseMenuPage: "root" | "warp" = "root";
+let pauseWarpState: WarpMenuState = { destinations: [], selectedIndex: -1 };
+let pauseWarpPending = false;
 let pauseReturnFocus: HTMLElement | undefined;
 let worldSimulation: BrowserWorldSimulation | undefined;
 let overworldCatalogue: AuthoredOverworldCatalogue | undefined;
@@ -447,6 +458,8 @@ driveToggle.addEventListener("click", () => {
 });
 
 requiredElement<HTMLButtonElement>("open-pause").addEventListener("click", openPauseMenu);
+pauseWarp.addEventListener("click", openPauseWarpMenu);
+pauseWarpBack.addEventListener("click", showPauseRoot);
 pauseResume.addEventListener("click", closePauseMenu);
 pauseStopDriving.addEventListener("click", () => {
   closePauseMenu();
@@ -456,7 +469,9 @@ requiredElement<HTMLButtonElement>("pause-diagnostics").addEventListener("click"
   setDebugOverlayVisible(!debugOverlayVisible);
 });
 pauseOverlay.addEventListener("click", (event) => {
-  if (event.target === pauseOverlay) closePauseMenu();
+  if (event.target !== pauseOverlay || pauseWarpPending) return;
+  if (pauseMenuPage === "warp") showPauseRoot();
+  else closePauseMenu();
 });
 requiredElement<HTMLButtonElement>("debug-hide").addEventListener("click", () => setDebugOverlayVisible(false));
 requiredElement<HTMLButtonElement>("debug-copy").addEventListener("click", () => {
@@ -1499,6 +1514,13 @@ function pauseMenuAvailable(): boolean {
   });
 }
 
+function refreshPauseWarpState(): void {
+  pauseWarpState = playerDialogueState && overworldCatalogue
+    ? createWarpMenuState(playerDialogueState, overworldCatalogue.authoredAreas)
+    : { destinations: [], selectedIndex: -1 };
+  pauseWarp.disabled = !isDriving || pauseWarpState.destinations.length === 0;
+}
+
 function openPauseMenu(): void {
   if (pauseMenuOpen || !pauseMenuAvailable()) return;
   pauseMenuOpen = true;
@@ -1506,13 +1528,105 @@ function openPauseMenu(): void {
   drivingGame?.setPaused(true);
   worldSimulation?.setPaused(true);
   pauseStopDriving.hidden = !isDriving;
+  refreshPauseWarpState();
+  pauseMenuPage = "root";
+  pauseRoot.hidden = false;
+  pauseWarpMenu.hidden = true;
+  pauseTitle.textContent = "Menu";
   pauseOverlay.hidden = false;
   pauseResume.focus();
+}
+
+function openPauseWarpMenu(): void {
+  refreshPauseWarpState();
+  if (pauseWarp.disabled) return;
+  pauseMenuPage = "warp";
+  pauseRoot.hidden = true;
+  pauseWarpMenu.hidden = false;
+  pauseTitle.textContent = "Warp";
+  pauseWarpFeedback.hidden = true;
+  renderPauseWarpMenu();
+  focusSelectedWarpButton();
+}
+
+function showPauseRoot(): void {
+  if (!pauseMenuOpen || pauseWarpPending) return;
+  pauseMenuPage = "root";
+  pauseRoot.hidden = false;
+  pauseWarpMenu.hidden = true;
+  pauseTitle.textContent = "Menu";
+  pauseWarpFeedback.hidden = true;
+  refreshPauseWarpState();
+  pauseWarp.focus();
+}
+
+function renderPauseWarpMenu(): void {
+  const buttons = pauseWarpState.destinations.map((destination, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "pause-warp-destination";
+    button.dataset.warpIndex = String(index);
+    button.textContent = destination.name;
+    button.disabled = pauseWarpPending;
+    button.tabIndex = index === pauseWarpState.selectedIndex ? 0 : -1;
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", index === pauseWarpState.selectedIndex ? "true" : "false");
+    button.classList.toggle("selected", index === pauseWarpState.selectedIndex);
+    button.addEventListener("click", () => void activatePauseWarpDestination(destination.areaIndex));
+    return button;
+  });
+  pauseWarpDestinations.replaceChildren(...buttons);
+  pauseWarpBack.disabled = pauseWarpPending;
+}
+
+function movePauseWarpSelection(delta: number): void {
+  pauseWarpState = moveWarpMenuSelection(pauseWarpState, delta);
+  renderPauseWarpMenu();
+  focusSelectedWarpButton();
+}
+
+function focusSelectedWarpButton(): void {
+  pauseWarpDestinations.querySelector<HTMLButtonElement>(`[data-warp-index="${pauseWarpState.selectedIndex}"]`)?.focus();
+}
+
+async function activateSelectedPauseWarpDestination(): Promise<void> {
+  const destination = selectedWarpMenuDestination(pauseWarpState);
+  if (destination) await activatePauseWarpDestination(destination.areaIndex);
+}
+
+async function activatePauseWarpDestination(areaIndex: number): Promise<void> {
+  if (pauseWarpPending) return;
+  const destination = pauseWarpState.destinations.find((candidate) => candidate.areaIndex === areaIndex);
+  if (!destination) return;
+  pauseWarpPending = true;
+  pauseWarpFeedback.hidden = true;
+  renderPauseWarpMenu();
+  try {
+    await warpToRegisteredCity(areaIndex);
+  } catch (error) {
+    console.warn(`Warp to ${destination.name} failed.`, error);
+    if (pauseMenuOpen && pauseMenuPage === "warp") {
+      pauseWarpFeedback.textContent = `Could not warp to ${destination.name}.`;
+      pauseWarpFeedback.hidden = false;
+    }
+  } finally {
+    pauseWarpPending = false;
+    if (pauseMenuOpen && pauseMenuPage === "warp") {
+      renderPauseWarpMenu();
+      focusSelectedWarpButton();
+    }
+  }
 }
 
 function closePauseMenu(): void {
   if (!pauseMenuOpen) return;
   pauseMenuOpen = false;
+  pauseMenuPage = "root";
+  pauseWarpPending = false;
+  pauseRoot.hidden = false;
+  pauseWarpMenu.hidden = true;
+  pauseTitle.textContent = "Menu";
+  pauseWarpFeedback.hidden = true;
   pauseOverlay.hidden = true;
   worldSimulation?.setPaused(false);
   if (isDriving) drivingGame?.setPaused(false);
@@ -1539,6 +1653,26 @@ function handleShellKey(event: KeyboardEvent): void {
     if (!playUiActive) return;
     event.preventDefault();
     setDebugOverlayVisible(!debugOverlayVisible);
+    return;
+  }
+  if (pauseMenuOpen && pauseMenuPage === "warp") {
+    if (pauseWarpPending) {
+      if (["Escape", "ArrowUp", "ArrowDown", "KeyW", "KeyS", "KeyE", "Enter", "Space"].includes(event.code)) event.preventDefault();
+      return;
+    }
+    if (["ArrowUp", "KeyW"].includes(event.code)) {
+      event.preventDefault();
+      movePauseWarpSelection(-1);
+    } else if (["ArrowDown", "KeyS"].includes(event.code)) {
+      event.preventDefault();
+      movePauseWarpSelection(1);
+    } else if (["KeyE", "Enter", "Space"].includes(event.code)) {
+      event.preventDefault();
+      void activateSelectedPauseWarpDestination();
+    } else if (event.code === "Escape") {
+      event.preventDefault();
+      showPauseRoot();
+    }
     return;
   }
   if (event.code !== "Escape") return;

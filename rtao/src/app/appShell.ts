@@ -81,7 +81,7 @@ const appShellHtml = `
         <button class="primary-button drive-button" id="drive-toggle" type="button" disabled>Start driving Q62</button>
         <button class="quiet-button race-button" id="race-toggle" type="button" disabled>Peach Raceway loading…</button>
         <p class="viewer-help" id="viewer-help">Drag to orbit · Scroll to zoom · Right-drag to pan</p>
-        <button class="quiet-button panel-settings-button" id="open-pause" type="button">Settings · Esc</button>
+        <button class="quiet-button panel-settings-button" id="open-pause" type="button">Menu · Esc</button>
       </aside>
 
       <div class="scene-fade" id="scene-fade" aria-hidden="true"></div>
@@ -91,7 +91,7 @@ const appShellHtml = `
         <p class="game-hud-cake" id="hud-cake">0 Cake</p>
         <p class="game-hud-speed" id="hud-speed" hidden>0 km/h</p>
         <p class="game-hud-status" id="hud-status" hidden></p>
-        <p class="game-hud-hint" id="hud-hint">Esc · pause and settings</p>
+        <p class="game-hud-hint" id="hud-hint">Esc · pause menu</p>
       </section>
 
       <section class="race-start-signal" id="race-start-signal" hidden aria-live="polite" aria-atomic="true">
@@ -144,7 +144,13 @@ const appShellHtml = `
       <section class="pause-overlay" id="pause-overlay" hidden>
         <div class="pause-panel" role="dialog" aria-modal="true" aria-labelledby="pause-title">
           <p class="eyebrow">PAUSED</p>
-          <h2 id="pause-title">Settings</h2>
+          <h2 id="pause-title">Menu</h2>
+
+          <div id="pause-root">
+          <section class="pause-section">
+            <h3>Travel</h3>
+            <button class="quiet-button pause-wide-button" id="pause-warp" type="button">Warp</button>
+          </section>
 
           <section class="pause-section">
             <h3>Presentation</h3>
@@ -188,6 +194,16 @@ const appShellHtml = `
           <div class="pause-actions">
             <button class="quiet-button" id="pause-stop-driving" type="button" hidden>Stop driving</button>
             <button class="primary-button" id="pause-resume" type="button">Resume</button>
+          </div>
+          </div>
+
+          <div id="pause-warp-menu" hidden>
+            <div class="pause-warp-destinations" id="pause-warp-destinations" role="listbox" aria-label="Warp destinations"></div>
+            <p class="pause-warp-hint">↑ / ↓ choose · E confirm · Esc back</p>
+            <p class="pause-warp-feedback" id="pause-warp-feedback" role="status" hidden></p>
+            <div class="pause-actions">
+              <button class="quiet-button" id="pause-warp-back" type="button">Back</button>
+            </div>
           </div>
         </div>
       </section>
