@@ -20,6 +20,8 @@ export interface RecoveredDialogueStateSave {
   readonly paintWord: number | null;
   readonly quickPicPhotos: readonly number[];
   readonly metFixedInteractions: readonly (readonly [number, number])[];
+  /** Optional so pre-Warp schema-10 browser saves remain restorable. */
+  readonly warpRegisteredAreaIndices?: readonly number[];
   readonly choroCoinIndices: readonly number[];
   readonly advertisingDistanceUnits: readonly number[];
   readonly raceLicenseClass: number;
@@ -42,8 +44,8 @@ export function isRestorableRecoveredSave(value: unknown): value is RecoveredDia
 /**
  * Serialises only recovered executable-backed progress: indexed ownership and
  * flags, stamps, Cake, native car configuration, Quick-Pic completion bits,
- * fixed-interaction first meetings, ChoroQ coin collection, advertising counters, and the native licence
- * class with its 24 ordinary-race best-finish bytes.
+ * fixed-interaction first meetings, Warp registrations, ChoroQ coin collection,
+ * advertising counters, and the native licence class with its 24 ordinary-race best-finish bytes.
  *
  * Only the current schema is readable. Earlier schemas are deliberately not
  * migrated: an unreadable save starts a fresh recovered state instead.
@@ -66,6 +68,7 @@ export function createRecoveredDialogueStateSave(
     paintWord: equipment.paintWord ?? null,
     quickPicPhotos: state.quickPicPhotoEntries(),
     metFixedInteractions: state.metFixedInteractionEntries(),
+    warpRegisteredAreaIndices: state.warpRegistrationEntries(),
     choroCoinIndices: state.choroCoinEntries(),
     advertisingDistanceUnits: commerce.advertisingDistanceEntries(),
     raceLicenseClass: races.licenseClass,
@@ -105,6 +108,19 @@ export function restoreRecoveredDialogueStateSave(
       if (!Number.isInteger(areaIndex) || areaIndex < 0 || areaIndex >= 32) continue;
       if (!Number.isInteger(localIndex) || localIndex < 0 || localIndex >= 32) continue;
       state.markFixedInteractionMet(areaIndex, localIndex);
+    }
+  }
+  if (Array.isArray(record.warpRegisteredAreaIndices)) {
+    for (const areaIndex of record.warpRegisteredAreaIndices) {
+      if (Number.isInteger(areaIndex) && areaIndex >= 1 && areaIndex <= 9) state.registerWarpArea(areaIndex);
+    }
+  } else if (record.warpRegisteredAreaIndices === undefined && Array.isArray(record.metFixedInteractions)) {
+    // Pre-Warp schema-10 saves already prove this exact opening event via the
+    // persisted first-meeting completion, so migrate without inventing visits.
+    for (const candidate of record.metFixedInteractions) {
+      if (!Array.isArray(candidate) || candidate.length !== 2) continue;
+      const [areaIndex, localIndex] = candidate;
+      if (localIndex === 0 && Number.isInteger(areaIndex) && areaIndex >= 1 && areaIndex <= 9) state.registerWarpArea(areaIndex);
     }
   }
   if (Array.isArray(record.choroCoinIndices)) {

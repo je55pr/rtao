@@ -333,6 +333,8 @@ export class DialogueRuntimeState {
   private readonly quickPicPhotos = new Set<number>();
   /** Fixed interactions whose executable first-meeting bit has been cleared. */
   private readonly metFixedInteractions = new Set<number>();
+  /** One-based PAL +0x528 Warp registration flag IDs. */
+  private readonly warpRegistrationFlagIds = new Set<number>();
   /** PAL ChoroQ coin indices whose native availability bits have been cleared. */
   private readonly collectedChoroCoins = new Set<number>();
   private progressRevision = 0;
@@ -456,6 +458,36 @@ export class DialogueRuntimeState {
       .map((key) => Object.freeze([(key >>> 5) & 0x1f, key & 0x1f] as const));
   }
 
+  hasWarpRegistration(areaIndex: number): boolean {
+    const flagId = nativeWarpRegistrationFlagId(areaIndex);
+    return flagId !== undefined && this.warpRegistrationFlagIds.has(flagId);
+  }
+
+  registerWarpArea(areaIndex: number): boolean {
+    const flagId = nativeWarpRegistrationFlagId(areaIndex);
+    if (flagId === undefined) throw new RangeError("PAL Warp registration area must be 1..9.");
+    if (this.warpRegistrationFlagIds.has(flagId)) return false;
+    this.warpRegistrationFlagIds.add(flagId);
+    this.progressRevision += 1;
+    return true;
+  }
+
+  warpRegistrationEntries(): readonly number[] {
+    const result: number[] = [];
+    for (let areaIndex = 1; areaIndex < nativeWarpRegistrationFlagIds.length; areaIndex += 1) {
+      if (this.hasWarpRegistration(areaIndex)) result.push(areaIndex);
+    }
+    return result;
+  }
+
+  markFixedInteractionOpened(areaIndex: number, localIndex: number): boolean {
+    const meetingChanged = this.markFixedInteractionMet(areaIndex, localIndex);
+    const registrationChanged = localIndex === 0 && nativeWarpRegistrationFlagId(areaIndex) !== undefined
+      ? this.registerWarpArea(areaIndex)
+      : false;
+    return meetingChanged || registrationChanged;
+  }
+
   get choroCoinCollectedCount(): number { return this.collectedChoroCoins.size; }
 
   hasCollectedChoroCoin(index: number): boolean {
@@ -484,6 +516,14 @@ function isEquipmentNamespace(namespace: number): boolean {
   return value >= 1 && value <= 14;
 }
 
+// PAL 0x002A81D0 maps authored areas 1..9 to the +0x528 Warp flag IDs.
+const nativeWarpRegistrationFlagIds = Object.freeze([0, 1, 10, 23, 52, 91, 60, 72, 85, 50] as const);
+
+function nativeWarpRegistrationFlagId(areaIndex: number): number | undefined {
+  if (!Number.isInteger(areaIndex) || areaIndex <= 0 || areaIndex >= nativeWarpRegistrationFlagIds.length) return undefined;
+  return nativeWarpRegistrationFlagIds[areaIndex];
+}
+
 function fixedInteractionKey(areaIndex: number, localIndex: number): number {
   if (!Number.isInteger(areaIndex) || areaIndex < 0 || areaIndex >= 32) throw new RangeError("Fixed-interaction area index must be 0..31.");
   if (!Number.isInteger(localIndex) || localIndex < 0 || localIndex >= 32) throw new RangeError("Fixed-interaction local index must be 0..31.");
@@ -503,9 +543,10 @@ export class DialogueFlow {
   constructor(private readonly entity: DialogueEntity, private readonly state: DialogueRuntimeState, startSlot: number) {
     this.firstInteraction = !state.hasMetFixedInteraction(entity.areaIndex, entity.entityIndex);
     this.enterSlot(startSlot);
-    // Native 0x0023e310 clears the (area, local slot) bit as the fixed
-    // interaction opens, after the entry stream has observed its old value.
-    state.markFixedInteractionMet(entity.areaIndex, entity.entityIndex);
+    // Native 0x0023e310 mutates persistent state as the fixed interaction opens,
+    // after the entry stream has observed the old first-meeting bit. Slot zero in
+    // authored areas 1..9 also sets that area's mapped Warp registration flag.
+    state.markFixedInteractionOpened(entity.areaIndex, entity.entityIndex);
   }
   get currentSlot(): number { return this.currentVariant?.pointerTableSlot ?? 0; }
   get currentPage(): string | undefined { const pages = this.currentVariant?.pages; return pages?.length ? pages[Math.max(0, Math.min(pages.length - 1, this.pageIndex))] : undefined; }

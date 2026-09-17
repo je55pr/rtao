@@ -2724,6 +2724,7 @@ async function startQFactoryInterior(interaction: FixedInteractionDefinition): P
     playerDialogueState.currentAreaIndex = interaction.areaIndex;
     const flow = new DialogueFlowClass(qFactoryDialogueEntity, playerDialogueState, 0x04);
     qFactorySession = { flow, choiceIndex: defaultChoiceIndex(flow.currentChoices), interaction, raceOptionIndex: 0 };
+    queueRecoveredProgressSave();
     renderQFactoryDialogue();
     console.info(`Q's Factory start: SHOP/T00 slot ${interaction.localIndex}, ${backdrop.width}x${backdrop.height}, ${backdrop.dmaPacketCount} DMA packets; outdoor state paused.`);
   } catch (error) {

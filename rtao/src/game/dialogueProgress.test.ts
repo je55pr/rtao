@@ -37,6 +37,7 @@ describe("recovered dialogue progress", () => {
       paintWord: null,
       quickPicPhotos: [],
       metFixedInteractions: [],
+      warpRegisteredAreaIndices: [],
       choroCoinIndices: [],
       advertisingDistanceUnits: [0, 0, 0, 0, 0],
       raceLicenseClass: 0,
@@ -301,6 +302,43 @@ describe("recovered dialogue progress", () => {
 
     const restored = restoreRecoveredDialogueStateSave(saved, new DialogueRuntimeState());
     expect(restored.metFixedInteractionEntries()).toEqual([[6, 9], [6, 16]]);
+  });
+
+  test("starts with no Warp registrations and registers only the mapped slot-zero opening", () => {
+    const state = new DialogueRuntimeState();
+    expect(state.warpRegistrationEntries()).toEqual([]);
+    expect(state.markFixedInteractionOpened(2, 3)).toBe(true);
+    expect(state.warpRegistrationEntries()).toEqual([]);
+    expect(state.markFixedInteractionOpened(10, 0)).toBe(true);
+    expect(state.warpRegistrationEntries()).toEqual([]);
+    expect(state.markFixedInteractionOpened(2, 0)).toBe(true);
+    expect(state.warpRegistrationEntries()).toEqual([2]);
+  });
+
+  test("Q's Factory opening registers its area once and duplicate visits are idempotent", () => {
+    const state = new DialogueRuntimeState();
+    const factory: DialogueEntity = {
+      areaIndex: 4, entityIndex: 0, entityAddress: 0, name: "Q's Factory",
+      variants: [variant(4, [], ["Welcome"])],
+    };
+    expect(new DialogueFlow(factory, state, 4).currentSlot).toBe(4);
+    expect(state.hasWarpRegistration(4)).toBe(true);
+    expect(state.warpRegistrationEntries()).toEqual([4]);
+    const revision = state.revision;
+    expect(new DialogueFlow(factory, state, 4).currentSlot).toBe(4);
+    expect(state.warpRegistrationEntries()).toEqual([4]);
+    expect(state.revision).toBe(revision);
+  });
+
+  test("round-trips Warp registrations and migrates pre-Warp schema-10 saves from the same opening event", () => {
+    const state = new DialogueRuntimeState();
+    state.markFixedInteractionOpened(7, 0);
+    const saved = createRecoveredDialogueStateSave(state, "2026-09-17T00:00:00.000Z");
+    expect(saved.warpRegisteredAreaIndices).toEqual([7]);
+    expect(restoreRecoveredDialogueStateSave(saved, new DialogueRuntimeState()).warpRegistrationEntries()).toEqual([7]);
+
+    const legacy = { ...saved, warpRegisteredAreaIndices: undefined, metFixedInteractions: [[4, 0], [4, 3], [10, 0]] };
+    expect(restoreRecoveredDialogueStateSave(legacy, new DialogueRuntimeState()).warpRegistrationEntries()).toEqual([4]);
   });
 
   test("persists recovered ChoroQ coin indices and filters malformed entries", () => {
