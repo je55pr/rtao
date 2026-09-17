@@ -176,12 +176,16 @@ export function decodeQ62Assets(carBytes: Uint8Array, tireBytes: Uint8Array): Q6
 
 export function decodeIndexedTexture(uploads: FieldTextureUpload[], bits: 4 | 8, paletteIndex = 0): DecodedTexture {
   const imageFormat = bits === 8 ? GsPixelStorageFormat.PsmT8 : GsPixelStorageFormat.PsmT4;
-  const paletteFormat = bits === 8 ? GsPixelStorageFormat.PsmCt32 : GsPixelStorageFormat.PsmCt16;
   const image = uploads.find((upload) => upload.destinationPixelStorageFormat === imageFormat);
-  const palette = uploads.find((upload) => upload.destinationPixelStorageFormat === paletteFormat);
+  const palette = bits === 8
+    ? uploads.find((upload) => upload.destinationPixelStorageFormat === GsPixelStorageFormat.PsmCt32)
+    : uploads.find((upload) => upload.destinationPixelStorageFormat === GsPixelStorageFormat.PsmCt16)
+      ?? uploads.find((upload) => upload.destinationPixelStorageFormat === GsPixelStorageFormat.PsmCt32);
   if (!image || !palette) throw new Error(`HG2 ${bits}-bit indexed texture uploads are incomplete.`);
   const entries = bits === 8 ? 256 : 16;
-  const clut = bits === 8 ? decodeCt32Palette(palette.data, entries) : decodeCt16Palette(palette.data, entries, paletteIndex);
+  const clut = palette.destinationPixelStorageFormat === GsPixelStorageFormat.PsmCt32
+    ? decodeCt32Palette(palette.data, entries, paletteIndex)
+    : decodeCt16Palette(palette.data, entries, paletteIndex);
   const rgba = new Uint8Array(image.width * image.height * 4);
   let hasTransparency = false;
   for (let pixel = 0; pixel < image.width * image.height; pixel += 1) {
@@ -194,10 +198,11 @@ export function decodeIndexedTexture(uploads: FieldTextureUpload[], bits: 4 | 8,
   return { width: image.width, height: image.height, rgba, hasTransparency };
 }
 
-function decodeCt32Palette(bytes: Uint8Array, entries: number): Uint8Array {
+function decodeCt32Palette(bytes: Uint8Array, entries: number, paletteIndex = 0): Uint8Array {
   const output = new Uint8Array(entries * 4);
+  const logicalBase = paletteIndex * entries;
   for (let logical = 0; logical < entries; logical += 1) {
-    const physical = swapClutBits(logical);
+    const physical = swapClutBits(logicalBase + logical);
     const source = physical * 4;
     output[logical * 4] = bytes[source] ?? 255;
     output[logical * 4 + 1] = bytes[source + 1] ?? 0;

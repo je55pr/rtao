@@ -28,6 +28,8 @@ Primary race write-ups remain `PAL_NATIVE_RACE_FRAME_2026-09-05.md`, `PAL_NATIVE
 
 Overworld interaction activation is explicit browser host policy: manual NPC/door interaction has no speed limit, while physical NPC-body contact and entry into an authored fixed-interaction polygon auto-activate once per contact episode. This convenience behavior is not claimed as recovered PAL semantics.
 
+Overworld visual parity now includes the PAL-authored FLD/223 Extra[1] giant Peach and FLD/233 Extra[1] giant Papaya. Peach presents only native-submitted mesh sections 0 and 2, while Papaya presents all three; both preserve recovered per-section homogeneous fourth columns and field-neighbour translation semantics with their embedded transparent textures. Remaining GS material nuance is still approximate; other standalone Extra[1] `prop` landmarks are not generalized from this evidence.
+
 ## Immediate work
 
 1. Continue issue #30 archaeology for the remaining low equipment `0x0004/0x0008` paths and category-specific equip side effects; `0x1000/0x2000` and combined `0x3000` are now recovered in the ordinary race frame.

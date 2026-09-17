@@ -71,6 +71,38 @@ describe.skipIf(!binPath)("FLD Extra[1] dynamic field objects", () => {
     }
   });
 
+  test("FLD/223 Extra[1] is the three-section textured giant Peach asset", async () => {
+    const { disc, close } = await openDisc();
+    try {
+      const bytes = await disc.readFile("FLD/223.BIN");
+      const asset = readFieldObjectAsset(bytes);
+      expect(asset?.kind).toBe("prop");
+      expect(asset?.meshes).toHaveLength(3);
+      expect(asset!.meshes.map((mesh) => mesh.positions.length / 9)).toEqual([160, 200, 136]);
+      expect(asset?.texture?.width).toBe(128);
+      expect(asset?.texture?.height).toBe(128);
+      expect(asset?.texture?.rgba.some((component, index) => index % 4 === 3 && component < 255)).toBe(true);
+    } finally {
+      close();
+    }
+  });
+
+  test("FLD/233 Extra[1] is the three-section textured giant Papaya asset", async () => {
+    const { disc, close } = await openDisc();
+    try {
+      const bytes = await disc.readFile("FLD/233.BIN");
+      const asset = readFieldObjectAsset(bytes);
+      expect(asset?.kind).toBe("prop");
+      expect(asset?.meshes).toHaveLength(3);
+      expect(asset!.meshes.map((mesh) => mesh.positions.length / 9)).toEqual([216, 60, 224]);
+      expect(asset?.texture?.width).toBe(128);
+      expect(asset?.texture?.height).toBe(128);
+      expect(asset?.texture?.rgba.some((component, index) => index % 4 === 3 && component < 255)).toBe(true);
+    } finally {
+      close();
+    }
+  });
+
   test("other Extra[1] objects classify as props, not crowns or rotors", async () => {
     const { disc, close } = await openDisc();
     try {

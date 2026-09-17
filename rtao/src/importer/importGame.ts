@@ -32,6 +32,7 @@ type BootstrapReady = (manifest: ImportManifest) => void | Promise<void>;
 
 const explicitlyRequired = [
   "SYSTEM.CNF",
+  "SYS/COIN.BIN",
   "SYS/SORA.GSL",
   "CARS/TIRE.BIN",
   "CARS/WHEEL.BIN",

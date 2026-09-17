@@ -56,6 +56,7 @@ describe("RecoveredProgressStore", () => {
       paintWord: 0x12345678,
       quickPicPhotos: [1, 100],
       metFixedInteractions: [[1, 0]],
+      choroCoinIndices: [0, 99],
       advertisingDistanceUnits: [1, 2, 3, 4, 5],
       raceLicenseClass: 2,
       ordinaryRaceFinishIndices: [0, ...Array<number>(23).fill(0xff)],
@@ -71,12 +72,23 @@ describe("RecoveredProgressStore", () => {
     expect(store.dialogueState.indexedFlagCount(1, 2)).toBe(3);
     expect(store.dialogueState.hasStamp(12)).toBe(true);
     expect(store.dialogueState.quickPicPhotoEntries()).toEqual([1, 100]);
+    expect(store.dialogueState.choroCoinEntries()).toEqual([0, 99]);
     expect(store.equipmentState.paintWord).toBe(0x12345678);
     expect(store.raceState.licenseClass).toBe(2);
     expect(store.raceState.finishIndex(0)).toBe(0);
     store.queueSave();
     await store.flush();
     expect(writes).toEqual([]);
+  });
+
+  test("queues recovered ChoroQ coin collection through the existing revision save path", async () => {
+    const writes: RecoveredDialogueStateSave[] = [];
+    const store = await RecoveredProgressStore.restore(directory, missingIo(writes));
+    expect(store.dialogueState.collectChoroCoin(7)).toBe(true);
+    store.queueSave();
+    await store.flush();
+    expect(writes).toHaveLength(1);
+    expect(writes[0]?.choroCoinIndices).toEqual([7]);
   });
 
   test("serializes queued snapshots in revision order", async () => {

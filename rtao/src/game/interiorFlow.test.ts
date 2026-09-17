@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { DialogueActionOpcode, type DialogueActionToken, type DialogueEntity } from "../formats/dialogue";
 import {
   defaultChoiceIndex,
@@ -7,6 +7,7 @@ import {
   fixedInteriorStartSlot,
   nativeNumericChoiceInitialValue,
   nativeNumericChoiceTarget,
+  returnFromInteriorHostAction,
   stepNativeNumericChoice,
 } from "./interiorFlow";
 
@@ -16,6 +17,16 @@ describe("interior host action boundary", () => {
       title: "Race selector",
       returnSlot: 4,
     });
+  });
+
+  test("never routes action 0x14 through the fabricated dialogue slot 04 return path", () => {
+    const transition = action(DialogueActionOpcode.Transition, [1, 0]);
+    const presentation = describeInteriorHostAction(transition);
+    const returnFromExternalAction = vi.fn();
+
+    expect(presentation.returnSlot).toBeUndefined();
+    expect(returnFromInteriorHostAction({ returnFromExternalAction }, transition, { ...presentation, returnSlot: 4 })).toBe(false);
+    expect(returnFromExternalAction).not.toHaveBeenCalled();
   });
 
   test("keeps a missing change-parts selector explicit", () => {

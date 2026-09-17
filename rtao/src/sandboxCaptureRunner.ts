@@ -7,6 +7,7 @@ import {
   serializeCompiledField,
 } from "./formats/fieldGeometry";
 import { compileFieldCollision } from "./formats/fieldCollision";
+import { fieldObjectSectionTransforms, readFieldObjectAsset, staticFieldObjectPlacementForField } from "./formats/fieldObjects";
 import { readCollisionChunkDirectory, readFieldHeader, readRenderChunkDirectory } from "./formats/field";
 import { expectedEuropeanExecutable } from "./formats/gameIdentity";
 import { Elf32AddressSpace } from "./formats/elf32";
@@ -297,6 +298,12 @@ async function prepareOutdoorFromBrowserFiles(
       const mesh = compileFieldVertexColorMesh(bytes);
       triangleCount += mesh.triangleCount;
       worldView.addCompiledFieldMesh(fieldNumber, mesh);
+      const staticPlacement = staticFieldObjectPlacementForField(fieldNumber);
+      if (staticPlacement) {
+        const asset = readFieldObjectAsset(bytes);
+        if (!asset) throw new Error(`FLD/${fieldNumber} is missing its expected Extra[1] static landmark asset.`);
+        worldView.addStaticFieldObject(fieldNumber, asset, fieldObjectSectionTransforms(staticPlacement));
+      }
     }
     worldView.finishWorld();
     preparedOutdoor = {

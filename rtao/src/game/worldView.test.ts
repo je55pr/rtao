@@ -1,0 +1,48 @@
+import { describe, expect, it } from "vitest";
+import type { ChoroCoinPlacement } from "../formats/choroCoins";
+import { dynamicObjectPhaseSeed, nativeFourthColumnToRenderColumn, visibleChoroCoinPlacements } from "./worldView";
+
+describe("native field-object fourth-column reflection", () => {
+  it("preserves homogeneous w while reflecting native field X", () => {
+    expect(nativeFourthColumnToRenderColumn([765.77, 40.63, 1207.7, 1])).toEqual([834.23, 40.63, 1207.7, 1]);
+    const papayaMesh0 = nativeFourthColumnToRenderColumn([1057.65, 1010.45, 1070, 1015]);
+    expect(papayaMesh0[0]).toBeCloseTo(1600 * 1015 - 1057.65);
+    expect(papayaMesh0.slice(1)).toEqual([1010.45, 1070, 1015]);
+
+    const peachMesh0 = nativeFourthColumnToRenderColumn([1053.5, 1014.0, 1054.9000244, 1015.5999756]);
+    expect(peachMesh0[0]).toBeCloseTo(1600 * 1015.5999756 - 1053.5);
+    expect(peachMesh0.slice(1)).toEqual([1014.0, 1054.9000244, 1015.5999756]);
+  });
+});
+
+describe("field dynamic-object animation phase", () => {
+  it("keeps PAL-proven palm crown instances in sway synchrony", () => {
+    const first = dynamicObjectPhaseSeed("palm-crown", { x: 12, z: 34 }, 0);
+    const distant = dynamicObjectPhaseSeed("palm-crown", { x: 1383, z: 1365 }, 105);
+
+    expect(first).toBe(0);
+    expect(distant).toBe(first);
+  });
+
+  it("preserves host-derived per-instance variation for turbine rotors", () => {
+    const first = dynamicObjectPhaseSeed("turbine-rotor", { x: 12, z: 34 }, 0);
+    const second = dynamicObjectPhaseSeed("turbine-rotor", { x: 20, z: 40 }, 1);
+
+    expect(first).toBeCloseTo(12 * 0.011 + 34 * 0.007);
+    expect(second).toBeCloseTo(0.73 + 20 * 0.011 + 40 * 0.007);
+    expect(second).not.toBe(first);
+  });
+});
+
+describe("ChoroQ coin presentation selection", () => {
+  const placements: ChoroCoinPlacement[] = [
+    { index: 2, areaCode: 7, fieldNumber: 13, sourcePosition: { x: 100, y: 25.5, z: 48 } },
+    { index: 3, areaCode: 7, fieldNumber: 13, sourcePosition: { x: 110, y: 25.5, z: 48 } },
+    { index: 4, areaCode: 6, fieldNumber: 12, sourcePosition: { x: 120, y: 20.5, z: 48 } },
+  ];
+
+  it("renders only uncollected placements belonging to the loaded field", () => {
+    expect(visibleChoroCoinPlacements(placements, 13, new Set([2]))).toEqual([placements[1]]);
+    expect(visibleChoroCoinPlacements(placements, 12, new Set())).toEqual([placements[2]]);
+  });
+});

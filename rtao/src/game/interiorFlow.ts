@@ -21,6 +21,16 @@ export interface InteriorHostActionPresentation {
   readonly leaveLabel?: string;
 }
 
+export function returnFromInteriorHostAction(
+  flow: { returnFromExternalAction(slot: number): void },
+  action: DialogueActionToken,
+  presentation: InteriorHostActionPresentation,
+): boolean {
+  if (action.opcode === transition || !presentation.returnSlot) return false;
+  flow.returnFromExternalAction(presentation.returnSlot);
+  return true;
+}
+
 export function defaultChoiceIndex(choices: DialogueFlowChoice[]): number {
   const index = choices.findIndex((choice) => choice.isDefault);
   return index >= 0 ? index : 0;
@@ -171,8 +181,8 @@ export function describeInteriorHostAction(action: DialogueActionToken, unknownR
     case transition:
       return {
         title: "Area transition",
-        detail: "This original dialogue edge leads to an area transition that is not connected yet.",
-        returnSlot: 4,
+        detail: "The executable supplies an authored destination plus a raw entry selector. The browser classifies that intent without inventing relocation semantics.",
+        leaveLabel: "Close",
       };
     case equipSelectedPart: {
       const category = action.operands[0] ?? 0;

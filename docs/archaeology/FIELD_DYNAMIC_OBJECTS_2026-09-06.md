@@ -10,7 +10,11 @@ decodes it and renders:
 - **FLD/213 (Mushroom Road)** — 22 spinning wind-turbine rotors on the recovered
   tower tops, replacing the previous bare towers;
 - **FLD/220 / FLD/221 (Peach–Fuji coast)** — ~106 / ~6 swaying coastal palm
-  crowns on the trunk tops, replacing the previous bare trunk poles.
+  crowns on the trunk tops, replacing the previous bare trunk poles;
+- **FLD/223 (Peach Town)** — the giant Peach Extra[1] landmark, presenting only
+  native-submitted mesh sections 0 and 2 at their recovered PAL transforms;
+- **FLD/233 (Papaya Island)** — the giant Papaya Extra[1] object, with all three
+  authored mesh sections kept separate at their recovered PAL transforms.
 
 Geometry, texture and the MSCALF-4 vertex format are evidence-backed. The
 per-object animation, facing and scale are **host approximations** — the
@@ -24,8 +28,8 @@ not decoded. The palm-crown sway is a direct port of the C# reference's
 |---|---|---|
 | 213 Mushroom Road | wind-turbine rotor (1 section, radius 42, ~36 tris, 128² tex) | **yes — spin** |
 | 220, 221 Peach–Fuji coast | palm crown: three 1/2/3-frond sections, radius ~4, 64×32 frond tex | **yes — sway** |
-| 223 Peach Town | **the giant peach landmark** (rounded fruit + stem + leaf; orange/red/green, radius ~2) | no — `prop` |
-| 233 Papaya Island | **the giant papaya landmark** (two rounded fruit lobes ~5 tall + leaves) | no — `prop` |
+| 223 Peach Town | **the giant peach landmark** (rounded fruit + stem + leaf; orange/red/green, radius ~2) | **yes — exact recovered sparse section transforms** |
+| 233 Papaya Island | **the giant papaya landmark** (two rounded fruit lobes ~5 tall + leaves) | **yes — exact recovered section transforms** |
 | 113 Fuji City | a **moat bridge** (grey, 4×2.3×9, a railed profile extruded across the moat; textured from the field) | no — `prop` |
 | 210 (forest/lake) | a **decorative potted tree** — heart-motif purple planter + trunk + yellow-green canopy | no — `prop` |
 | 012 (desert canyon) | a **crossed-billboard shrub / small tree** (olive/brown, panel + base box) | no — `prop` |
@@ -36,39 +40,57 @@ not decoded. The palm-crown sway is a direct port of the C# reference's
 
 `readFieldObjectAsset` classifies each container by structure: `turbine-rotor`
 (one section, radius > 20), `palm-crown` (three sections, ≤ 24 tris total,
-radius < 10), or `prop`. The giant-fruit landmarks and the bridge are `prop`
-because they lack recovered placement markers (and, for the bridge, a texture
-source); they would need per-object anchor heuristics like the crown and rotor.
+radius < 10), or `prop`. Most standalone landmarks remain `prop` without a
+recovered placement path. FLD/223 and FLD/233 are the bounded exceptions: their
+`prop` mesh sections use PAL-authored per-section transforms instead of a heuristic,
+and FLD/223 deliberately omits decoded section 1 because the native callback never submits it.
 `?showprops` (dev-only) drops a scaled static copy of every Extra[1] object at a
 debug anchor for eyeballing.
 
-### Why the giant peach / papaya are not placed (checked 2026-09-06)
+### Giant Peach placement recovered (2026-09-16)
 
-The `prop` landmarks stay unrendered. Placement was investigated and found not to
-be evidence-backed:
+Accepted PAL archaeology for FLD/223 closes a bounded sparse-submit path for
+Extra[1]. The object decodes three geometry sections (160 / 200 / 136 triangles),
+but native presentation submits only sections **0 and 2**. Section 1 is loaded
+into runtime slot `0x01824DEC`, yet the FLD/223 draw callback never submits that
+slot, so decoding it is not evidence to render it.
 
-- **FLD/223 Extra[1]** = exactly one object, three MSCALF-4 sections (body 160
-  tris + stem 200 + leaf 136), object-local, radius ≈ 2.0, 128² texture.
-  **FLD/233 Extra[1]** = one object, three sections (flat base 216 tris + two
-  lobes ≈ 5 tall), radius ≈ 5.0, 128² texture. Both are small origin-centred
-  models — world position, scale and facing are entirely in the per-object
-  matrix.
-- **Extra[0] is the minimap only** — a single VU-program-10 DMA chain at +0x50
-  (`readFieldMinimapPrimitives` already consumes it: road ribbons + tan building
-  quads + black POI squares + cyan water, all at y = 0). It is not a 3D
-  placement / instance table.
-- **No structural anchor in the field mesh.** The turbine and crown got a
-  *dominant family* of attachment primitives (22 tower shafts, N trunk caps); a
-  single landmark has none, and a scan for an isolated raised pedestal near the
-  town centre of either field turned up nothing distinctive.
-- The C# reference does not place these either — `FieldPalmTreeReader` rejects
-  both containers (section prim counts ≠ 1/2/3).
+The recovered source fourth columns are exact and remain section-specific:
+mesh 0 uses `[1053.5, 1014.0, 1054.9000244, 1015.5999756]`; mesh 2 uses
+`[437.5, 30.2000008, 535.0, 1.0]`. The renderer uses the same recovered identity
+matrix plus native neighbour-translation semantics as the Papaya path. For the
+field-local centre copy the neighbour vector is zero. After the browser's X-axis
+reflection, the complete homogeneous fourth column is retained as
+`[1600*w - x, y, z, w]`; mesh 0 therefore keeps its genuine
+`w=1015.5999756` rather than being normalized into an affine translation.
 
-Recovering real placement means tracing the field object-list loader that
-populates the runtime struct fn `0x00224510` reads (floats at +0x04/+0x14/+0x24/
-+0x34 → matrix-build `0x002279a0`). `0x00224510` has no `jal` callers — it is
-dispatched through an actor vtable, several layers above the FLD Extra[1] read.
-Same wall as the rotor spin; deferred.
+The embedded 128x128 indexed texture, including transparency, is reused directly.
+Exact GS shading/material nuance remains approximate.
+
+### Giant Papaya placement recovered (2026-09-16)
+
+FLD/233 is no longer part of the unresolved-landmark set. PAL `SLES_513.56`
+shows a bounded three-submit path at `0x0025EE90`: Extra[1] mesh 0 uses source
+`[1057.6500, 1010.4500, 1070.0, 1015.0]` at `0x002B8290`, mesh 1 uses
+`[765.7700, 40.6300, 1207.7000, 1.0]` at `0x002C6330`, and mesh 2 uses
+`[1107.8000, 40.3800, 875.4300, 1.0]` at `0x002C6340`. They remain three
+separate sections; collapsing them onto one origin would not match the native path.
+
+The same path builds an identity transform and calls `0x002221F8`, which selects
+one of the seven native neighbour translations from the 16-byte table at
+`0x002A2430` (`[-800,0,1600,0]`, `[800,0,1600,0]`, `[-1600,0,0,0]`,
+`[0,0,0,0]`, `[1600,0,0,0]`, `[-800,0,-1600,0]`, `[800,0,-1600,0]`) and adds
+that vector into the source fourth column before submission. In the browser the
+FLD/233 group already contributes the equivalent neighbour displacement, so its
+field-local Papaya uses the central zero translation. The renderer preserves the
+full homogeneous fourth column and conjugates the X reflection as
+`[1600*w - x, y, z, w]`; this is `1600 - x` for the two `w=1` sections while
+retaining mesh 0's recovered `w=1015` instead of silently treating it as affine.
+
+The embedded 128×128 indexed texture, including transparency, is reused directly.
+Exact GS material/shading nuance beyond that decoded texture remains approximate.
+Other standalone `prop` objects remain unrecovered and unrendered; neither Peach
+nor Papaya transforms are generalized to them.
 
 ## Extra[1] container format
 
@@ -143,8 +165,10 @@ ordinary field mesh:
 - `approximateRotorScale = 0.42` — rotor sized to sit on the recovered towers;
   the authored per-object scale is undecoded.
 - `crownSway` — `sin`-driven Z (±0.045 rad) + X (±0.022 rad) sway per frond
-  group, phase-offset by 0.42 rad per group and by instance position. Ported
-  verbatim from the C# `PalmCrownMesh`; the C# marks these constants unverified.
+  group, phase-offset by 0.42 rad per group. These amplitude/frequency/group-phase
+  constants remain unverified host calibration from the C# `PalmCrownMesh`.
+  PAL FLD/220 footage separately proves all crown instances share sway timing, so
+  the browser adds no per-instance position/index phase to palm crowns.
 - Shading: texture-only with alpha test; authored vertex colour is GS-neutral 128
   and no MSCALF-4 diffuse is applied (matching the C# palm-crown path, which
   draws crowns unlit). Any daylight response is part of the undecoded matrix.
