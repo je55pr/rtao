@@ -114,23 +114,28 @@ against all course buffers, including four yaw values per course.
 - All 15 original-course buffers / 1,547 points checked against the PAL pointer
   producer and point/count fields; 60 wrapper queries.
 - 1,024 enclosing-frame cases with varied initial velocities/history, commands,
-  gear callback, contact state and supported equipment flags.
+  gear callback, contact state, `equipmentBoostState` values and supported
+  equipment flags, including recovered `0x1000`, `0x2000` and combined `0x3000`
+  coverage.
 - 600 moving updates each on C00, C03 and C07, retaining separate native and
   production states. The sequence is acceleration (180 updates), right steer
   with acceleration (60), acceleration (120), brake (60), reverse (60), and left
   steer with acceleration (120). All three move and encounter collision flags:
   respectively 36, 4 and 3 updates. Comparisons include position, coordinates,
   velocity/history, gear/fuel/speed, yaw, matrix/inverse/body, support and impulse
-  history, surfaces, timers, flags, distance and effect requests.
+  history, surfaces, timers, `equipmentBoostState`, flags, distance and effect
+  requests.
 
 Every compared finite number must match exactly under the existing bounded
 host-float32 instruction model. Failure output identifies course, update,
 command and the differing state fields. The deterministic hash is asserted:
-`7f34e9c3d1575f46e88d6ae59bf2a478438356909e836757073c8e9e6ce74b9e`.
+`5fc1a0adce6b725daeebf9cb4d944b835cd53ee509aacb4cb62178e4fb34fece`.
 
 `docs/evidence/races/2026-09-05/native-frame-report.json` retains full state at
-seven checkpoints per course, counts and the hash. `native-response-report.json`
-records the isolated response comparison. `native-frame-instructions.txt` and
+seven checkpoints per course, including `equipmentBoostState`, plus counts, the
+hash and boundary text recording `0x1000`/`0x2000` as composed.
+`native-response-report.json` records the isolated response comparison.
+`native-frame-instructions.txt` and
 `native-frame-trace-verification.json` retain 1,427 instruction words and hashes.
 The trace includes unexecuted reset/debug/scene-28 branches for context; retaining
 those words does not establish implementation of those paths.
