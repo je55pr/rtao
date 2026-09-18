@@ -30,6 +30,14 @@ Overworld interaction activation is explicit browser host policy: manual NPC/doo
 
 Overworld visual parity now includes the PAL-authored FLD/223 Extra[1] giant Peach and FLD/233 Extra[1] giant Papaya. Peach presents only native-submitted mesh sections 0 and 2, while Papaya presents all three; both preserve recovered per-section homogeneous fourth columns and field-neighbour translation semantics with their embedded transparent textures. Remaining GS material nuance is still approximate; other standalone Extra[1] `prop` landmarks are not generalized from this evidence.
 
+## Warp boundary
+
+Player-facing Warp now has one bounded recovered progression loop independent of broader world unlocking. Opening an ordinary area's local fixed-interaction slot 0 registers that area's PAL Q's Factory destination; Pause > Warp lists only registered authored city destinations in native area order, and selector zero returns to the midpoint of the Q's Factory return edge recovered from the interaction polygon. Registrations are included in recovered-progress persistence.
+
+A fresh PAL browser run on current DEV verified two ordinary destinations without debug teleport or developer boost: Peach Town registered at `SHOP/T00` slot 0, warped back to its FLD/223 Q's Factory edge, then normal driving followed the recovered `223 -> 221 -> 220 -> 113` road chain and FLD/220 minimap road ribbons into Fuji City; Fuji registered at `SHOP/T01.BIN` slot 0, warped back to its FLD/113 Q's Factory edge, left normally, and a page reload restored exactly `Peach Town` then `Fuji City`. Before Fuji registration it was absent from the menu and could not be selected. The focused integration regression locks the same registration/filtering/selector-zero/save-reload boundary.
+
+This does **not** establish general town discovery, licence/quest area gates, transition-action progression or complete world unlock semantics. Those remain issue #107. Warp registration must not be treated as a substitute for that broader progression recovery.
+
 ## Immediate work
 
 1. Continue issue #30 archaeology for the remaining low equipment `0x0004/0x0008` paths and category-specific equip side effects; `0x1000/0x2000` and combined `0x3000` are now recovered in the ordinary race frame.
