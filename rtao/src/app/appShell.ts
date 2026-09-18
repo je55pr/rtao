@@ -91,7 +91,7 @@ const appShellHtml = `
         <p class="game-hud-cake" id="hud-cake">0 Cake</p>
         <p class="game-hud-speed" id="hud-speed" hidden>0 km/h</p>
         <p class="game-hud-status" id="hud-status" hidden></p>
-        <p class="game-hud-hint" id="hud-hint">Esc · pause menu</p>
+        <p class="game-hud-hint" id="hud-hint">Menu / cancel · Esc · pause menu</p>
       </section>
 
       <section class="race-start-signal" id="race-start-signal" hidden aria-live="polite" aria-atomic="true">
@@ -178,9 +178,9 @@ const appShellHtml = `
           <section class="pause-section">
             <h3>Controls</h3>
             <dl class="pause-controls">
-              <div><dt>Drive</dt><dd>W A S D or arrow keys</dd></div>
-              <div><dt>Talk · enter building</dt><dd>E</dd></div>
-              <div><dt>Pause and settings</dt><dd>Esc</dd></div>
+              <div><dt>Drive</dt><dd>Left stick + triggers · W A S D / arrows</dd></div>
+              <div><dt>Talk · enter building</dt><dd>Primary button · E</dd></div>
+              <div><dt>Pause and settings</dt><dd>Menu / cancel · Esc</dd></div>
               <div><dt>Developer diagnostics</dt><dd>F3</dd></div>
             </dl>
           </section>
@@ -212,7 +212,7 @@ const appShellHtml = `
         <p class="dialogue-speaker" id="dialogue-speaker"></p>
         <p class="dialogue-text" id="dialogue-text"></p>
         <div class="dialogue-actions">
-          <span>E / Enter · continue</span>
+          <span>Primary / E / Enter · continue</span>
           <button type="button" id="dialogue-continue">Continue</button>
           <button type="button" id="dialogue-close">Close</button>
         </div>

@@ -275,13 +275,20 @@ export class BrowserSemanticInput {
   };
 
   private dispatch(action: SemanticAction, phase: SemanticActionPhase, repeat: boolean, sourceEvent?: Event): void {
+    let consumed = false;
     const inputEvent: SemanticActionEvent = {
       action,
       phase,
       repeat,
-      consume: () => sourceEvent?.preventDefault(),
+      consume: () => {
+        consumed = true;
+        sourceEvent?.preventDefault();
+      },
     };
-    for (const listener of this.listeners) listener(inputEvent);
+    for (const listener of this.listeners) {
+      listener(inputEvent);
+      if (consumed) break;
+    }
   }
 }
 

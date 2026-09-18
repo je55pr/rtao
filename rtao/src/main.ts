@@ -11,6 +11,7 @@ import { RecoveredProgressStore } from "./app/recoveredProgressStore";
 import { raceResultsView } from "./app/raceResultsModel";
 import { raceStartSignalView } from "./app/raceStartPresentation";
 import { SceneFade } from "./app/sceneTransition";
+import { cycleOptionIndex, focusNavigationEntry, moveNavigationIndex } from "./app/semanticNavigation";
 import { createWarpMenuState, moveWarpMenuSelection, selectedWarpMenuDestination, type WarpMenuState } from "./app/warpMenuState";
 import { carAssetPath } from "./formats/carPath";
 import type { ChoroCoinPlacement } from "./formats/choroCoins";
@@ -190,6 +191,7 @@ const raceStartReadyLights = [...raceStartSignal.querySelectorAll<HTMLElement>("
 const raceStartReleaseLights = [...raceStartSignal.querySelectorAll<HTMLElement>("[data-race-start-release] span")];
 if (raceStartReadyLights.length !== 4 || raceStartReleaseLights.length !== 4) throw new Error("Race start signal requires two native four-slot groups.");
 const raceToggle = requiredElement<HTMLButtonElement>("race-toggle");
+const openPauseButton = requiredElement<HTMLButtonElement>("open-pause");
 const sceneFadeElement = requiredElement<HTMLElement>("scene-fade");
 const sceneFade = new SceneFade(
   {
@@ -467,7 +469,7 @@ driveToggle.addEventListener("click", () => {
   void toggleDriving().catch((error) => showError("The Q62 driving slice could not be started.", error));
 });
 
-requiredElement<HTMLButtonElement>("open-pause").addEventListener("click", openPauseMenu);
+openPauseButton.addEventListener("click", openPauseMenu);
 pauseWarp.addEventListener("click", openPauseWarpMenu);
 pauseWarpBack.addEventListener("click", showPauseRoot);
 pauseResume.addEventListener("click", closePauseMenu);
@@ -813,6 +815,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
     lastPrefetchedWorldField = 223;
     void ensureNearbyWorldFields(223).catch((error) => console.warn("Initial nearby world prefetch failed.", error));
   }
+  if (fastNormalStart && !isDriving && !peachRaceCoordinator) focusNavigationEntry(playShellControls(), 0);
 }
 
 async function ensureWorldFieldLoaded(fieldNumber: number): Promise<void> {
@@ -1064,7 +1067,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
   raceInput.reset();
   viewerHost.querySelector<HTMLElement>(".world-canvas")?.style.setProperty("visibility", "hidden");
   requiredElement<HTMLElement>("viewer-title").textContent = activity.name;
-  requiredElement<HTMLElement>("viewer-help").textContent = "WASD / arrows · native 50 Hz race controls · Esc to leave";
+  requiredElement<HTMLElement>("viewer-help").textContent = "Gamepad stick / triggers or WASD / arrows · native 50 Hz race controls · Menu / cancel / Esc to leave";
   updatePeachRaceAvailability();
   refreshGameHud();
   coordinator.syncView(view);
@@ -1254,7 +1257,7 @@ function stopPeachRace(): void {
   worldLocation.disabled = resumeTownSession || !drivingWorld || activeManifest?.installStage === "bootstrap";
   if (resumeTownSession && drivingGame) {
     requiredElement<HTMLElement>("viewer-title").textContent = "Driving Q62";
-    requiredElement<HTMLElement>("viewer-help").textContent = "WASD / arrows to drive · Hold Shift for developer boost";
+    requiredElement<HTMLElement>("viewer-help").textContent = "Gamepad stick / triggers or WASD / arrows to drive · RB / Shift for developer boost";
     refreshGameHud(drivingGame.controller.state);
   } else {
     if (drivingWorld) requiredElement<HTMLElement>("viewer-title").textContent = loadedWorldFieldNumbers.size === 64 ? "The whole world" : "Peach Town area";
@@ -1291,7 +1294,7 @@ async function toggleDriving(): Promise<void> {
   driveToggle.disabled = false;
   worldLocation.disabled = true;
   requiredElement<HTMLElement>("viewer-title").textContent = "Driving Q62";
-  requiredElement<HTMLElement>("viewer-help").textContent = "WASD / arrows to drive · Hold Shift for developer boost";
+  requiredElement<HTMLElement>("viewer-help").textContent = "Gamepad stick / triggers or WASD / arrows to drive · RB / Shift for developer boost";
   refreshGameHud();
 }
 
@@ -1607,7 +1610,66 @@ function showPauseRoot(): void {
   pauseTitle.textContent = "Menu";
   pauseWarpFeedback.hidden = true;
   refreshPauseWarpState();
-  pauseWarp.focus();
+  focusNavigationEntry(pauseRootControls(), 0);
+}
+
+function playShellControls(): Array<HTMLButtonElement | HTMLSelectElement> {
+  return [driveToggle, raceToggle, worldLocation, openPauseButton];
+}
+
+function playShellNavigationAvailable(): boolean {
+  return !isDriving && !pauseMenuOpen && pauseMenuAvailable();
+}
+
+function movePlayShellFocus(direction: number): void {
+  const controls = playShellControls();
+  const currentIndex = controls.findIndex((control) => control === document.activeElement);
+  const nextIndex = moveNavigationIndex(controls, currentIndex, direction);
+  focusNavigationEntry(controls, nextIndex);
+}
+
+function adjustActivePlayShellSelect(direction: number): boolean {
+  if (document.activeElement !== worldLocation) return false;
+  worldLocation.selectedIndex = cycleOptionIndex(worldLocation.selectedIndex, worldLocation.options.length, direction);
+  worldLocation.dispatchEvent(new Event("change", { bubbles: true }));
+  return true;
+}
+
+function activateActivePlayShellControl(): void {
+  const active = document.activeElement;
+  if (active instanceof HTMLButtonElement && installedPanel.contains(active) && !active.disabled && !active.hidden) {
+    active.click();
+    return;
+  }
+  if (active !== worldLocation) focusNavigationEntry(playShellControls(), 0);
+}
+
+function pauseRootControls(): Array<HTMLButtonElement | HTMLSelectElement> {
+  return [pauseWarp, worldTime, worldVisibility, pauseStopDriving, pauseResume];
+}
+
+function movePauseRootFocus(direction: number): void {
+  const controls = pauseRootControls();
+  const currentIndex = controls.findIndex((control) => control === document.activeElement);
+  const nextIndex = moveNavigationIndex(controls, currentIndex, direction);
+  focusNavigationEntry(controls, nextIndex);
+}
+
+function adjustActivePauseSelect(direction: number): boolean {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLSelectElement) || !pauseRoot.contains(active)) return false;
+  active.selectedIndex = cycleOptionIndex(active.selectedIndex, active.options.length, direction);
+  active.dispatchEvent(new Event("change", { bubbles: true }));
+  return true;
+}
+
+function activateActivePauseControl(): void {
+  const active = document.activeElement;
+  if (active instanceof HTMLButtonElement && pauseRoot.contains(active) && !active.disabled && !active.hidden) {
+    active.click();
+    return;
+  }
+  if (!adjustActivePauseSelect(1)) pauseResume.click();
 }
 
 function renderPauseWarpMenu(): void {
@@ -1701,6 +1763,24 @@ function isConfirmInput(event: SemanticActionEvent): boolean {
   return event.action === "confirm" || event.action === "interact";
 }
 
+function focusSelectedControl(containerId: string): boolean {
+  const container = requiredElement<HTMLElement>(containerId);
+  const selected = container.querySelector<HTMLButtonElement>("button.selected:not(:disabled)")
+    ?? container.querySelector<HTMLButtonElement>(".selected button:not(:disabled)");
+  selected?.focus();
+  return !!selected;
+}
+
+function focusFactoryDialogueControl(): void {
+  if (focusSelectedControl("factory-choices")) return;
+  const continueButton = requiredElement<HTMLButtonElement>("factory-continue");
+  const returnButton = requiredElement<HTMLButtonElement>("factory-return");
+  const leaveButton = requiredElement<HTMLButtonElement>("factory-leave");
+  if (!continueButton.hidden && !continueButton.disabled) continueButton.focus();
+  else if (!returnButton.hidden && !returnButton.disabled) returnButton.focus();
+  else leaveButton.focus();
+}
+
 function handleShellInput(event: SemanticActionEvent): void {
   if (event.phase !== "pressed") return;
   if (event.action === "debug") {
@@ -1729,6 +1809,55 @@ function handleShellInput(event: SemanticActionEvent): void {
     }
     return;
   }
+  if (pauseMenuOpen && pauseMenuPage === "root") {
+    if (event.action === "up") {
+      event.consume();
+      movePauseRootFocus(-1);
+    } else if (event.action === "down") {
+      event.consume();
+      movePauseRootFocus(1);
+    } else if (event.action === "left") {
+      event.consume();
+      adjustActivePauseSelect(-1);
+    } else if (event.action === "right") {
+      event.consume();
+      adjustActivePauseSelect(1);
+    } else if (isConfirmInput(event)) {
+      event.consume();
+      activateActivePauseControl();
+    } else if (event.action === "cancel") {
+      event.consume();
+      closePauseMenu();
+    }
+    return;
+  }
+  if (playShellNavigationAvailable()) {
+    if (event.action === "up") {
+      event.consume();
+      movePlayShellFocus(-1);
+      return;
+    }
+    if (event.action === "down") {
+      event.consume();
+      movePlayShellFocus(1);
+      return;
+    }
+    if (event.action === "left") {
+      event.consume();
+      adjustActivePlayShellSelect(-1);
+      return;
+    }
+    if (event.action === "right") {
+      event.consume();
+      adjustActivePlayShellSelect(1);
+      return;
+    }
+    if (isConfirmInput(event)) {
+      event.consume();
+      activateActivePlayShellControl();
+      return;
+    }
+  }
   if (event.action !== "cancel") return;
   if (pauseMenuOpen) {
     event.consume();
@@ -1741,7 +1870,7 @@ function handleShellInput(event: SemanticActionEvent): void {
 }
 
 function handleDialogueInput(event: SemanticActionEvent): void {
-  if (event.phase !== "pressed") return;
+  if (event.phase !== "pressed" || pauseMenuOpen) return;
   if (shopInteriorSession) {
     if (quickPicPhotoSession) {
       if (isConfirmInput(event)) {
@@ -1893,6 +2022,12 @@ function handleDialogueInput(event: SemanticActionEvent): void {
       }
       return;
     }
+    const raceSelection = qFactorySession.flow.currentExternalAction?.opcode === raceSelectActionOpcode;
+    if (raceSelection && ["up", "left", "down", "right"].includes(event.action)) {
+      event.consume();
+      moveQFactoryRaceSelection(event.action === "up" || event.action === "left" ? -1 : 1);
+      return;
+    }
     const choices = qFactorySession.flow.currentChoices;
     if (event.action === "up" && choices.length) {
       event.consume();
@@ -1930,6 +2065,7 @@ function startResidentDialogue(speaker: string, pages: string[]): void {
   drivingGame?.setPaused(true);
   worldSimulation?.setPaused(true);
   renderResidentDialogue();
+  requiredElement<HTMLButtonElement>("dialogue-continue").focus();
   console.info(`Dialogue start: ${speaker}; ${pages.length} original executable page${pages.length === 1 ? "" : "s"}.`);
 }
 
@@ -2244,6 +2380,7 @@ async function captureCurrentQuickPicPhoto(): Promise<void> {
     download.href = objectUrl;
     download.download = `rta-quick-pic-${photoNumber.toString().padStart(2, "0")}.png`;
     requiredElement<HTMLElement>("quick-pic-photo").hidden = false;
+    requiredElement<HTMLButtonElement>("quick-pic-keep").focus();
     console.info(`${session.entity.name} captured a 1280x960 PNG; progress remains unchanged until the picture is kept.`);
   } catch (error) {
     console.error(`${session.entity.name} could not capture its Quick-Pic PNG.`, error);
@@ -2433,6 +2570,7 @@ function renderPartsShopCatalogue(): void {
   purchaseButton.textContent = secondHandShopActive
     ? count <= 0 ? "No copies left" : `Sell for ${saleValue.toLocaleString("en-US")} Cake`
     : full ? "Inventory full" : `Buy for ${selected.priceCake.toLocaleString("en-US")} Cake`;
+  focusSelectedControl("shop-stock");
 }
 
 function purchaseSelectedPart(): void {
@@ -2548,6 +2686,7 @@ function renderBodyShopCatalogue(): void {
   requiredElement<HTMLElement>("shop-detail-description").textContent = "Original local Body Shop stock. The foreground player car previews this decoded body while retaining the current paint and equipped parts.";
   purchaseButton.disabled = owned;
   purchaseButton.textContent = owned ? "Owned" : `Buy for ${selected.priceCake} Cake`;
+  focusSelectedControl("shop-stock");
   void previewBodyShopBody(selected.bodyId);
 }
 
@@ -2704,6 +2843,7 @@ function renderPaintShopSelector(message?: string): void {
       : `Original price · body ${bodyPrice} + wheels ${wheelPrice} = ${price} Cake · ${commerce.cake.toLocaleString("en-US")} Cake available`);
   const apply = requiredElement<HTMLButtonElement>("paint-apply");
   apply.textContent = price === 0 ? "Keep current paint" : `Paint for ${price} Cake`;
+  focusSelectedControl("paint-channel-grid");
 }
 
 function movePaintShopCursor(direction: -1 | 1): void {
@@ -2871,6 +3011,7 @@ function renderShopInteriorDialogue(): void {
         ? "↑ / ↓ channel · ← / → value · E confirm · Esc cancel"
         : shopNumericChoiceSession ? "↑ / ↓ · choose number · E confirm" : "E · continue"
       : "E / Enter · continue";
+  if (!paintShopSession) focusFactoryDialogueControl();
 }
 
 function applyAdvertisingRewardAction(action: DialogueActionToken): AdvertisingRedemptionResult | undefined {
@@ -3151,6 +3292,7 @@ function renderChangeParts(): void {
     row.append(caption, track, amount);
     statHost.append(row);
   }
+  focusSelectedControl("parts-list");
 }
 
 function finishChangeParts(apply: boolean): void {
@@ -3261,6 +3403,19 @@ function renderQFactoryRaceChoices(host: HTMLElement): void {
   });
 }
 
+function moveQFactoryRaceSelection(direction: number): void {
+  const session = qFactorySession;
+  if (!session) return;
+  const options = qFactoryRaceChoices();
+  const availability = options.map((option) => ({ disabled: !qFactoryRaceLaunchSupported(option) }));
+  const nextIndex = moveNavigationIndex(availability, session.raceOptionIndex, direction);
+  if (nextIndex < 0) return;
+  session.raceOptionIndex = nextIndex;
+  renderQFactoryDialogue();
+  const buttons = [...requiredElement<HTMLElement>("factory-choices").querySelectorAll<HTMLButtonElement>(".factory-race-choice")];
+  focusNavigationEntry(buttons, nextIndex);
+}
+
 function selectQFactoryRace(index: number): void {
   const session = qFactorySession;
   const action = session?.flow.currentExternalAction;
@@ -3360,6 +3515,7 @@ function renderQFactoryDialogue(): void {
       ? external.opcode === raceSelectActionOpcode ? "E · select supported race · Esc cancel"
         : external.opcode === startRaceActionOpcode && session.selectedRaceActivityId === 0 ? "E · start race" : "E · return"
       : "E / Enter · continue";
+  focusFactoryDialogueControl();
 }
 
 function endQFactoryInterior(): void {

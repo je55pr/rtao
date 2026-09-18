@@ -176,6 +176,22 @@ function heldUpGamepad(): Gamepad {
 }
 
 describe("BrowserSemanticInput source aggregation", () => {
+  it("stops later semantic listeners when a gamepad action is consumed", () => {
+    const browser = fakeBrowserTarget([heldUpGamepad()]);
+    const input = new BrowserSemanticInput(browser.target);
+    const events: string[] = [];
+    input.subscribe((event) => {
+      events.push(`owner:${event.action}:${event.phase}`);
+      event.consume();
+    });
+    input.subscribe((event) => events.push(`leaked:${event.action}:${event.phase}`));
+
+    input.start();
+
+    expect(events).toEqual(["owner:up:pressed"]);
+    input.stop();
+  });
+
   it("does not duplicate edges when keyboard and gamepad overlap", () => {
     const browser = fakeBrowserTarget([heldUpGamepad()]);
     const input = new BrowserSemanticInput(browser.target);
