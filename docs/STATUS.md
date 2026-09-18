@@ -29,6 +29,14 @@ Primary race write-ups remain `PAL_NATIVE_RACE_FRAME_2026-09-05.md`, `PAL_NATIVE
 
 Overworld interaction activation is explicit browser host policy: manual NPC/door interaction has no speed limit, while physical NPC-body contact and entry into an authored fixed-interaction polygon auto-activate once per contact episode. This convenience behavior is not claimed as recovered PAL semantics.
 
+## Controller/input boundary
+
+The browser host now has one semantic action/axis path shared by keyboard and standard gamepads, with deadzone handling, connect/disconnect recovery, controller navigation across play/pause/dialogue/fixed interiors/Q's Factory/race/results, and browser-local action bindings with conflict protection, default restore and dynamic help.
+
+A PAL-backed controller-only browser route on 2026-09-18 verified the loaded-game path through free-roam driving, pause/resume, resident dialogue, Parts Shop entry and catalogue use, Q's Factory entry and ordinary-race selection, all three Peach Raceway laps, the normal result panel and return to the suspended live town session, then a Talk binding change from Primary to Button 2, controller disconnect/reconnect, page reload, and successful gameplay/dialogue use of the persisted Button 2 binding. The verification staged the car adjacent to decoded resident/interior targets through temporary DEV-only inspection hooks to keep location setup deterministic; every gameplay and modal transition itself was initiated through the standard gamepad API, and those inspection hooks were removed afterward.
+
+This closes the browser-host scope of issues #93 and #94 without claiming PAL physical-pad binding semantics. Remapping is host/browser configuration stored separately from recovered PAL save/progression state; the standard analog stick/trigger backend mapping remains a fixed browser-device convention rather than recovered game state.
+
 Overworld visual parity now includes the PAL-authored FLD/223 Extra[1] giant Peach and FLD/233 Extra[1] giant Papaya. Peach presents only native-submitted mesh sections 0 and 2, while Papaya presents all three; both preserve recovered per-section homogeneous fourth columns and field-neighbour translation semantics with their embedded transparent textures. Remaining GS material nuance is still approximate; other standalone Extra[1] `prop` landmarks are not generalized from this evidence.
 
 ## Warp boundary
