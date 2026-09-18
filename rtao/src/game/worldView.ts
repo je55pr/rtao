@@ -6,6 +6,7 @@ import type { FieldObjectAsset, FieldObjectKind, FieldObjectSectionTransform, Na
 import type { SkyTextureSet } from "../formats/skyTexture";
 import { choroCoinRenderPosition } from "./choroCoinProgress";
 import type { CaptureSize, CarVisualCaptureScene, FieldOverviewCaptureScene, WorldOverviewCaptureScene } from "./captureScenes";
+import { advanceBrowserChaseCamera } from "./browserChaseCamera";
 import { renderPng } from "./renderCapture";
 import { fieldExtent, relativeRenderTranslation } from "./worldTopology";
 import { authenticFieldVisibilityProfile, hg2TimeUnits, outdoorAtmosphere, type OutdoorVisibilityMode, visibilityProfile } from "./fieldLighting";
@@ -614,17 +615,18 @@ export class WorldView {
     this.vehicle.position.set(position.x, position.y + 0.02, position.z);
     this.vehicle.rotation.order = "YXZ";
     this.vehicle.rotation.set(-pitch, yaw, roll);
-    const forwardX = Math.sin(yaw), forwardZ = Math.cos(yaw);
-    const desiredCamera = new THREE.Vector3(position.x - forwardX * 7.8, position.y + cameraLift, position.z - forwardZ * 7.8);
-    const desiredTarget = new THREE.Vector3(position.x, position.y + 0.72, position.z);
-    if (snap || !this.chaseReady) {
-      this.camera.position.copy(desiredCamera);
-      this.chaseTarget.copy(desiredTarget);
-      this.chaseReady = true;
-    } else {
-      this.camera.position.lerp(desiredCamera, 0.13);
-      this.chaseTarget.lerp(desiredTarget, 0.17);
-    }
+    const chase = advanceBrowserChaseCamera(
+      {
+        position: [this.camera.position.x, this.camera.position.y, this.camera.position.z],
+        target: [this.chaseTarget.x, this.chaseTarget.y, this.chaseTarget.z],
+        ready: this.chaseReady,
+      },
+      { position: [position.x, position.y, position.z], yaw, cameraLift },
+      snap,
+    );
+    this.camera.position.set(...chase.position);
+    this.chaseTarget.set(...chase.target);
+    this.chaseReady = chase.ready;
     this.camera.lookAt(this.chaseTarget);
     this.horizon.position.set(position.x, -3000, position.z);
   }

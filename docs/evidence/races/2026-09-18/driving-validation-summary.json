@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "date": "2026-09-18",
+  "authority": "PAL SLES_513.56 read from the matching local Road Trip Adventure PAL BIN",
+  "course": 0,
+  "scenarios": [
+    { "label": "straight-coast", "equipmentFlags": "0x0000", "updates": 120 },
+    { "label": "turn-command", "equipmentFlags": "0x0000", "updates": 120 },
+    { "label": "0x1000-control", "equipmentFlags": "0x1000", "updates": 120 },
+    { "label": "0x2000-boost", "equipmentFlags": "0x2000", "updates": 120 },
+    { "label": "0x3000-combined", "equipmentFlags": "0x3000", "updates": 120 }
+  ],
+  "totalUpdates": 600,
+  "comparedFields": [
+    "pose.position",
+    "pose.yaw",
+    "velocity",
+    "vehicle.nativeSpeed",
+    "vehicle.gear",
+    "vehicle.equipmentBoostState",
+    "contact.support",
+    "contact.impulses",
+    "contact.surfaces",
+    "contactFlags",
+    "obstacleFlags"
+  ],
+  "motionContactEquipmentResult": "pass",
+  "cameraResult": "not-run-no-local-trace",
+  "cameraBoundary": "RTA_PAL_CAMERA_TRACE was not supplied; the committed harness parses local numeric PAL camera observations and compares them against the production browser chase-camera seam.",
+  "command": "npm run test:pal:driving"
+}

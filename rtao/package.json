@@ -11,6 +11,7 @@
     "test": "npm run test:unit",
     "test:unit": "vitest run src",
     "test:pal": "vitest run tests --testTimeout=60000",
+    "test:pal:driving": "vitest run tests/drivingValidation.pal.test.ts --testTimeout=120000",
     "typecheck": "tsc -b --pretty false",
     "build:web": "vite build",
     "build": "npm run typecheck && npm run build:web",
