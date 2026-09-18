@@ -4,6 +4,7 @@ import {
   StandardGamepadInput,
   standardGamepadDeadzone,
 } from "./gamepadInput";
+import { InputSettings } from "./inputSettings";
 import {
   type SemanticAction,
   type SemanticActionPhase,
@@ -162,5 +163,23 @@ describe("StandardGamepadInput", () => {
     expect(state.action("interact").held).toBe(false);
     expect(state.axis("driveThrottle")).toBe(0);
     expect(state.axis("driveSteering")).toBe(0);
+  });
+
+  it("uses edited gamepad button bindings without changing analogue sources", () => {
+    const state = new SemanticInputState();
+    const events: RecordedEvent[] = [];
+    const settings = new InputSettings();
+    expect(settings.rebind("gamepad", "interact", 4).status).toBe("applied");
+    const input = new StandardGamepadInput(
+      state,
+      (action, phase) => events.push([action, phase]),
+      settings,
+    );
+
+    input.poll([syntheticGamepad({ buttons: { 4: 1, 7: 0.75 } })]);
+
+    expect(state.action("interact").held).toBe(true);
+    expect(state.axis("driveThrottle")).toBeCloseTo(0.75);
+    expect(events).toEqual([["interact", "pressed"]]);
   });
 });

@@ -1,4 +1,5 @@
 import { StandardGamepadInput } from "./gamepadInput";
+import { InputSettings, type InputBindingDevice } from "./inputSettings";
 
 export const semanticActions = [
   "up",
@@ -36,26 +37,13 @@ export interface KeyboardSemanticBinding {
   readonly axisValue?: number;
 }
 
-const keyboardBindings = new Map<string, KeyboardSemanticBinding>([
-  ["KeyW", { action: "up", axis: "driveThrottle", axisValue: 1 }],
-  ["ArrowUp", { action: "up", axis: "driveThrottle", axisValue: 1 }],
-  ["KeyS", { action: "down", axis: "driveThrottle", axisValue: -1 }],
-  ["ArrowDown", { action: "down", axis: "driveThrottle", axisValue: -1 }],
-  ["KeyA", { action: "left", axis: "driveSteering", axisValue: -1 }],
-  ["ArrowLeft", { action: "left", axis: "driveSteering", axisValue: -1 }],
-  ["KeyD", { action: "right", axis: "driveSteering", axisValue: 1 }],
-  ["ArrowRight", { action: "right", axis: "driveSteering", axisValue: 1 }],
-  ["Enter", { action: "confirm" }],
-  ["Space", { action: "confirm" }],
-  ["KeyE", { action: "interact" }],
-  ["Escape", { action: "cancel" }],
-  ["ShiftLeft", { action: "boost" }],
-  ["ShiftRight", { action: "boost" }],
-  ["F3", { action: "debug" }],
-]);
+const defaultInputSettings = new InputSettings();
 
-export function keyboardSemanticBinding(code: string): KeyboardSemanticBinding | undefined {
-  return keyboardBindings.get(code);
+export function keyboardSemanticBinding(
+  code: string,
+  settings: InputSettings = defaultInputSettings,
+): KeyboardSemanticBinding | undefined {
+  return settings.keyboardBinding(code);
 }
 type SourceValues = Map<string, number>;
 
@@ -174,17 +162,29 @@ export class SemanticInputScope {
 
 type SemanticActionListener = (event: SemanticActionEvent) => void;
 
+interface InputBindingCapture {
+  readonly device: InputBindingDevice;
+  readonly callback: (value: string | number) => void;
+  readonly ignoredGamepadButtons: Set<number>;
+}
+
 export class BrowserSemanticInput {
   readonly state = new SemanticInputState();
   private readonly listeners = new Set<SemanticActionListener>();
   private readonly gamepadInput: StandardGamepadInput;
   private gamepadFrameHandle: number | undefined;
+  private capture: InputBindingCapture | undefined;
+  private readonly blockedGamepadButtons = new Set<number>();
   private started = false;
 
-  constructor(private readonly target: Window = window) {
+  constructor(
+    private readonly target: Window = window,
+    readonly settings = new InputSettings(),
+  ) {
     this.gamepadInput = new StandardGamepadInput(
       this.state,
       (action, phase) => this.dispatch(action, phase, false),
+      settings,
     );
   }
 
@@ -219,6 +219,27 @@ export class BrowserSemanticInput {
     this.state.reset();
   }
 
+  beginBindingCapture(
+    device: InputBindingDevice,
+    callback: (value: string | number) => void,
+  ): void {
+    this.cancelBindingCapture();
+    const ignoredGamepadButtons = new Set<number>();
+    if (device === "gamepad") {
+      for (const gamepad of this.currentStandardGamepads()) {
+        gamepad.buttons.forEach((button, index) => {
+          if (button.value >= 0.5 || button.pressed) ignoredGamepadButtons.add(index);
+        });
+      }
+      this.gamepadInput.reset();
+    }
+    this.capture = { device, callback, ignoredGamepadButtons };
+  }
+
+  cancelBindingCapture(): void {
+    this.capture = undefined;
+  }
+
   subscribe(listener: SemanticActionListener): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -243,16 +264,71 @@ export class BrowserSemanticInput {
   };
 
   private syncGamepads(): void {
-    const getGamepads = this.target.navigator.getGamepads;
-    if (typeof getGamepads !== "function") {
-      this.gamepadInput.poll([]);
+    const gamepads = this.currentStandardGamepads();
+    if (this.capture?.device === "gamepad") {
+      const ignored = this.capture.ignoredGamepadButtons;
+      for (const index of [...ignored]) {
+        const stillHeld = gamepads.some((gamepad) => {
+          const button = gamepad.buttons[index];
+          return !!button && (button.value >= 0.5 || button.pressed);
+        });
+        if (!stillHeld) ignored.delete(index);
+      }
+      for (const gamepad of gamepads) {
+        for (let index = 0; index < gamepad.buttons.length; index += 1) {
+          const button = gamepad.buttons[index];
+          if (!button || ignored.has(index)) continue;
+          if (button.value >= 0.5 || button.pressed) {
+            this.completeBindingCapture(index);
+            return;
+          }
+        }
+      }
+      this.gamepadInput.reset();
       return;
     }
-    this.gamepadInput.poll(getGamepads.call(this.target.navigator));
+
+    if (this.blockedGamepadButtons.size > 0) {
+      const blockedStillHeld = [...this.blockedGamepadButtons].some((index) =>
+        gamepads.some((gamepad) => {
+          const button = gamepad.buttons[index];
+          return !!button && (button.value >= 0.5 || button.pressed);
+        })
+      );
+      if (blockedStillHeld) {
+        this.gamepadInput.reset();
+        return;
+      }
+      this.blockedGamepadButtons.clear();
+    }
+    this.gamepadInput.poll(gamepads);
+  }
+
+  private currentStandardGamepads(): Gamepad[] {
+    const getGamepads = this.target.navigator.getGamepads;
+    if (typeof getGamepads !== "function") return [];
+    return Array.from(getGamepads.call(this.target.navigator) ?? [])
+      .filter((gamepad): gamepad is Gamepad =>
+        !!gamepad && gamepad.connected && gamepad.mapping === "standard"
+      );
+  }
+
+  private completeBindingCapture(value: string | number): void {
+    const capture = this.capture;
+    if (!capture) return;
+    this.capture = undefined;
+    if (typeof value === "number") this.blockedGamepadButtons.add(value);
+    this.gamepadInput.reset();
+    capture.callback(value);
   }
 
   private readonly keyDown = (event: KeyboardEvent): void => {
-    const binding = keyboardSemanticBinding(event.code);
+    if (this.capture?.device === "keyboard") {
+      event.preventDefault();
+      if (!event.repeat) this.completeBindingCapture(event.code);
+      return;
+    }
+    const binding = keyboardSemanticBinding(event.code, this.settings);
     if (!binding) return;
     const wasHeld = this.state.action(binding.action).held;
     this.state.setActionSource(binding.action, event.code, 1);
@@ -264,7 +340,7 @@ export class BrowserSemanticInput {
   };
 
   private readonly keyUp = (event: KeyboardEvent): void => {
-    const binding = keyboardSemanticBinding(event.code);
+    const binding = keyboardSemanticBinding(event.code, this.settings);
     if (!binding) return;
     const wasHeld = this.state.action(binding.action).held;
     this.state.setActionSource(binding.action, event.code, 0);

@@ -178,11 +178,16 @@ const appShellHtml = `
           <section class="pause-section">
             <h3>Controls</h3>
             <dl class="pause-controls">
-              <div><dt>Drive</dt><dd>Left stick + triggers · W A S D / arrows</dd></div>
-              <div><dt>Talk · enter building</dt><dd>Primary button · E</dd></div>
-              <div><dt>Pause and settings</dt><dd>Menu / cancel · Esc</dd></div>
-              <div><dt>Developer diagnostics</dt><dd>F3</dd></div>
+              <div><dt>Drive</dt><dd id="control-help-drive">Left stick + triggers · W A S D / arrows</dd></div>
+              <div><dt>Talk · enter building</dt><dd id="control-help-interact">Primary button · E</dd></div>
+              <div><dt>Pause and settings</dt><dd id="control-help-cancel">Menu / cancel · Esc</dd></div>
+              <div><dt>Developer diagnostics</dt><dd id="control-help-debug">F3</dd></div>
             </dl>
+            <div class="input-binding-editor" id="input-binding-editor" aria-label="Input bindings"></div>
+            <div class="input-binding-actions">
+              <button class="quiet-button" id="input-restore-defaults" type="button">Restore control defaults</button>
+              <p id="input-binding-status" role="status"></p>
+            </div>
           </section>
 
           <section class="pause-section">
@@ -199,7 +204,7 @@ const appShellHtml = `
 
           <div id="pause-warp-menu" hidden>
             <div class="pause-warp-destinations" id="pause-warp-destinations" role="listbox" aria-label="Warp destinations"></div>
-            <p class="pause-warp-hint">↑ / ↓ choose · E confirm · Esc back</p>
+            <p class="pause-warp-hint" id="pause-warp-hint">↑ / ↓ choose · E confirm · Esc back</p>
             <p class="pause-warp-feedback" id="pause-warp-feedback" role="status" hidden></p>
             <div class="pause-actions">
               <button class="quiet-button" id="pause-warp-back" type="button">Back</button>
@@ -212,7 +217,7 @@ const appShellHtml = `
         <p class="dialogue-speaker" id="dialogue-speaker"></p>
         <p class="dialogue-text" id="dialogue-text"></p>
         <div class="dialogue-actions">
-          <span>Primary / E / Enter · continue</span>
+          <span id="dialogue-key-hint">Primary / E / Enter · continue</span>
           <button type="button" id="dialogue-continue">Continue</button>
           <button type="button" id="dialogue-close">Close</button>
         </div>
@@ -286,7 +291,7 @@ const appShellHtml = `
               </aside>
             </div>
             <footer class="parts-actions">
-              <span>← / → category · ↑ / ↓ part · E apply · Esc cancel</span>
+              <span id="parts-key-hint">← / → category · ↑ / ↓ part · E apply · Esc cancel</span>
               <button type="button" id="parts-cancel">Cancel</button>
               <button type="button" id="parts-apply">Fit selected parts</button>
             </footer>

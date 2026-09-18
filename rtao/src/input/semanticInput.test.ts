@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { InputSettings } from "./inputSettings";
 import {
   BrowserSemanticInput,
   keyboardSemanticBinding,
@@ -159,13 +160,13 @@ function fakeBrowserTarget(initialGamepads: readonly Gamepad[]) {
   };
 }
 
-function heldUpGamepad(): Gamepad {
+function pressedButtonGamepad(buttonIndex: number): Gamepad {
   return {
     axes: [0, 0, 0, 0],
     buttons: Array.from({ length: 17 }, (_, index): GamepadButton => ({
-      pressed: index === 12,
-      touched: index === 12,
-      value: index === 12 ? 1 : 0,
+      pressed: index === buttonIndex,
+      touched: index === buttonIndex,
+      value: index === buttonIndex ? 1 : 0,
     })),
     connected: true,
     id: "Synthetic controller",
@@ -173,6 +174,10 @@ function heldUpGamepad(): Gamepad {
     mapping: "standard",
     timestamp: 0,
   } as unknown as Gamepad;
+}
+
+function heldUpGamepad(): Gamepad {
+  return pressedButtonGamepad(12);
 }
 
 describe("BrowserSemanticInput source aggregation", () => {
@@ -221,6 +226,41 @@ describe("BrowserSemanticInput source aggregation", () => {
     expect(input.state.action("up").held).toBe(false);
     expect(events).toEqual(["up:released"]);
 
+    input.stop();
+  });
+
+  it("uses edited keyboard bindings for browser events", () => {
+    const browser = fakeBrowserTarget([]);
+    const settings = new InputSettings();
+    expect(settings.rebind("keyboard", "interact", "KeyQ").status).toBe("applied");
+    const input = new BrowserSemanticInput(browser.target, settings);
+    const events: string[] = [];
+    input.subscribe((event) => events.push(`${event.action}:${event.phase}`));
+    input.start();
+
+    browser.emit("keydown", {
+      code: "KeyQ",
+      repeat: false,
+      preventDefault: () => undefined,
+    } as unknown as Event);
+
+    expect(input.state.action("interact").held).toBe(true);
+    expect(events).toEqual(["interact:pressed"]);
+    input.stop();
+  });
+
+  it("captures a newly hot-plugged gamepad button without leaking the press", () => {
+    const browser = fakeBrowserTarget([]);
+    const input = new BrowserSemanticInput(browser.target);
+    const captured: Array<string | number> = [];
+    input.start();
+    input.beginBindingCapture("gamepad", (value) => captured.push(value));
+
+    browser.setGamepads([pressedButtonGamepad(4)]);
+    browser.emit("gamepadconnected", {} as Event);
+
+    expect(captured).toEqual([4]);
+    expect(input.state.action("interact").held).toBe(false);
     input.stop();
   });
 });

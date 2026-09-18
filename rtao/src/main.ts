@@ -112,7 +112,18 @@ import type { DrivingWorld } from "./game/worldCollision";
 import type { BrowserWorldSimulation, ResidentState } from "./game/worldSimulation";
 import type { WorldView } from "./game/worldView";
 import { classifyImportSelection, describeImportFailure, type ImportProblem } from "./importer/importDiagnostics";
-import { BrowserSemanticInput, type SemanticActionEvent } from "./input/semanticInput";
+import {
+  actionBindingLabel,
+  gamepadButtonLabel,
+  InputSettings,
+  keyboardBindingLabel,
+  type InputBindingDevice,
+} from "./input/inputSettings";
+import {
+  BrowserSemanticInput,
+  type SemanticAction,
+  type SemanticActionEvent,
+} from "./input/semanticInput";
 import {
   clearCurrentPointer,
   currentImportDirectory,
@@ -136,7 +147,14 @@ const quickPicPhotoActionOpcode = 0x11;
 const advertisingRewardActionOpcode = 0x16;
 const transitionActionOpcode = 0x14;
 installAppShell(app);
-const semanticInput = new BrowserSemanticInput();
+const inputSettings = new InputSettings((() => {
+  try {
+    return window.localStorage;
+  } catch {
+    return undefined;
+  }
+})());
+const semanticInput = new BrowserSemanticInput(window, inputSettings);
 semanticInput.start();
 const raceInput = semanticInput.createScope();
 
@@ -192,6 +210,9 @@ const raceStartReleaseLights = [...raceStartSignal.querySelectorAll<HTMLElement>
 if (raceStartReadyLights.length !== 4 || raceStartReleaseLights.length !== 4) throw new Error("Race start signal requires two native four-slot groups.");
 const raceToggle = requiredElement<HTMLButtonElement>("race-toggle");
 const openPauseButton = requiredElement<HTMLButtonElement>("open-pause");
+const inputBindingEditor = requiredElement<HTMLElement>("input-binding-editor");
+const inputRestoreDefaults = requiredElement<HTMLButtonElement>("input-restore-defaults");
+const inputBindingStatus = requiredElement<HTMLElement>("input-binding-status");
 const sceneFadeElement = requiredElement<HTMLElement>("scene-fade");
 const sceneFade = new SceneFade(
   {
@@ -484,6 +505,16 @@ pauseOverlay.addEventListener("click", (event) => {
   if (event.target !== pauseOverlay || pauseWarpPending) return;
   if (pauseMenuPage === "warp") showPauseRoot();
   else closePauseMenu();
+});
+inputRestoreDefaults.addEventListener("click", () => {
+  semanticInput.cancelBindingCapture();
+  inputSettings.restoreDefaults();
+  inputBindingStatus.textContent = "Default keyboard and gamepad bindings restored.";
+});
+inputSettings.subscribe(() => {
+  semanticInput.reset();
+  renderInputBindings();
+  refreshControlHelp();
 });
 requiredElement<HTMLButtonElement>("debug-hide").addEventListener("click", () => setDebugOverlayVisible(false));
 requiredElement<HTMLButtonElement>("debug-copy").addEventListener("click", () => {
@@ -1645,8 +1676,126 @@ function activateActivePlayShellControl(): void {
 }
 
 function pauseRootControls(): Array<HTMLButtonElement | HTMLSelectElement> {
-  return [pauseWarp, worldTime, worldVisibility, pauseStopDriving, pauseResume];
+  return [...pauseRoot.querySelectorAll<HTMLButtonElement | HTMLSelectElement>("button, select")];
 }
+
+const inputBindingRows: readonly { action: SemanticAction; label: string }[] = [
+  { action: "up", label: "Up / forward" },
+  { action: "down", label: "Down / brake" },
+  { action: "left", label: "Left" },
+  { action: "right", label: "Right" },
+  { action: "confirm", label: "Confirm" },
+  { action: "interact", label: "Talk / interact" },
+  { action: "cancel", label: "Back / pause" },
+  { action: "boost", label: "Boost" },
+  { action: "debug", label: "Diagnostics" },
+];
+
+function inputActionLabel(action: SemanticAction): string {
+  return inputBindingRows.find((entry) => entry.action === action)?.label ?? action;
+}
+
+function renderInputBindings(): void {
+  const rows = inputBindingRows.map(({ action, label }) => {
+    const row = document.createElement("div");
+    row.className = "input-binding-row";
+    const name = document.createElement("span");
+    name.className = "input-binding-name";
+    name.textContent = label;
+    const keyboard = document.createElement("button");
+    keyboard.type = "button";
+    keyboard.className = "quiet-button input-binding-button";
+    keyboard.textContent = inputSettings.profile.keyboard[action].map(keyboardBindingLabel).join(" / ") || "Unbound";
+    keyboard.setAttribute("aria-label", `Change keyboard binding for ${label}`);
+    keyboard.addEventListener("click", () => beginInputBindingCapture(action, "keyboard"));
+    const gamepad = document.createElement("button");
+    gamepad.type = "button";
+    gamepad.className = "quiet-button input-binding-button";
+    gamepad.textContent = inputSettings.gamepadButtons(action).map(gamepadButtonLabel).join(" / ") || "Unbound";
+    gamepad.setAttribute("aria-label", `Change gamepad binding for ${label}`);
+    gamepad.addEventListener("click", () => beginInputBindingCapture(action, "gamepad"));
+    row.append(name, keyboard, gamepad);
+    return row;
+  });
+  inputBindingEditor.replaceChildren(...rows);
+}
+
+function beginInputBindingCapture(action: SemanticAction, device: InputBindingDevice): void {
+  inputBindingStatus.textContent = device === "keyboard"
+    ? `Press a key for ${inputActionLabel(action)}.`
+    : `Press a gamepad button for ${inputActionLabel(action)}.`;
+  semanticInput.beginBindingCapture(device, (value) => {
+    if (device === "keyboard" && typeof value === "string") {
+      applyCapturedBinding(action, "keyboard", value);
+    } else if (device === "gamepad" && typeof value === "number") {
+      applyCapturedBinding(action, "gamepad", value);
+    }
+  });
+}
+
+function applyCapturedBinding(
+  action: SemanticAction,
+  device: InputBindingDevice,
+  value: string | number,
+): void {
+  const attempt = device === "keyboard"
+    ? inputSettings.rebind("keyboard", action, value as string)
+    : inputSettings.rebind("gamepad", action, value as number);
+  if (attempt.status === "unsafe") {
+    inputBindingStatus.textContent = attempt.reason;
+    return;
+  }
+  if (attempt.status === "conflict") {
+    const owners = attempt.conflicts.map((conflict) => inputActionLabel(conflict.action)).join(", ");
+    const label = device === "keyboard"
+      ? keyboardBindingLabel(value as string)
+      : gamepadButtonLabel(value as number);
+    if (!window.confirm(`${label} is already assigned to ${owners}. Replace that binding?`)) {
+      inputBindingStatus.textContent = "Binding unchanged.";
+      return;
+    }
+    const replacement = device === "keyboard"
+      ? inputSettings.rebind("keyboard", action, value as string, "replace")
+      : inputSettings.rebind("gamepad", action, value as number, "replace");
+    if (replacement.status === "unsafe") {
+      inputBindingStatus.textContent = replacement.reason;
+      return;
+    }
+  }
+  inputBindingStatus.textContent = `${inputActionLabel(action)} binding saved on this browser.`;
+}
+
+function confirmBindingHelp(): string {
+  return [actionBindingLabel(inputSettings, "interact"), actionBindingLabel(inputSettings, "confirm")]
+    .filter((label) => label !== "Unbound")
+    .join(" · ");
+}
+
+function shopBindingHelp(verb: string): string {
+  return `${actionBindingLabel(inputSettings, "left")} / ${actionBindingLabel(inputSettings, "right")} category · ${actionBindingLabel(inputSettings, "up")} / ${actionBindingLabel(inputSettings, "down")} item · ${confirmBindingHelp()} ${verb} · ${actionBindingLabel(inputSettings, "cancel")} return`;
+}
+
+function refreshControlHelp(): void {
+  const keyboardDrive = (["up", "left", "down", "right"] as const)
+    .map((action) => inputSettings.profile.keyboard[action].map(keyboardBindingLabel).join("/"))
+    .filter(Boolean)
+    .join(" · ");
+  const confirmHelp = confirmBindingHelp();
+  const cancelHelp = actionBindingLabel(inputSettings, "cancel");
+  requiredElement<HTMLElement>("control-help-drive").textContent = `Left stick + triggers · ${keyboardDrive}`;
+  requiredElement<HTMLElement>("control-help-interact").textContent = confirmHelp;
+  requiredElement<HTMLElement>("control-help-cancel").textContent = cancelHelp;
+  requiredElement<HTMLElement>("control-help-debug").textContent = actionBindingLabel(inputSettings, "debug");
+  hudHint.textContent = `${cancelHelp} · pause menu`;
+  requiredElement<HTMLElement>("pause-warp-hint").textContent = `${actionBindingLabel(inputSettings, "up")} / ${actionBindingLabel(inputSettings, "down")} choose · ${confirmHelp} confirm · ${cancelHelp} back`;
+  requiredElement<HTMLElement>("dialogue-key-hint").textContent = `${confirmHelp} · continue`;
+  requiredElement<HTMLElement>("factory-key-hint").textContent = `${confirmHelp} · continue`;
+  requiredElement<HTMLElement>("parts-key-hint").textContent = `${actionBindingLabel(inputSettings, "left")} / ${actionBindingLabel(inputSettings, "right")} category · ${actionBindingLabel(inputSettings, "up")} / ${actionBindingLabel(inputSettings, "down")} part · ${confirmHelp} apply · ${cancelHelp} cancel`;
+  requiredElement<HTMLElement>("shop-key-hint").textContent = `${actionBindingLabel(inputSettings, "left")} / ${actionBindingLabel(inputSettings, "right")} category · ${actionBindingLabel(inputSettings, "up")} / ${actionBindingLabel(inputSettings, "down")} item · ${confirmHelp} buy · ${cancelHelp} return`;
+}
+
+renderInputBindings();
+refreshControlHelp();
 
 function movePauseRootFocus(direction: number): void {
   const controls = pauseRootControls();
@@ -1732,6 +1881,8 @@ async function activatePauseWarpDestination(areaIndex: number): Promise<void> {
 
 function closePauseMenu(): void {
   if (!pauseMenuOpen) return;
+  semanticInput.cancelBindingCapture();
+  inputBindingStatus.textContent = "";
   pauseMenuOpen = false;
   pauseMenuPage = "root";
   pauseWarpPending = false;
@@ -2190,7 +2341,7 @@ async function startShopInteriorPreview(interaction: FixedInteractionDefinition)
       shopInteriorSession = undefined;
       const reason = error instanceof Error ? error.message : String(error);
       requiredElement<HTMLElement>("factory-text").textContent = "This authored room is available, but its original interaction stream has not been reconstructed yet.";
-      requiredElement<HTMLElement>("factory-key-hint").textContent = "E / Enter / Esc · return to town";
+      requiredElement<HTMLElement>("factory-key-hint").textContent = `${confirmBindingHelp()} / ${actionBindingLabel(inputSettings, "cancel")} · return to town`;
       requiredElement<HTMLButtonElement>("factory-continue").hidden = true;
       requiredElement<HTMLButtonElement>("factory-return").hidden = true;
       console.warn(`${interaction.name} fixed interior opened without dialogue: ${reason}`);
@@ -2475,7 +2626,7 @@ function startPartsShopCatalogue(): boolean {
   requiredElement<HTMLElement>("shop-balance").textContent = `${(playerCommerceState?.cake ?? 0).toLocaleString("en-US")} Cake`;
   requiredElement<HTMLButtonElement>("shop-purchase").hidden = false;
   requiredElement<HTMLElement>("shop-limitation").textContent = "Purchases use the original indexed ownership categories, five-copy equipment capacity and base prices. Native direct purchase does not equip; teammate trade remains deferred.";
-  requiredElement<HTMLElement>("shop-key-hint").textContent = "← / → category · ↑ / ↓ item · E buy · Esc return";
+  requiredElement<HTMLElement>("shop-key-hint").textContent = shopBindingHelp("buy");
   renderPartsShopCatalogue();
   console.info(`${interaction.name}: opened reconstructed Peach catalogue with ${stock.length} original stock entries.`);
   return true;
@@ -2499,7 +2650,7 @@ function startSecondHandShopCatalogue(): boolean {
   requiredElement<HTMLElement>("shop-location").textContent = "Cloud Hill";
   requiredElement<HTMLButtonElement>("shop-purchase").hidden = false;
   requiredElement<HTMLElement>("shop-limitation").textContent = "PAL removes one owned copy, keeps the fitted selector unchanged, and credits half the original base price rounded down.";
-  requiredElement<HTMLElement>("shop-key-hint").textContent = "← / → category · ↑ / ↓ part · E sell · Esc return";
+  requiredElement<HTMLElement>("shop-key-hint").textContent = shopBindingHelp("sell");
   renderPartsShopCatalogue();
   console.info(`Second-hand shop: opened ${stock.length} owned, exactly priced native part entries.`);
   return true;
@@ -2643,7 +2794,7 @@ function startBodyShopCatalogue(): boolean {
   requiredElement<HTMLElement>("shop-location").textContent = interaction.areaIndex === 1 ? "Peach Town" : "Fuji City";
   requiredElement<HTMLButtonElement>("shop-purchase").hidden = false;
   requiredElement<HTMLElement>("shop-limitation").textContent = "A purchase records original namespace-0 ownership and debits 500 Cake. The native direct-purchase path does not equip the previewed body.";
-  requiredElement<HTMLElement>("shop-key-hint").textContent = "← / → / ↑ / ↓ body · E buy · Esc return";
+  requiredElement<HTMLElement>("shop-key-hint").textContent = `${actionBindingLabel(inputSettings, "left")} / ${actionBindingLabel(inputSettings, "right")} / ${actionBindingLabel(inputSettings, "up")} / ${actionBindingLabel(inputSettings, "down")} body · ${confirmBindingHelp()} buy · ${actionBindingLabel(inputSettings, "cancel")} return`;
   renderBodyShopCatalogue();
   console.info(`${interaction.name}: opened reconstructed ${interaction.areaIndex === 1 ? "Peach" : "Fuji"} catalogue with ${stock.length} original bodies.`);
   return true;
@@ -3005,12 +3156,14 @@ function renderShopInteriorDialogue(): void {
   }
   continueButton.hidden = flow.currentChoices.length > 0 || !!external;
   requiredElement<HTMLElement>("factory-key-hint").textContent = flow.currentChoices.length
-    ? "↑ / ↓ · E select"
+    ? `${actionBindingLabel(inputSettings, "up")} / ${actionBindingLabel(inputSettings, "down")} · ${confirmBindingHelp()} select`
     : external
       ? paintShopSession
-        ? "↑ / ↓ channel · ← / → value · E confirm · Esc cancel"
-        : shopNumericChoiceSession ? "↑ / ↓ · choose number · E confirm" : "E · continue"
-      : "E / Enter · continue";
+        ? `${actionBindingLabel(inputSettings, "up")} / ${actionBindingLabel(inputSettings, "down")} channel · ${actionBindingLabel(inputSettings, "left")} / ${actionBindingLabel(inputSettings, "right")} value · ${confirmBindingHelp()} confirm · ${actionBindingLabel(inputSettings, "cancel")} cancel`
+        : shopNumericChoiceSession
+          ? `${actionBindingLabel(inputSettings, "up")} / ${actionBindingLabel(inputSettings, "down")} · choose number · ${confirmBindingHelp()} confirm`
+          : `${confirmBindingHelp()} · continue`
+      : `${confirmBindingHelp()} · continue`;
   if (!paintShopSession) focusFactoryDialogueControl();
 }
 
@@ -3510,11 +3663,14 @@ function renderQFactoryDialogue(): void {
   }
   continueButton.hidden = flow.currentChoices.length > 0 || !!external;
   requiredElement<HTMLElement>("factory-key-hint").textContent = flow.currentChoices.length
-    ? "↑ / ↓ · E select"
+    ? `${actionBindingLabel(inputSettings, "up")} / ${actionBindingLabel(inputSettings, "down")} · ${confirmBindingHelp()} select`
     : external
-      ? external.opcode === raceSelectActionOpcode ? "E · select supported race · Esc cancel"
-        : external.opcode === startRaceActionOpcode && session.selectedRaceActivityId === 0 ? "E · start race" : "E · return"
-      : "E / Enter · continue";
+      ? external.opcode === raceSelectActionOpcode
+        ? `${confirmBindingHelp()} · select supported race · ${actionBindingLabel(inputSettings, "cancel")} cancel`
+        : external.opcode === startRaceActionOpcode && session.selectedRaceActivityId === 0
+          ? `${confirmBindingHelp()} · start race`
+          : `${confirmBindingHelp()} · return`
+      : `${confirmBindingHelp()} · continue`;
   focusFactoryDialogueControl();
 }
 

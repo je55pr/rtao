@@ -1,3 +1,4 @@
+import { InputSettings } from "./inputSettings";
 import type {
   SemanticAction,
   SemanticActionPhase,
@@ -61,15 +62,7 @@ const stickAction = (
   },
 });
 
-const actionSources: readonly ActionSource[] = [
-  buttonAction("interact", "gamepad:primary", standardGamepadMapping.primaryButton),
-  buttonAction("cancel", "gamepad:cancel", standardGamepadMapping.cancelButton),
-  buttonAction("cancel", "gamepad:pause", standardGamepadMapping.pauseButton),
-  buttonAction("boost", "gamepad:boost", standardGamepadMapping.boostButton),
-  buttonAction("up", "gamepad:dpad-up", standardGamepadMapping.dpadUpButton),
-  buttonAction("down", "gamepad:dpad-down", standardGamepadMapping.dpadDownButton),
-  buttonAction("left", "gamepad:dpad-left", standardGamepadMapping.dpadLeftButton),
-  buttonAction("right", "gamepad:dpad-right", standardGamepadMapping.dpadRightButton),
+const stickActionSources: readonly ActionSource[] = [
   stickAction("up", "gamepad:stick-up", standardGamepadMapping.navigationAxis, -1),
   stickAction("down", "gamepad:stick-down", standardGamepadMapping.navigationAxis, 1),
   stickAction("left", "gamepad:stick-left", standardGamepadMapping.steeringAxis, -1),
@@ -81,9 +74,11 @@ const mappedActions = [
   "down",
   "left",
   "right",
+  "confirm",
   "interact",
   "cancel",
   "boost",
+  "debug",
 ] as const satisfies readonly SemanticAction[];
 
 const axisSources: readonly AxisSource[] = [
@@ -95,16 +90,6 @@ const axisSources: readonly AxisSource[] = [
     ),
   },
   {
-    axis: "driveSteering",
-    source: "gamepad:dpad-left",
-    value: (gamepad) => -buttonValue(gamepad, standardGamepadMapping.dpadLeftButton),
-  },
-  {
-    axis: "driveSteering",
-    source: "gamepad:dpad-right",
-    value: (gamepad) => buttonValue(gamepad, standardGamepadMapping.dpadRightButton),
-  },
-  {
     axis: "driveThrottle",
     source: "gamepad:throttle",
     value: (gamepad) => buttonValue(gamepad, standardGamepadMapping.throttleButton),
@@ -113,16 +98,6 @@ const axisSources: readonly AxisSource[] = [
     axis: "driveThrottle",
     source: "gamepad:brake",
     value: (gamepad) => -buttonValue(gamepad, standardGamepadMapping.brakeButton),
-  },
-  {
-    axis: "driveThrottle",
-    source: "gamepad:dpad-up",
-    value: (gamepad) => buttonValue(gamepad, standardGamepadMapping.dpadUpButton),
-  },
-  {
-    axis: "driveThrottle",
-    source: "gamepad:dpad-down",
-    value: (gamepad) => -buttonValue(gamepad, standardGamepadMapping.dpadDownButton),
   },
 ];
 
@@ -133,6 +108,7 @@ export class StandardGamepadInput {
   constructor(
     private readonly state: SemanticInputState,
     private readonly dispatch: ActionDispatch,
+    private readonly settings = new InputSettings(),
   ) {}
 
   get activeGamepadIndex(): number | undefined {
@@ -177,7 +153,12 @@ export class StandardGamepadInput {
 
   private applyActionSources(gamepad: Gamepad | undefined, emit: boolean): void {
     for (const action of mappedActions) {
-      const relevant = actionSources.filter((source) => source.action === action);
+      const relevant = [
+        ...stickActionSources.filter((source) => source.action === action),
+        ...this.settings.gamepadButtons(action).map((button) =>
+          buttonAction(action, `gamepad:button:${button}`, button)
+        ),
+      ];
       const desired = relevant.map((source) => ({
         source,
         value: gamepad ? source.value(gamepad) : 0,
@@ -212,6 +193,17 @@ export class StandardGamepadInput {
         gamepad ? source.value(gamepad) : 0,
       );
     }
+    const boundValue = (action: SemanticAction): number => {
+      if (!gamepad) return 0;
+      return Math.max(
+        0,
+        ...this.settings.gamepadButtons(action).map((button) => buttonValue(gamepad, button)),
+      );
+    };
+    this.state.setAxisSource("driveThrottle", "gamepad:bound-up", boundValue("up"));
+    this.state.setAxisSource("driveThrottle", "gamepad:bound-down", -boundValue("down"));
+    this.state.setAxisSource("driveSteering", "gamepad:bound-left", -boundValue("left"));
+    this.state.setAxisSource("driveSteering", "gamepad:bound-right", boundValue("right"));
   }
 }
 
