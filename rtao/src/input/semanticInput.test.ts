@@ -1,0 +1,130 @@
+import { describe, expect, it } from "vitest";
+import {
+  keyboardSemanticBinding,
+  SemanticInputScope,
+  SemanticInputState,
+} from "./semanticInput";
+
+describe("keyboardSemanticBinding", () => {
+  it("preserves the existing keyboard aliases while exposing semantic actions", () => {
+    expect(keyboardSemanticBinding("KeyW")).toEqual({
+      action: "up",
+      axis: "driveThrottle",
+      axisValue: 1,
+    });
+    expect(keyboardSemanticBinding("ArrowDown")).toEqual({
+      action: "down",
+      axis: "driveThrottle",
+      axisValue: -1,
+    });
+    expect(keyboardSemanticBinding("KeyA")).toEqual({
+      action: "left",
+      axis: "driveSteering",
+      axisValue: -1,
+    });
+    expect(keyboardSemanticBinding("ArrowRight")).toEqual({
+      action: "right",
+      axis: "driveSteering",
+      axisValue: 1,
+    });
+  });
+  it("keeps free-roam interaction distinct from generic confirm", () => {
+    expect(keyboardSemanticBinding("KeyE")?.action).toBe("interact");
+    expect(keyboardSemanticBinding("Enter")?.action).toBe("confirm");
+    expect(keyboardSemanticBinding("Space")?.action).toBe("confirm");
+    expect(keyboardSemanticBinding("Escape")?.action).toBe("cancel");
+    expect(keyboardSemanticBinding("ShiftLeft")?.action).toBe("boost");
+    expect(keyboardSemanticBinding("ShiftRight")?.action).toBe("boost");
+    expect(keyboardSemanticBinding("F3")?.action).toBe("debug");
+    expect(keyboardSemanticBinding("KeyQ")).toBeUndefined();
+  });
+});
+
+describe("SemanticInputState", () => {
+  it("tracks aggregate held, pressed and released state across aliases", () => {
+    const input = new SemanticInputState();
+    input.setActionSource("up", "KeyW", 1);
+    expect(input.action("up")).toEqual({
+      held: true,
+      pressed: true,
+      released: false,
+      value: 1,
+    });
+
+    input.clearTransitions();
+    input.setActionSource("up", "ArrowUp", 1);
+    input.setActionSource("up", "KeyW", 0);
+    expect(input.action("up")).toEqual({
+      held: true,
+      pressed: false,
+      released: false,
+      value: 1,
+    });
+
+    input.setActionSource("up", "ArrowUp", 0);
+    expect(input.action("up")).toEqual({
+      held: false,
+      pressed: false,
+      released: true,
+      value: 0,
+    });
+  });
+
+  it("combines digital aliases without doubling and cancels opposing drive directions", () => {
+    const input = new SemanticInputState();
+    input.setAxisSource("driveThrottle", "KeyW", 1);
+    input.setAxisSource("driveThrottle", "ArrowUp", 1);
+    expect(input.axis("driveThrottle")).toBe(1);
+
+    input.setAxisSource("driveThrottle", "KeyS", -1);
+    input.setAxisSource("driveThrottle", "ArrowUp", 0);
+    expect(input.axis("driveThrottle")).toBe(0);
+  });
+
+  it("preserves analogue drive values and clamps mixed sources", () => {
+    const input = new SemanticInputState();
+    input.setAxisSource("driveSteering", "pad-left-stick", 0.375);
+    expect(input.axis("driveSteering")).toBe(0.375);
+
+    input.setAxisSource("driveSteering", "KeyD", 1);
+    expect(input.axis("driveSteering")).toBe(1);
+    input.setAxisSource("driveSteering", "KeyD", 0);
+    input.setAxisSource("driveSteering", "pad-left-stick", -1.5);
+    expect(input.axis("driveSteering")).toBe(-1);
+  });
+
+  it("scopes suppress controls that were already held until they return to neutral", () => {
+    const input = new SemanticInputState();
+    input.setActionSource("boost", "ShiftLeft", 1);
+    input.setAxisSource("driveThrottle", "KeyW", 1);
+    const scope = new SemanticInputScope(input);
+    scope.reset();
+
+    expect(scope.action("boost").held).toBe(false);
+    expect(scope.axis("driveThrottle")).toBe(0);
+    input.setActionSource("boost", "ShiftLeft", 0);
+    input.setAxisSource("driveThrottle", "KeyW", 0);
+    expect(scope.action("boost").held).toBe(false);
+    expect(scope.axis("driveThrottle")).toBe(0);
+
+    input.setActionSource("boost", "ShiftLeft", 1);
+    input.setAxisSource("driveThrottle", "KeyW", 1);
+    expect(scope.action("boost").held).toBe(true);
+    expect(scope.axis("driveThrottle")).toBe(1);
+  });
+
+  it("reset drops held inputs without manufacturing release edges", () => {
+    const input = new SemanticInputState();
+    input.setActionSource("boost", "ShiftLeft", 1);
+    input.setAxisSource("driveThrottle", "KeyW", 1);
+    input.reset();
+
+    expect(input.action("boost")).toEqual({
+      held: false,
+      pressed: false,
+      released: false,
+      value: 0,
+    });
+    expect(input.axis("driveThrottle")).toBe(0);
+  });
+});

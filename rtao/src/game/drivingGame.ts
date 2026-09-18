@@ -6,6 +6,7 @@ import { nativeTransmissionLaunchAccelerationRatio, nativeTransmissionTopSpeedRa
 import { nativeTyreContactThreshold, nativeTyreGripMultiplier } from "./nativeTyrePerformance";
 import type { PartPerformance } from "./parts";
 import type { DrivingSurfaceKind, DrivingWorld, Vec3 } from "./worldCollision";
+import { BrowserSemanticInput, type SemanticActionEvent, type SemanticInputScope } from "../input/semanticInput";
 import type { WorldView } from "./worldView";
 
 export interface DriveInput {
@@ -298,7 +299,8 @@ export class ArcadeCarController {
 
 export class BrowserDrivingGame {
   readonly controller: ArcadeCarController;
-  private readonly keys = new Set<string>();
+  private readonly controls: SemanticInputScope;
+  private unsubscribeControls: (() => void) | undefined;
   private frameHandle = 0;
   private lastTime = 0;
   private accumulator = 0;
@@ -311,8 +313,10 @@ export class BrowserDrivingGame {
     private readonly view: WorldView,
     private readonly car: Q62CarModel,
     private readonly onState: (state: CarState) => void,
+    private readonly input: BrowserSemanticInput,
   ) {
     this.controller = new ArcadeCarController(world);
+    this.controls = input.createScope();
   }
 
   start(): void {
@@ -320,8 +324,8 @@ export class BrowserDrivingGame {
     this.running = true;
     this.lastTime = performance.now();
     this.accumulator = 0;
-    window.addEventListener("keydown", this.keyDown);
-    window.addEventListener("keyup", this.keyUp);
+    this.controls.reset();
+    this.unsubscribeControls = this.input.subscribe(this.handleControlEvent);
     const state = this.controller.state;
     this.view.startDriving(this.car, state.fieldNumber, state.position, state.yaw);
     this.applyState(state, true);
@@ -332,9 +336,9 @@ export class BrowserDrivingGame {
     if (!this.running) return;
     this.running = false;
     cancelAnimationFrame(this.frameHandle);
-    window.removeEventListener("keydown", this.keyDown);
-    window.removeEventListener("keyup", this.keyUp);
-    this.keys.clear();
+    this.unsubscribeControls?.();
+    this.unsubscribeControls = undefined;
+    this.controls.reset();
     this.view.stopDriving();
   }
 
@@ -355,14 +359,15 @@ export class BrowserDrivingGame {
   setNativeBrakeSelector(selector: number): void { this.controller.setNativeBrakeSelector(selector); }
 
   setPaused(paused: boolean): void {
+    if (this.paused === paused) return;
     this.paused = paused;
     this.accumulator = 0;
     this.lastTime = performance.now();
-    if (paused) this.keys.clear();
+    this.controls.reset();
   }
 
   enterArea(fieldNumber: number, position: { readonly x: number; readonly z: number }): void {
-    this.keys.clear();
+    this.controls.reset();
     this.controller.enterArea(fieldNumber, position);
     this.accumulator = 0;
     this.lastTime = performance.now();
@@ -370,7 +375,7 @@ export class BrowserDrivingGame {
   }
 
   enterSpecialOutdoor(areaCode: number, position: { readonly x: number; readonly z: number }): void {
-    this.keys.clear();
+    this.controls.reset();
     this.controller.enterSpecialOutdoor(areaCode, position);
     this.accumulator = 0;
     this.lastTime = performance.now();
@@ -389,7 +394,7 @@ export class BrowserDrivingGame {
     this.lastTime = time;
     const fixedStep = 1 / 60;
     while (this.accumulator >= fixedStep) {
-      this.controller.update(fixedStep, this.input());
+      this.controller.update(fixedStep, this.driveInput());
       this.accumulator -= fixedStep;
     }
     this.applyState(this.controller.state, false);
@@ -420,23 +425,21 @@ export class BrowserDrivingGame {
     this.onState(state);
   }
 
-  private input(): DriveInput {
+  private driveInput(): DriveInput {
     if (this.inputOverride) return this.inputOverride;
     return {
-      throttle: (this.down("KeyW", "ArrowUp") ? 1 : 0) - (this.down("KeyS", "ArrowDown") ? 1 : 0),
-      steering: (this.down("KeyD", "ArrowRight") ? 1 : 0) - (this.down("KeyA", "ArrowLeft") ? 1 : 0),
-      boost: this.down("ShiftLeft", "ShiftRight"),
+      throttle: this.controls.axis("driveThrottle"),
+      steering: this.controls.axis("driveSteering"),
+      boost: this.controls.action("boost").held,
     };
   }
 
-  private down(...codes: string[]): boolean { return codes.some((code) => this.keys.has(code)); }
-  // While paused the pause/settings layer owns the keyboard, so drive keys are
-  // neither swallowed nor held.
-  private readonly keyDown = (event: KeyboardEvent): void => { if (!this.paused && isDriveKey(event.code)) { event.preventDefault(); this.keys.add(event.code); } };
-  private readonly keyUp = (event: KeyboardEvent): void => { if (!this.paused && isDriveKey(event.code)) { event.preventDefault(); this.keys.delete(event.code); } };
+  // While active, driving owns only movement/boost actions. Its scope resets at
+  // pause and scene boundaries so held controls cannot leak across contexts.
+  private readonly handleControlEvent = (event: SemanticActionEvent): void => {
+    if (!this.paused && ["up", "down", "left", "right", "boost"].includes(event.action)) event.consume();
+  };
 }
-
-function isDriveKey(code: string): boolean { return ["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight", "ShiftLeft", "ShiftRight"].includes(code); }
 function moveTowards(value: number, target: number, amount: number): number { return value < target ? Math.min(target, value + amount) : value > target ? Math.max(target, value - amount) : target; }
 function clamp(value: number, minimum: number, maximum: number): number { return Math.max(minimum, Math.min(maximum, value)); }
 function lerp(a: number, b: number, t: number): number { return a + (b - a) * t; }

@@ -111,6 +111,7 @@ import type { DrivingWorld } from "./game/worldCollision";
 import type { BrowserWorldSimulation, ResidentState } from "./game/worldSimulation";
 import type { WorldView } from "./game/worldView";
 import { classifyImportSelection, describeImportFailure, type ImportProblem } from "./importer/importDiagnostics";
+import { BrowserSemanticInput, type SemanticActionEvent } from "./input/semanticInput";
 import {
   clearCurrentPointer,
   currentImportDirectory,
@@ -134,6 +135,9 @@ const quickPicPhotoActionOpcode = 0x11;
 const advertisingRewardActionOpcode = 0x16;
 const transitionActionOpcode = 0x14;
 installAppShell(app);
+const semanticInput = new BrowserSemanticInput();
+semanticInput.start();
+const raceInput = semanticInput.createScope();
 
 const {
   dropZone,
@@ -217,7 +221,6 @@ let peachRaceSceneTime = 0;
 let peachRaceRewardApplied = false;
 let peachRaceResultOpen = false;
 let peachRaceSuspendedTownSession = false;
-const peachRaceKeys = new Set<string>();
 let activeDirectory: FileSystemDirectoryHandle | undefined;
 let activeManifest: ImportManifest | undefined;
 const loadedWorldFieldNumbers = new Set<number>();
@@ -332,9 +335,8 @@ raceResultsReturn.addEventListener("click", stopPeachRace);
 // Registered before the race and dialogue handlers so that an Escape they
 // consume is still seen here while their state is live: leaving a race must not
 // also open the pause layer behind it.
-window.addEventListener("keydown", handleShellKey);
-window.addEventListener("keydown", handlePeachRaceKeyDown);
-window.addEventListener("keyup", handlePeachRaceKeyUp);
+semanticInput.subscribe(handleShellInput);
+semanticInput.subscribe(handlePeachRaceInput);
 
 // DEV-ONLY: `?devdisc` brings up the world without a manual file picker, for
 // headless/browser-driven visual checks. It reuses an existing usable install
@@ -486,7 +488,7 @@ requiredElement<HTMLButtonElement>("debug-copy").addEventListener("click", () =>
   void copyDiagnosticsReport();
 });
 
-window.addEventListener("keydown", handleDialogueKey);
+semanticInput.subscribe(handleDialogueInput);
 window.addEventListener("resize", () => { if (qFactorySession || shopInteriorPreviewInteraction || shopInteriorPreviewLoading) sizeFactoryStage(); });
 requiredElement<HTMLButtonElement>("dialogue-continue").addEventListener("click", advanceResidentDialogue);
 requiredElement<HTMLButtonElement>("dialogue-close").addEventListener("click", endResidentDialogue);
@@ -1059,7 +1061,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
   peachRaceRewardApplied = false;
   hidePeachRaceResults();
   renderPeachRaceStartSignal(0);
-  peachRaceKeys.clear();
+  raceInput.reset();
   viewerHost.querySelector<HTMLElement>(".world-canvas")?.style.setProperty("visibility", "hidden");
   requiredElement<HTMLElement>("viewer-title").textContent = activity.name;
   requiredElement<HTMLElement>("viewer-help").textContent = "WASD / arrows · native 50 Hz race controls · Esc to leave";
@@ -1159,36 +1161,30 @@ function applyPeachRaceStartUiStates(states: readonly number[]): void {
 
 function peachRaceCommandMask(): number {
   let commands = 0;
-  if (peachRaceKeys.has("KeyW") || peachRaceKeys.has("ArrowUp")) commands |= 1;
-  if (peachRaceKeys.has("KeyS") || peachRaceKeys.has("ArrowDown")) commands |= 2;
-  if (peachRaceKeys.has("KeyA") || peachRaceKeys.has("ArrowLeft")) commands |= 0x8000;
-  if (peachRaceKeys.has("KeyD") || peachRaceKeys.has("ArrowRight")) commands |= 0x2000;
+  const throttle = raceInput.axis("driveThrottle");
+  const steering = raceInput.axis("driveSteering");
+  if (throttle > 0) commands |= 1;
+  if (throttle < 0) commands |= 2;
+  if (steering < 0) commands |= 0x8000;
+  if (steering > 0) commands |= 0x2000;
   return commands;
 }
 
-function handlePeachRaceKeyDown(event: KeyboardEvent): void {
-  if (!peachRaceCoordinator) return;
+function handlePeachRaceInput(event: SemanticActionEvent): void {
+  if (!peachRaceCoordinator || event.phase !== "pressed") return;
   if (peachRaceResultOpen) {
-    if (["Escape", "Enter", "Space", "KeyE"].includes(event.code)) {
-      event.preventDefault();
+    if (event.action === "cancel" || isConfirmInput(event)) {
+      event.consume();
       stopPeachRace();
     }
     return;
   }
-  if (event.code === "Escape") {
-    event.preventDefault();
+  if (event.action === "cancel") {
+    event.consume();
     stopPeachRace();
     return;
   }
-  if (["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight"].includes(event.code)) {
-    event.preventDefault();
-    peachRaceKeys.add(event.code);
-  }
-}
-
-function handlePeachRaceKeyUp(event: KeyboardEvent): void {
-  if (!peachRaceCoordinator) return;
-  peachRaceKeys.delete(event.code);
+  if (["up", "down", "left", "right"].includes(event.action)) event.consume();
 }
 
 function applyPeachRaceResultIfReady(): void {
@@ -1244,7 +1240,7 @@ function stopPeachRace(): void {
   peachRaceSuspendedTownSession = false;
   if (peachRaceFrame) cancelAnimationFrame(peachRaceFrame);
   peachRaceFrame = 0;
-  peachRaceKeys.clear();
+  raceInput.reset();
   peachRaceCoordinator = undefined;
   peachRaceView?.dispose();
   peachRaceView = undefined;
@@ -1282,7 +1278,7 @@ async function toggleDriving(): Promise<void> {
     console.info(`Q62 decoded: ${playerCar.primitiveCount.toLocaleString()} strips, ${playerCar.triangleCount.toLocaleString()} body/wheel triangles; bounds ${JSON.stringify(playerCar.localBounds)}.`);
   }
   const { BrowserDrivingGame: BrowserDrivingGameClass } = await import("./game/drivingGame");
-  drivingGame = new BrowserDrivingGameClass(drivingWorld, worldView, playerCar, handleDriveState);
+  drivingGame = new BrowserDrivingGameClass(drivingWorld, worldView, playerCar, handleDriveState, semanticInput);
   drivingGame.setPartPerformance(aggregatePartPerformance(equippedParts));
   applyNativeDrivingEquipment(drivingGame, playerEquipmentState);
   advertisingDistanceTracker.reset();
@@ -1701,229 +1697,232 @@ async function loadDialogueCatalogue(executableBytes: Uint8Array): Promise<void>
   console.info(`PAL dialogue: ${residentGreetings.size} Peach roaming greetings and ${qFactoryDialogueEntity.variants.length} Q's Factory streams decoded from SLES_513.56.`);
 }
 
-function handleShellKey(event: KeyboardEvent): void {
-  if (event.repeat) return;
-  if (event.code === "F3") {
+function isConfirmInput(event: SemanticActionEvent): boolean {
+  return event.action === "confirm" || event.action === "interact";
+}
+
+function handleShellInput(event: SemanticActionEvent): void {
+  if (event.phase !== "pressed") return;
+  if (event.action === "debug") {
     if (!playUiActive) return;
-    event.preventDefault();
+    event.consume();
     setDebugOverlayVisible(!debugOverlayVisible);
     return;
   }
   if (pauseMenuOpen && pauseMenuPage === "warp") {
     if (pauseWarpPending) {
-      if (["Escape", "ArrowUp", "ArrowDown", "KeyW", "KeyS", "KeyE", "Enter", "Space"].includes(event.code)) event.preventDefault();
+      if (["cancel", "up", "down", "interact", "confirm"].includes(event.action)) event.consume();
       return;
     }
-    if (["ArrowUp", "KeyW"].includes(event.code)) {
-      event.preventDefault();
+    if (event.action === "up") {
+      event.consume();
       movePauseWarpSelection(-1);
-    } else if (["ArrowDown", "KeyS"].includes(event.code)) {
-      event.preventDefault();
+    } else if (event.action === "down") {
+      event.consume();
       movePauseWarpSelection(1);
-    } else if (["KeyE", "Enter", "Space"].includes(event.code)) {
-      event.preventDefault();
+    } else if (isConfirmInput(event)) {
+      event.consume();
       void activateSelectedPauseWarpDestination();
-    } else if (event.code === "Escape") {
-      event.preventDefault();
+    } else if (event.action === "cancel") {
+      event.consume();
       showPauseRoot();
     }
     return;
   }
-  if (event.code !== "Escape") return;
+  if (event.action !== "cancel") return;
   if (pauseMenuOpen) {
-    event.preventDefault();
+    event.consume();
     closePauseMenu();
     return;
   }
   if (!pauseMenuAvailable()) return;
-  event.preventDefault();
+  event.consume();
   openPauseMenu();
 }
 
-function handleDialogueKey(event: KeyboardEvent): void {
-  if (event.repeat) return;
+function handleDialogueInput(event: SemanticActionEvent): void {
+  if (event.phase !== "pressed") return;
   if (shopInteriorSession) {
     if (quickPicPhotoSession) {
-      if (["KeyE", "Enter", "Space"].includes(event.code)) {
-        event.preventDefault();
+      if (isConfirmInput(event)) {
+        event.consume();
         keepQuickPicPhoto();
-      } else if (event.code === "Escape") {
-        event.preventDefault();
+      } else if (event.action === "cancel") {
+        event.consume();
         cancelQuickPicPhoto();
       }
       return;
     }
     if (paintShopSession) {
-      if (["ArrowUp", "KeyW"].includes(event.code)) {
-        event.preventDefault();
+      if (event.action === "up") {
+        event.consume();
         movePaintShopCursor(-1);
-      } else if (["ArrowDown", "KeyS"].includes(event.code)) {
-        event.preventDefault();
+      } else if (event.action === "down") {
+        event.consume();
         movePaintShopCursor(1);
-      } else if (["ArrowLeft", "KeyA"].includes(event.code)) {
-        event.preventDefault();
+      } else if (event.action === "left") {
+        event.consume();
         stepPaintShopChannel(-1);
-      } else if (["ArrowRight", "KeyD"].includes(event.code)) {
-        event.preventDefault();
+      } else if (event.action === "right") {
+        event.consume();
         stepPaintShopChannel(1);
-      } else if (["KeyE", "Enter", "Space"].includes(event.code)) {
-        event.preventDefault();
+      } else if (isConfirmInput(event)) {
+        event.consume();
         purchaseSelectedPaint();
-      } else if (event.code === "Escape") {
-        event.preventDefault();
+      } else if (event.action === "cancel") {
+        event.consume();
         finishPaintShopSelector(false);
       }
       return;
     }
     if (partsShopSession) {
-      if (["ArrowLeft", "KeyA"].includes(event.code)) {
-        event.preventDefault();
+      if (event.action === "left") {
+        event.consume();
         partsShopSession.moveCategory(-1);
         renderPartsShopCatalogue();
-      } else if (["ArrowRight", "KeyD"].includes(event.code)) {
-        event.preventDefault();
+      } else if (event.action === "right") {
+        event.consume();
         partsShopSession.moveCategory(1);
         renderPartsShopCatalogue();
-      } else if (["ArrowUp", "KeyW"].includes(event.code)) {
-        event.preventDefault();
+      } else if (event.action === "up") {
+        event.consume();
         partsShopSession.moveItem(-1);
         renderPartsShopCatalogue();
-      } else if (["ArrowDown", "KeyS"].includes(event.code)) {
-        event.preventDefault();
+      } else if (event.action === "down") {
+        event.consume();
         partsShopSession.moveItem(1);
         renderPartsShopCatalogue();
-      } else if (["KeyE", "Enter", "Space"].includes(event.code)) {
-        event.preventDefault();
+      } else if (isConfirmInput(event)) {
+        event.consume();
         purchaseSelectedPart();
-      } else if (event.code === "Escape") {
-        event.preventDefault();
+      } else if (event.action === "cancel") {
+        event.consume();
         finishPartsShopCatalogue();
       }
       return;
     }
     if (bodyShopSession) {
-      if (["ArrowLeft", "ArrowUp", "KeyA", "KeyW"].includes(event.code)) {
-        event.preventDefault();
+      if (event.action === "left" || event.action === "up") {
+        event.consume();
         bodyShopSession.moveItem(-1);
         renderBodyShopCatalogue();
-      } else if (["ArrowRight", "ArrowDown", "KeyD", "KeyS"].includes(event.code)) {
-        event.preventDefault();
+      } else if (event.action === "right" || event.action === "down") {
+        event.consume();
         bodyShopSession.moveItem(1);
         renderBodyShopCatalogue();
-      } else if (["KeyE", "Enter", "Space"].includes(event.code)) {
-        event.preventDefault();
+      } else if (isConfirmInput(event)) {
+        event.consume();
         purchaseSelectedBody();
-      } else if (event.code === "Escape") {
-        event.preventDefault();
+      } else if (event.action === "cancel") {
+        event.consume();
         finishBodyShopCatalogue();
       }
       return;
     }
     if (shopNumericChoiceSession) {
-      if (["ArrowUp", "KeyW"].includes(event.code)) {
-        event.preventDefault();
+      if (event.action === "up") {
+        event.consume();
         moveShopNumericChoice(1);
-      } else if (["ArrowDown", "KeyS"].includes(event.code)) {
-        event.preventDefault();
+      } else if (event.action === "down") {
+        event.consume();
         moveShopNumericChoice(-1);
-      } else if (["KeyE", "Enter", "Space"].includes(event.code)) {
-        event.preventDefault();
+      } else if (isConfirmInput(event)) {
+        event.consume();
         finishShopNumericChoice();
-      } else if (event.code === "Escape") {
-        event.preventDefault();
+      } else if (event.action === "cancel") {
+        event.consume();
         endShopInteriorPreview();
       }
       return;
     }
     const choices = shopInteriorSession.flow.currentChoices;
-    if (["ArrowUp", "KeyW"].includes(event.code) && choices.length) {
-      event.preventDefault();
+    if (event.action === "up" && choices.length) {
+      event.consume();
       shopInteriorSession.choiceIndex = (shopInteriorSession.choiceIndex - 1 + choices.length) % choices.length;
       renderShopInteriorDialogue();
-    } else if (["ArrowDown", "KeyS"].includes(event.code) && choices.length) {
-      event.preventDefault();
+    } else if (event.action === "down" && choices.length) {
+      event.consume();
       shopInteriorSession.choiceIndex = (shopInteriorSession.choiceIndex + 1) % choices.length;
       renderShopInteriorDialogue();
-    } else if (["KeyE", "Enter", "Space"].includes(event.code)) {
-      event.preventDefault();
+    } else if (isConfirmInput(event)) {
+      event.consume();
       if (choices.length) chooseShopInteriorDialogue(shopInteriorSession.choiceIndex);
       else if (shopInteriorSession.flow.currentExternalAction) {
         if (isCurrentQuickPicPhotoAction()) void captureCurrentQuickPicPhoto();
         else returnFromShopInteriorHostAction();
-      }
-      else advanceShopInteriorDialogue();
-    } else if (event.code === "Escape") {
-      event.preventDefault();
+      } else advanceShopInteriorDialogue();
+    } else if (event.action === "cancel") {
+      event.consume();
       endShopInteriorPreview();
     }
     return;
   }
   if (shopInteriorPreviewLoading) {
-    if (event.code === "Escape") { event.preventDefault(); endShopInteriorPreview(); }
+    if (event.action === "cancel") { event.consume(); endShopInteriorPreview(); }
     return;
   }
   // A room whose executable stream is not decoded yet still remains a safe,
   // truthful backdrop preview instead of leaking input into the paused world.
   if (shopInteriorPreviewInteraction) {
-    if (["KeyE", "Enter", "Space", "Escape"].includes(event.code)) {
-      event.preventDefault();
+    if (event.action === "cancel" || isConfirmInput(event)) {
+      event.consume();
       endShopInteriorPreview();
     }
     return;
   }
   if (qFactorySession) {
     if (changePartsSession) {
-      if (["ArrowLeft", "KeyA"].includes(event.code)) {
-        event.preventDefault();
+      if (event.action === "left") {
+        event.consume();
         movePartsCategory(-1);
-      } else if (["ArrowRight", "KeyD"].includes(event.code)) {
-        event.preventDefault();
+      } else if (event.action === "right") {
+        event.consume();
         movePartsCategory(1);
-      } else if (["ArrowUp", "KeyW"].includes(event.code)) {
-        event.preventDefault();
+      } else if (event.action === "up") {
+        event.consume();
         movePartsSelection(-1);
-      } else if (["ArrowDown", "KeyS"].includes(event.code)) {
-        event.preventDefault();
+      } else if (event.action === "down") {
+        event.consume();
         movePartsSelection(1);
-      } else if (["KeyE", "Enter", "Space"].includes(event.code)) {
-        event.preventDefault();
+      } else if (isConfirmInput(event)) {
+        event.consume();
         finishChangeParts(true);
-      } else if (event.code === "Escape") {
-        event.preventDefault();
+      } else if (event.action === "cancel") {
+        event.consume();
         finishChangeParts(false);
       }
       return;
     }
     const choices = qFactorySession.flow.currentChoices;
-    if (["ArrowUp", "KeyW"].includes(event.code) && choices.length) {
-      event.preventDefault();
+    if (event.action === "up" && choices.length) {
+      event.consume();
       qFactorySession.choiceIndex = (qFactorySession.choiceIndex - 1 + choices.length) % choices.length;
       renderQFactoryDialogue();
-    } else if (["ArrowDown", "KeyS"].includes(event.code) && choices.length) {
-      event.preventDefault();
+    } else if (event.action === "down" && choices.length) {
+      event.consume();
       qFactorySession.choiceIndex = (qFactorySession.choiceIndex + 1) % choices.length;
       renderQFactoryDialogue();
-    } else if (["KeyE", "Enter", "Space"].includes(event.code)) {
-      event.preventDefault();
+    } else if (isConfirmInput(event)) {
+      event.consume();
       if (choices.length) chooseQFactoryDialogue(qFactorySession.choiceIndex);
       else if (qFactorySession.flow.currentExternalAction) activateQFactoryHostAction();
       else advanceQFactoryDialogue();
-    } else if (event.code === "Escape") {
-      event.preventDefault();
+    } else if (event.action === "cancel") {
+      event.consume();
       if (qFactorySession.flow.currentExternalAction?.opcode === raceSelectActionOpcode) returnFromQFactoryHostAction();
       else endQFactoryInterior();
     }
     return;
   }
   if (activeDialogue) {
-    if (["KeyE", "Enter", "Space"].includes(event.code)) { event.preventDefault(); advanceResidentDialogue(); }
-    else if (event.code === "Escape") { event.preventDefault(); endResidentDialogue(); }
+    if (isConfirmInput(event)) { event.consume(); advanceResidentDialogue(); }
+    else if (event.action === "cancel") { event.consume(); endResidentDialogue(); }
     return;
   }
-  if (event.code !== "KeyE" || !isDriving || !drivingGame) return;
+  if (event.action !== "interact" || !isDriving || !drivingGame) return;
   const target = manualInteractionTarget(drivingGame.controller.state);
   if (!target) return;
-  if (activateOverworldInteraction(target)) event.preventDefault();
+  if (activateOverworldInteraction(target)) event.consume();
 }
 
 function startResidentDialogue(speaker: string, pages: string[]): void {
