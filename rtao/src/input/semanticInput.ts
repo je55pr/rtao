@@ -1,3 +1,5 @@
+import { StandardGamepadInput } from "./gamepadInput";
+
 export const semanticActions = [
   "up",
   "down",
@@ -175,15 +177,26 @@ type SemanticActionListener = (event: SemanticActionEvent) => void;
 export class BrowserSemanticInput {
   readonly state = new SemanticInputState();
   private readonly listeners = new Set<SemanticActionListener>();
+  private readonly gamepadInput: StandardGamepadInput;
+  private gamepadFrameHandle: number | undefined;
   private started = false;
 
-  constructor(private readonly target: Window = window) {}
+  constructor(private readonly target: Window = window) {
+    this.gamepadInput = new StandardGamepadInput(
+      this.state,
+      (action, phase) => this.dispatch(action, phase, false),
+    );
+  }
 
   start(): void {
     if (this.started) return;
     this.started = true;
     this.target.addEventListener("keydown", this.keyDown);
     this.target.addEventListener("keyup", this.keyUp);
+    this.target.addEventListener("gamepadconnected", this.gamepadChanged);
+    this.target.addEventListener("gamepaddisconnected", this.gamepadChanged);
+    this.syncGamepads();
+    this.gamepadFrameHandle = this.target.requestAnimationFrame(this.pollGamepads);
   }
 
   stop(): void {
@@ -191,10 +204,18 @@ export class BrowserSemanticInput {
     this.started = false;
     this.target.removeEventListener("keydown", this.keyDown);
     this.target.removeEventListener("keyup", this.keyUp);
+    this.target.removeEventListener("gamepadconnected", this.gamepadChanged);
+    this.target.removeEventListener("gamepaddisconnected", this.gamepadChanged);
+    if (this.gamepadFrameHandle !== undefined) {
+      this.target.cancelAnimationFrame(this.gamepadFrameHandle);
+      this.gamepadFrameHandle = undefined;
+    }
+    this.gamepadInput.reset();
     this.state.reset();
   }
 
   reset(): void {
+    this.gamepadInput.reset();
     this.state.reset();
   }
 
@@ -210,31 +231,55 @@ export class BrowserSemanticInput {
   setAnalogAxis(source: string, axis: SemanticAxis, value: number): void {
     this.state.setAxisSource(axis, source, value);
   }
+
+  private readonly pollGamepads = (): void => {
+    if (!this.started) return;
+    this.syncGamepads();
+    this.gamepadFrameHandle = this.target.requestAnimationFrame(this.pollGamepads);
+  };
+
+  private readonly gamepadChanged = (): void => {
+    if (this.started) this.syncGamepads();
+  };
+
+  private syncGamepads(): void {
+    const getGamepads = this.target.navigator.getGamepads;
+    if (typeof getGamepads !== "function") {
+      this.gamepadInput.poll([]);
+      return;
+    }
+    this.gamepadInput.poll(getGamepads.call(this.target.navigator));
+  }
+
   private readonly keyDown = (event: KeyboardEvent): void => {
     const binding = keyboardSemanticBinding(event.code);
     if (!binding) return;
+    const wasHeld = this.state.action(binding.action).held;
     this.state.setActionSource(binding.action, event.code, 1);
     if (binding.axis && binding.axisValue !== undefined) {
       this.state.setAxisSource(binding.axis, event.code, binding.axisValue);
     }
-    if (event.repeat) return;
+    if (event.repeat || wasHeld) return;
     this.dispatch(binding.action, "pressed", false, event);
   };
 
   private readonly keyUp = (event: KeyboardEvent): void => {
     const binding = keyboardSemanticBinding(event.code);
     if (!binding) return;
+    const wasHeld = this.state.action(binding.action).held;
     this.state.setActionSource(binding.action, event.code, 0);
     if (binding.axis) this.state.setAxisSource(binding.axis, event.code, 0);
-    this.dispatch(binding.action, "released", false, event);
+    if (wasHeld && !this.state.action(binding.action).held) {
+      this.dispatch(binding.action, "released", false, event);
+    }
   };
 
-  private dispatch(action: SemanticAction, phase: SemanticActionPhase, repeat: boolean, sourceEvent: Event): void {
+  private dispatch(action: SemanticAction, phase: SemanticActionPhase, repeat: boolean, sourceEvent?: Event): void {
     const inputEvent: SemanticActionEvent = {
       action,
       phase,
       repeat,
-      consume: () => sourceEvent.preventDefault(),
+      consume: () => sourceEvent?.preventDefault(),
     };
     for (const listener of this.listeners) listener(inputEvent);
   }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  BrowserSemanticInput,
   keyboardSemanticBinding,
   SemanticInputScope,
   SemanticInputState,
@@ -126,5 +127,84 @@ describe("SemanticInputState", () => {
       value: 0,
     });
     expect(input.axis("driveThrottle")).toBe(0);
+  });
+});
+
+function fakeBrowserTarget(initialGamepads: readonly Gamepad[]) {
+  let gamepads = [...initialGamepads];
+  const listeners = new Map<string, Set<EventListenerOrEventListenerObject>>();
+  const target = {
+    navigator: { getGamepads: () => gamepads },
+    addEventListener: (type: string, listener: EventListenerOrEventListenerObject) => {
+      const bucket = listeners.get(type) ?? new Set();
+      bucket.add(listener);
+      listeners.set(type, bucket);
+    },
+    removeEventListener: (type: string, listener: EventListenerOrEventListenerObject) => {
+      listeners.get(type)?.delete(listener);
+    },
+    requestAnimationFrame: () => 1,
+    cancelAnimationFrame: () => undefined,
+  } as unknown as Window;
+
+  return {
+    target,
+    setGamepads: (next: readonly Gamepad[]) => { gamepads = [...next]; },
+    emit: (type: string, event: Event) => {
+      for (const listener of listeners.get(type) ?? []) {
+        if (typeof listener === "function") listener(event);
+        else listener.handleEvent(event);
+      }
+    },
+  };
+}
+
+function heldUpGamepad(): Gamepad {
+  return {
+    axes: [0, 0, 0, 0],
+    buttons: Array.from({ length: 17 }, (_, index): GamepadButton => ({
+      pressed: index === 12,
+      touched: index === 12,
+      value: index === 12 ? 1 : 0,
+    })),
+    connected: true,
+    id: "Synthetic controller",
+    index: 0,
+    mapping: "standard",
+    timestamp: 0,
+  } as unknown as Gamepad;
+}
+
+describe("BrowserSemanticInput source aggregation", () => {
+  it("does not duplicate edges when keyboard and gamepad overlap", () => {
+    const browser = fakeBrowserTarget([heldUpGamepad()]);
+    const input = new BrowserSemanticInput(browser.target);
+    const events: string[] = [];
+    input.subscribe((event) => events.push(`${event.action}:${event.phase}`));
+    input.start();
+
+    expect(events).toEqual(["up:pressed"]);
+    events.length = 0;
+    browser.emit("keydown", {
+      code: "ArrowUp",
+      repeat: false,
+      preventDefault: () => undefined,
+    } as unknown as Event);
+    expect(events).toEqual([]);
+
+    browser.setGamepads([]);
+    browser.emit("gamepaddisconnected", {} as Event);
+    expect(input.state.action("up").held).toBe(true);
+    expect(events).toEqual([]);
+
+    browser.emit("keyup", {
+      code: "ArrowUp",
+      repeat: false,
+      preventDefault: () => undefined,
+    } as unknown as Event);
+    expect(input.state.action("up").held).toBe(false);
+    expect(events).toEqual(["up:released"]);
+
+    input.stop();
   });
 });
