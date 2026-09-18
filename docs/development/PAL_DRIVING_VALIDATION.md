@@ -1,13 +1,17 @@
 # PAL driving validation
 
-This gate exists to make driving changes measurable before the browser's
-presentation-oriented driving feel is replaced. It reuses the recovered PAL
-ordinary-frame scalar oracle instead of creating a second physics model.
+This gate makes driving changes measurable against executable-backed PAL
+arithmetic. It reuses the recovered ordinary-frame scalar oracle instead of
+creating a second physics model.
 
-The gate has two deliberately separate parts:
+The gate has three deliberately separate parts:
 
-- motion/contact/equipment: browser TypeScript `advanceNativeRaceFrame` is
-  compared frame-by-frame with instructions executed by `palRaceFrameOracle`;
+- ordinary race motion/contact/equipment: browser TypeScript
+  `advanceNativeRaceFrame` is compared frame-by-frame with instructions
+  executed by `palRaceFrameOracle`;
+- free-roam motion core: `NativeDrivingMotion` is compared update-by-update
+  with the executable's original `0x0021B1C0` scalar vehicle call while both
+  receive the same explicit contact inputs;
 - chase camera: the pure browser chase-camera policy is compared with a local
   numeric trace captured from PAL observations.
 
@@ -44,6 +48,13 @@ turn-command tick 42 pose.position[0]: browser=... PAL=... delta=... tolerance=0
 Native integer/state fields are exact by default. Tolerances are explicit
 arguments to the comparison helper; do not widen them merely to make a changed
 browser implementation pass.
+
+The free-roam motion-core sequence additionally runs 120 updates of
+throttle/coast plus both steering directions through `NativeDrivingMotion` and
+the loaded executable routine. Vehicle state and transformed world velocity
+must match exactly on every update. This locks the recovered gearbox, drive
+force, traction, steering accumulator/curvature, yaw/drift and fixed-point
+velocity transform behind the production runtime boundary.
 
 ## Local camera trace
 
@@ -86,11 +97,24 @@ rather than silently changing feel.
 
 ## Boundary
 
-`ArcadeCarController` is still the existing browser-authored free-roam model.
-This validation work does not claim that its acceleration, steering or collision
-constants are native. Instead, the recovered `advanceNativeRaceFrame` path is
-the executable-backed candidate contract that a future browser-driving
-replacement can consume without changing the oracle.
+Free-roam now delegates its ordinary longitudinal/steering motion core to
+`NativeDrivingMotion` at the PAL 50 Hz fixed update. The previous browser
+surface acceleration/max-speed table, `turnRate`/`turnScale` steering curve
+and temporary `PartPerformance` motion multipliers no longer participate.
+Native equipment selectors are loaded through the executable-backed equipment
+records and consumed by the same recovered scalar vehicle arithmetic used by
+the ordinary-race path.
+
+This does **not** mean outdoor physics is fully native. Free-roam still owns the
+existing footprint collision resolver and presentation ground attitude rather
+than the PAL seven-probe outdoor support/contact solver. It passes an explicit
+level-support compatibility input into `NativeDrivingMotion`; unresolved
+browser surface class `other` remains neutral instead of being assigned an
+invented native surface code. Reverse command production is likewise an
+explicit host bridge because the recovered scalar consumer proves bit 4's
+effect but the upstream outdoor command producer is not yet recovered.
+Developer Shift/RB boost remains a browser traversal aid outside native motion
+state and therefore cannot multiply recovered yaw.
 
 The current chase camera is likewise only browser policy until its local PAL
 trace passes. Extracting its arithmetic into `browserChaseCamera.ts` is a

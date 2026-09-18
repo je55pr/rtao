@@ -5,6 +5,7 @@ import { readRaceStartAnchors, nativeRaceStartSeed } from "../src/formats/raceCa
 import { Iso9660Disc } from "../src/disc/iso9660";
 import { RawMode2SectorSource } from "../src/disc/randomAccess";
 import { assertBrowserCameraTraceMatchesPal, assertBrowserDrivingTraceMatchesPal } from "../src/game/drivingValidation";
+import { NativeDrivingMotion, readNativeDrivingMotionAuthority } from "../src/game/nativeDrivingMotion";
 import { NativeRaceCollisionSampler } from "../src/game/nativeRaceCollision";
 import {
   advanceNativeRaceFrame,
@@ -12,9 +13,22 @@ import {
   type NativeRaceFrameInput,
   type NativeRaceFrameState,
 } from "../src/game/nativeRaceFrame";
-import { inverseNativeRaceMatrix, nativeRaceIdentity, nativeRaceYawMatrix } from "../src/game/nativeRaceMath";
+import {
+  inverseNativeRaceMatrix,
+  nativeRaceIdentity,
+  nativeRaceYawMatrix,
+  transformNativeRaceIntegerVector,
+  type NativeRaceMatrix,
+  type NativeRaceVector,
+} from "../src/game/nativeRaceMath";
 import { readNativeRaceObstaclePoints } from "../src/game/nativeRaceObstacle";
-import { createNativeRaceVehicleState, readNativeRaceEquipment } from "../src/game/nativeRaceVehicle";
+import {
+  createNativeRaceVehicleState,
+  nativeRaceDrag,
+  readNativeRaceEquipment,
+  type NativeRaceEquipment,
+  type NativeRaceVehicleState,
+} from "../src/game/nativeRaceVehicle";
 import {
   browserCameraObservations,
   nativeRaceFrameObservation,
@@ -22,6 +36,7 @@ import {
   parsePalCameraTrace,
 } from "../test-support/palDrivingValidation";
 import { palRaceFrameOracle } from "../test-support/palRaceFrameOracle";
+import { PalScalarMachine } from "../test-support/palScalarMachine";
 
 const executablePath = process.env.RTA_PAL_EXECUTABLE;
 const binPath = process.env.RTA_PAL_BIN;
@@ -104,6 +119,76 @@ async function openPalDisc(path: string): Promise<{ disc: Iso9660Disc; close(): 
     closeSync(handle);
     throw error;
   }
+}
+
+function palScalarMotionStep(
+  machine: PalScalarMachine,
+  state: NativeRaceVehicleState,
+  equipment: NativeRaceEquipment,
+  matrix: NativeRaceMatrix,
+  localForwardSpeed: number,
+  localSideSpeed: number,
+  commands: number,
+  contactAccelerationY: number,
+): { state: NativeRaceVehicleState; worldVelocity: NativeRaceVector } {
+  const v = machine.view;
+  const car = 0x1000000;
+  const local = 0x1001000;
+  const scene = 0x1002000;
+  const support = 0x1003000;
+  const curve = 0x1004000;
+  const runtimeEquipment = 0x1005000;
+  v.setUint32(0x3dd7f0 - 16024, 0x21dcf8, true);
+  v.setUint32(0x3dd7f0 - 16028, 0, true);
+  machine.memory.set(equipment.brakeCurve, curve);
+  v.setUint32(car + 0x200, curve, true);
+  v.setUint32(car + 0x184, runtimeEquipment, true);
+  v.setUint16(runtimeEquipment + 8, 0, true);
+  v.setInt8(car + 0x213, 0);
+  for (const [offset, value] of [
+    [0x214, equipment.engineScalar], [0x218, equipment.mass], [0x23c, state.fuel],
+    [0x1d8, state.steeringSpeedMemory], [0x1b8, state.nativeSpeed],
+    [0x19c, 0], [0x1f8, state.runtimeFlags], [0x1dc, 4096], [0x1e0, 4096], [0x1e4, 0],
+  ]) v.setInt32(car + offset!, value!, true);
+  for (const [offset, value] of [
+    [0x240, equipment.fuelConsumption], [0x242, equipment.steeringScalar],
+    [0x1ce, state.steeringAccumulator], [0x1d0, state.engineSpeed],
+    [0x1d4, state.yaw], [0x1d6, state.slipAngle], [0x1d2, state.driftRate],
+  ]) v.setInt16(car + offset!, value!, true);
+  equipment.surfaceGrips.forEach((value, index) => v.setInt16(car + 0x21c + index * 2, value, true));
+  equipment.gearWords.forEach((value, index) => v.setInt16(car + 0x22c + index * 2, value, true));
+  v.setUint8(car + 0x1ff, state.gear);
+  v.setUint8(car + 0x1fe, state.brakeHold);
+  v.setInt32(local, localSideSpeed, true);
+  v.setInt32(local + 8, localForwardSpeed, true);
+  v.setInt32(support + 4, contactAccelerationY, true);
+  v.setUint32(scene + 0x28, 4, true);
+  matrix.forEach((value, index) => v.setFloat32(car + index * 4, value, true));
+  machine.run(0x21b1c0, [scene, car, local, commands, support], {
+    0x281a58: (args) => {
+      machine.memory.fill(args[1]!, args[0]!, args[0]! + args[2]!);
+      return args[0]!;
+    },
+    0x218b18: () => 0,
+  });
+  return {
+    state: {
+      gear: v.getInt8(car + 0x1ff),
+      brakeHold: v.getUint8(car + 0x1fe),
+      steeringAccumulator: v.getInt16(car + 0x1ce, true),
+      steeringSpeedMemory: v.getInt32(car + 0x1d8, true),
+      curvature: v.getInt16(car + 0x1cc, true),
+      engineSpeed: v.getInt16(car + 0x1d0, true),
+      nativeSpeed: v.getInt32(car + 0x1b8, true),
+      wheelSpeed: v.getInt32(car + 0x1bc, true),
+      fuel: v.getInt32(car + 0x23c, true),
+      yaw: v.getUint16(car + 0x1d4, true),
+      slipAngle: v.getInt16(car + 0x1d6, true),
+      driftRate: v.getInt16(car + 0x1d2, true),
+      runtimeFlags: v.getUint32(car + 0x1f8, true),
+    },
+    worldVelocity: [0, 1, 2, 3].map((index) => v.getInt32(car + 0xf0 + index * 4, true)) as unknown as NativeRaceVector,
+  };
 }
 
 test("camera trace schema feeds the production chase-camera seam", () => {
@@ -201,6 +286,55 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
           browserSceneFlags = browserResult.sceneFlags;
           palSceneFlags = palResult.sceneFlags;
         }
+      }
+    } finally {
+      opened.close();
+    }
+  }, 120_000);
+
+  test("free-roam native motion boundary matches the PAL scalar vehicle call", async () => {
+    const opened = await openPalDisc(binPath!);
+    try {
+      const executable = await opened.disc.readFile("SLES_513.56");
+      const authority = readNativeDrivingMotionAuthority(executable);
+      const equipment = authority.equipment([0, 0, 0, 0, 0, 0, 0]);
+      const motion = new NativeDrivingMotion(authority, 0);
+      const machine = new PalScalarMachine(executable);
+      let palState = createNativeRaceVehicleState(0);
+      let palVelocity: NativeRaceVector = [0, 0, 0, 0];
+
+      for (let tick = 0; tick < 120; tick += 1) {
+        const throttle = tick < 100 ? 1 : 0;
+        const steering = tick < 40 ? 0 : tick < 80 ? 1 : -1;
+        const commands = (throttle > 0 ? 1 : 0)
+          | (steering > 0 ? 0x2000 : steering < 0 ? 0x8000 : 0);
+        const yawRadians = Math.fround(
+          Math.fround((palState.yaw << 16 >> 16) * authority.yawScale) / 32768,
+        );
+        const matrix = nativeRaceYawMatrix(yawRadians, authority.math);
+        const inverse = inverseNativeRaceMatrix(matrix);
+        const localVelocity = transformNativeRaceIntegerVector(inverse, palVelocity);
+        const drag = nativeRaceDrag(localVelocity[2], localVelocity[0], equipment.mass, 0, 0, 0);
+        const pal = palScalarMotionStep(
+          machine,
+          palState,
+          equipment,
+          matrix,
+          drag.forward,
+          drag.side,
+          commands,
+          89,
+        );
+        const browser = motion.step({
+          throttle,
+          steering,
+          surfaceKind: "paved-road",
+          contact: { driveContact: true, accelerationY: 89, allowsYaw: true },
+        });
+        expect(browser.nativeVehicle, `tick ${tick} vehicle state`).toEqual(pal.state);
+        expect(browser.nativeVelocity, `tick ${tick} world velocity`).toEqual(pal.worldVelocity);
+        palState = pal.state;
+        palVelocity = pal.worldVelocity;
       }
     } finally {
       opened.close();

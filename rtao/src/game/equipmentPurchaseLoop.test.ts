@@ -3,6 +3,8 @@ import { DialogueRuntimeState } from "../formats/dialogue";
 import { purchaseIndexedItem, RecoveredCommerceState } from "./commerceProgress";
 import { createRecoveredDialogueStateSave, restoreRecoveredDialogueStateSave } from "./dialogueProgress";
 import { ArcadeCarController } from "./drivingGame";
+import { nativeDrivingFixedStepSeconds } from "./nativeDrivingMotion";
+import { syntheticNativeDrivingMotionAuthority } from "./nativeDrivingMotion.testSupport";
 import { fitOwnedNativeEquipmentPart, RecoveredEquipmentState } from "./equipmentProgress";
 import { applyNativeDrivingEquipment } from "./nativeDrivingEquipment";
 import { RecoveredRaceState } from "./raceProgress";
@@ -17,9 +19,9 @@ function flatWorld(): DrivingWorld {
 }
 
 function firstUpdateSpeed(equipment: RecoveredEquipmentState): number {
-  const car = new ArcadeCarController(flatWorld());
+  const car = new ArcadeCarController(flatWorld(), syntheticNativeDrivingMotionAuthority());
   applyNativeDrivingEquipment(car, equipment);
-  car.update(1 / 60, { throttle: 1, steering: 0, boost: false });
+  car.update(nativeDrivingFixedStepSeconds, { throttle: 1, steering: 0, boost: false });
   return car.state.speed;
 }
 describe("Peach equipment purchase loop", () => {
@@ -47,7 +49,7 @@ describe("Peach equipment purchase loop", () => {
 
     const baselineSpeed = firstUpdateSpeed(new RecoveredEquipmentState());
     const upgradedSpeed = firstUpdateSpeed(equipment);
-    expect(upgradedSpeed / baselineSpeed).toBeCloseTo(1_800 / 1_500, 8);
+    expect(upgradedSpeed).toBeGreaterThan(baselineSpeed);
 
     const save = createRecoveredDialogueStateSave(
       ownership,

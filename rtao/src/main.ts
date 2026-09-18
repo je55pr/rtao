@@ -1340,15 +1340,27 @@ async function toggleDriving(): Promise<void> {
     stopDrivingSession();
     return;
   }
-  if (!worldView || !drivingWorld || !activeDirectory) throw new Error("The persistent world is not ready yet.");
+  if (!worldView || !drivingWorld || !activeDirectory || !activeExecutableBytes) {
+    throw new Error("The persistent world and PAL executable are not ready yet.");
+  }
   driveToggle.disabled = true;
   driveToggle.textContent = "Loading Q62…";
   if (!playerCar) {
     playerCar = await ensurePlayerCarModel();
     console.info(`Q62 decoded: ${playerCar.primitiveCount.toLocaleString()} strips, ${playerCar.triangleCount.toLocaleString()} body/wheel triangles; bounds ${JSON.stringify(playerCar.localBounds)}.`);
   }
-  const { BrowserDrivingGame: BrowserDrivingGameClass } = await import("./game/drivingGame");
-  drivingGame = new BrowserDrivingGameClass(drivingWorld, worldView, playerCar, handleDriveState, semanticInput);
+  const [{ BrowserDrivingGame: BrowserDrivingGameClass }, { readNativeDrivingMotionAuthority }] = await Promise.all([
+    import("./game/drivingGame"),
+    import("./game/nativeDrivingMotion"),
+  ]);
+  drivingGame = new BrowserDrivingGameClass(
+    drivingWorld,
+    worldView,
+    playerCar,
+    handleDriveState,
+    semanticInput,
+    readNativeDrivingMotionAuthority(activeExecutableBytes),
+  );
   drivingGame.setPartPerformance(aggregatePartPerformance(equippedParts));
   applyNativeDrivingEquipment(drivingGame, playerEquipmentState);
   advertisingDistanceTracker.reset();

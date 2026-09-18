@@ -1,9 +1,10 @@
 import type { Q62CarModel } from "./carView";
-import { nativeBrakeForceFraction, nativeBrakeHoldUpdates, nativeBrakeProfile } from "./nativeBrakePerformance";
-import { nativeChassisForceResponseRatio } from "./nativeChassisPerformance";
-import { nativeEngineAccelerationRatio, nativeSteeringRatio } from "./nativeEquipmentPerformance";
-import { nativeTransmissionLaunchAccelerationRatio, nativeTransmissionTopSpeedRatio } from "./nativeTransmissionPerformance";
-import { nativeTyreContactThreshold, nativeTyreGripMultiplier } from "./nativeTyrePerformance";
+import {
+  NativeDrivingMotion,
+  nativeDrivingFixedStepSeconds,
+  type NativeDrivingMotionAuthority,
+} from "./nativeDrivingMotion";
+import { nativeTyreContactThreshold } from "./nativeTyrePerformance";
 import type { PartPerformance } from "./parts";
 import type { DrivingSurfaceKind, DrivingWorld, Vec3 } from "./worldCollision";
 import { BrowserSemanticInput, type SemanticActionEvent, type SemanticInputScope } from "../input/semanticInput";
@@ -37,27 +38,19 @@ export interface CarState {
   readonly distanceTravelled: number;
 }
 
-const standardPartPerformance: PartPerformance = {
-  acceleration: 1,
-  topSpeed: 1,
-  steering: 1,
-  braking: 1,
-  pavedGrip: 1,
-  offroadGrip: 1,
-};
-
 export class ArcadeCarController {
   private mutable: CarState;
-  private partPerformance: PartPerformance = standardPartPerformance;
+  private readonly motion: NativeDrivingMotion;
   private nativeTyreSelector = 0;
-  private nativeEngineSelector = 0;
-  private nativeChassisSelector = 0;
-  private nativeTransmissionSelector = 0;
-  private nativeSteeringSelector = 0;
-  private nativeBrakeSelector = 0;
-  private nativeBrakeHeldUpdates = 0;
 
-  constructor(private readonly world: DrivingWorld, fieldNumber = 223, position: Vec3 = { x: 1152, y: 31, z: 555 }, yaw = -0.1) {
+  constructor(
+    private readonly world: DrivingWorld,
+    motionAuthority: NativeDrivingMotionAuthority,
+    fieldNumber = 223,
+    position: Vec3 = { x: 1152, y: 31, z: 555 },
+    yaw = -0.1,
+  ) {
+    this.motion = new NativeDrivingMotion(motionAuthority, yaw);
     const resolved = world.resolveFootprint(fieldNumber, position, yaw, position.y, nativeTyreContactThreshold(this.nativeTyreSelector));
     const resolvedFieldNumber = resolved?.fieldNumber ?? fieldNumber;
     this.mutable = {
@@ -78,41 +71,34 @@ export class ArcadeCarController {
 
   get state(): CarState { return this.mutable; }
 
-  setPartPerformance(performance: PartPerformance): void {
-    this.partPerformance = performance;
+  setPartPerformance(_performance: PartPerformance): void {
+    // The development PartPerformance multipliers are intentionally excluded
+    // from recovered motion. Native selectors below are the movement authority.
   }
 
   setNativeTyreSelector(selector: number): void {
-    // nativeTyreGripMultiplier validates the executable catalogue selector.
-    nativeTyreGripMultiplier(selector, "paved-road");
+    this.motion.setSelector(1, selector);
     this.nativeTyreSelector = selector;
   }
 
   setNativeEngineSelector(selector: number): void {
-    nativeEngineAccelerationRatio(selector);
-    this.nativeEngineSelector = selector;
+    this.motion.setSelector(2, selector);
   }
 
   setNativeChassisSelector(selector: number): void {
-    nativeChassisForceResponseRatio(selector, this.nativeTyreSelector);
-    this.nativeChassisSelector = selector;
+    this.motion.setSelector(3, selector);
   }
 
   setNativeTransmissionSelector(selector: number): void {
-    nativeTransmissionLaunchAccelerationRatio(selector);
-    nativeTransmissionTopSpeedRatio(selector);
-    this.nativeTransmissionSelector = selector;
+    this.motion.setSelector(4, selector);
   }
 
   setNativeSteeringSelector(selector: number): void {
-    nativeSteeringRatio(selector);
-    this.nativeSteeringSelector = selector;
+    this.motion.setSelector(5, selector);
   }
 
   setNativeBrakeSelector(selector: number): void {
-    nativeBrakeProfile(selector); // validate against the executable catalogue.
-    if (selector !== this.nativeBrakeSelector) this.nativeBrakeHeldUpdates = 0;
-    this.nativeBrakeSelector = selector;
+    this.motion.setSelector(6, selector);
   }
 
   enterArea(fieldNumber: number, position: { readonly x: number; readonly z: number }): void {
@@ -130,7 +116,7 @@ export class ArcadeCarController {
       current.position.y,
       nativeTyreContactThreshold(this.nativeTyreSelector),
     );
-    this.nativeBrakeHeldUpdates = 0;
+    this.motion.reset(current.yaw);
     this.mutable = {
       location: { kind: "special-outdoor", areaCode },
       fieldNumber: -1,
@@ -153,7 +139,7 @@ export class ArcadeCarController {
   }
 
   private relocate(fieldNumber: number, position: Vec3, yaw: number): void {
-    this.nativeBrakeHeldUpdates = 0;
+    this.motion.reset(yaw);
     const resolved = this.world.resolveFootprint(fieldNumber, position, yaw, position.y, nativeTyreContactThreshold(this.nativeTyreSelector));
     const resolvedFieldNumber = resolved?.fieldNumber ?? fieldNumber;
     this.mutable = {
@@ -173,62 +159,41 @@ export class ArcadeCarController {
   }
 
   update(dt: number, input: DriveInput): void {
+    if (Math.abs(dt - nativeDrivingFixedStepSeconds) > 1e-9) {
+      throw new RangeError(`Recovered driving motion requires the PAL 50 Hz fixed step; got ${dt}.`);
+    }
     const old = this.mutable;
     const throttle = clamp(input.throttle, -1, 1);
     const steering = clamp(input.steering, -1, 1);
-    const boost = input.boost ? 5 : 1;
     const surfaceKind = old.location.kind === "special-outdoor"
       ? this.world.specialOutdoorDrivingSurface(old.location.areaCode, old.position, old.position.y)
       : this.world.drivingSurface(old.fieldNumber, old.position, old.position.y);
-    const [baseForwardAcceleration, baseReverseAcceleration, coastDrag, baseMaxForwardSpeed] = surfaceKind === "dirt"
-      ? [8.4, 5.5, 3.4, 23.5]
-      : surfaceKind === "grass"
-        ? [6.2, 4.5, 5.8, 16]
-        : surfaceKind !== "paved-road"
-          ? [7.5, 5, 4.2, 20]
-          : [9.5, 6, 2.8, 28];
-    const compatibilityGrip = surfaceKind === "paved-road" || surfaceKind === "dry" ? this.partPerformance.pavedGrip : this.partPerformance.offroadGrip;
-    const grip = compatibilityGrip * nativeTyreGripMultiplier(this.nativeTyreSelector, surfaceKind);
-    const engineResponse = nativeEngineAccelerationRatio(this.nativeEngineSelector);
-    const massResponse = nativeChassisForceResponseRatio(this.nativeChassisSelector, this.nativeTyreSelector);
-    const transmissionLaunch = nativeTransmissionLaunchAccelerationRatio(this.nativeTransmissionSelector);
-    const transmissionTopSpeed = nativeTransmissionTopSpeedRatio(this.nativeTransmissionSelector);
-    const steeringResponse = nativeSteeringRatio(this.nativeSteeringSelector);
-    const forwardAcceleration = baseForwardAcceleration * this.partPerformance.acceleration * engineResponse * massResponse * transmissionLaunch * grip;
-    const reverseAcceleration = baseReverseAcceleration * this.partPerformance.acceleration * engineResponse * massResponse * transmissionLaunch * grip;
-    const maxForwardSpeed = baseMaxForwardSpeed * this.partPerformance.topSpeed * transmissionTopSpeed * (0.7 + grip * 0.3);
-    const brakeActive = throttle < 0;
-    this.nativeBrakeHeldUpdates = brakeActive ? Math.min(nativeBrakeHoldUpdates, this.nativeBrakeHeldUpdates + 1) : 0;
-    const opposingAcceleration = 18 * this.partPerformance.braking * massResponse * grip;
-    const braking = brakeActive
-      ? opposingAcceleration * nativeBrakeForceFraction(this.nativeBrakeSelector, this.nativeBrakeHeldUpdates)
-      : opposingAcceleration;
-    let speed = old.speed;
-    if (throttle > 0) {
-      speed = speed < -0.5 ? moveTowards(speed, 0, braking * boost * dt) : Math.min(maxForwardSpeed * boost, speed + forwardAcceleration * boost * dt);
-    } else if (throttle < 0) {
-      speed = speed > 0.5 ? moveTowards(speed, 0, braking * boost * dt) : Math.max(-9 * boost, speed - reverseAcceleration * boost * dt);
-    } else {
-      speed = moveTowards(speed, 0, coastDrag * boost * dt);
-    }
-    if (!input.boost) {
-      if (speed > maxForwardSpeed) speed = moveTowards(speed, maxForwardSpeed, 90 * dt);
-      else if (speed < -9) speed = moveTowards(speed, -9, 90 * dt);
-    }
-    const steeringAngle = moveTowards(old.steeringAngle, -steering * Math.min(0.72, 0.48 * this.partPerformance.steering * steeringResponse), 3.4 * this.partPerformance.steering * steeringResponse * dt);
+    const motion = this.motion.step({
+      throttle,
+      steering,
+      surfaceKind,
+      contact: {
+        // Free-roam still uses the browser footprint bridge, not PAL's seven-
+        // probe support solver. 89 is PAL's recovered gravity quantum and is
+        // used here only as the explicit level-support compatibility input.
+        driveContact: true,
+        accelerationY: 89,
+        allowsYaw: true,
+      },
+    });
+
+    // Shift/RB is a browser development traversal aid, not a recovered PAL
+    // equipment path. Keep it outside native state so it cannot amplify yaw.
+    const developerTravelScale = input.boost ? 5 : 1;
+    let speed = motion.speed * developerTravelScale;
+    const yaw = motion.yaw;
+    const moveX = motion.deltaX * developerTravelScale;
+    const moveZ = motion.deltaZ * developerTravelScale;
+    // Wheel animation is downstream of the recovered frame boundary. Retain a
+    // presentation-only projection of recovered steering/speed until recovered.
+    const steeringAngle = -motion.steeringFraction * 0.48;
     let wheelSpin = old.wheelSpin - speed * dt / 0.355;
     if (Math.abs(wheelSpin) > Math.PI * 2) wheelSpin %= Math.PI * 2;
-    let yaw = old.yaw;
-    const speedFraction = clamp(Math.abs(speed) / 12, 0, 1);
-    if (speedFraction > 0.02 && Math.abs(steering) > 0.01) {
-      const direction = speed >= 0 ? 1 : -1;
-      const turnRate = lerp(0.45, 1.65, speedFraction) * this.partPerformance.steering * steeringResponse * Math.sqrt(grip);
-      const turnScale = clamp(Math.abs(speed) / maxForwardSpeed, 1, 5);
-      yaw -= steering * direction * turnRate * turnScale * dt;
-    }
-
-    const forwardX = Math.sin(yaw), forwardZ = Math.cos(yaw);
-    const moveX = forwardX * speed * dt, moveZ = forwardZ * speed * dt;
     const candidate = { x: old.position.x + moveX, y: old.position.y, z: old.position.z + moveZ };
     const contactThreshold = nativeTyreContactThreshold(this.nativeTyreSelector);
     const resolveCandidate = (position: Vec3) => old.location.kind === "special-outdoor"
@@ -244,6 +209,10 @@ export class ArcadeCarController {
     }
     if (!resolved) {
       speed = 0;
+      // Full PAL outdoor contact/obstacle response is not recovered. When the
+      // existing footprint bridge rejects all movement, stop native translation
+      // rather than inventing a bounce or impulse.
+      this.motion.haltTranslation();
       resolved = { position: old.position, y: old.position.y, surfaceFlags: old.surfaceFlags };
     }
 
@@ -314,8 +283,9 @@ export class BrowserDrivingGame {
     private readonly car: Q62CarModel,
     private readonly onState: (state: CarState) => void,
     private readonly input: BrowserSemanticInput,
+    motionAuthority: NativeDrivingMotionAuthority,
   ) {
-    this.controller = new ArcadeCarController(world);
+    this.controller = new ArcadeCarController(world, motionAuthority);
     this.controls = input.createScope();
   }
 
@@ -392,10 +362,9 @@ export class BrowserDrivingGame {
     }
     this.accumulator += Math.min(0.1, (time - this.lastTime) / 1000);
     this.lastTime = time;
-    const fixedStep = 1 / 60;
-    while (this.accumulator >= fixedStep) {
-      this.controller.update(fixedStep, this.driveInput());
-      this.accumulator -= fixedStep;
+    while (this.accumulator >= nativeDrivingFixedStepSeconds) {
+      this.controller.update(nativeDrivingFixedStepSeconds, this.driveInput());
+      this.accumulator -= nativeDrivingFixedStepSeconds;
     }
     this.applyState(this.controller.state, false);
     this.frameHandle = requestAnimationFrame(this.frame);
@@ -442,4 +411,3 @@ export class BrowserDrivingGame {
 }
 function moveTowards(value: number, target: number, amount: number): number { return value < target ? Math.min(target, value + amount) : value > target ? Math.max(target, value - amount) : target; }
 function clamp(value: number, minimum: number, maximum: number): number { return Math.max(minimum, Math.min(maximum, value)); }
-function lerp(a: number, b: number, t: number): number { return a + (b - a) * t; }
