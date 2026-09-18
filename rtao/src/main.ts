@@ -1,4 +1,6 @@
 import "./styles.css";
+import { BrowserAudioRuntime, installBrowserAudioUnlock } from "./audio/browserAudio";
+import { NativeSfxRuntime, type NativeSfxEvent } from "./audio/nativeSfx";
 import { installAppShell } from "./app/appShell";
 import { diagnosticsReportText, FrameRateSampler, liveDiagnosticsRows } from "./app/debugDiagnostics";
 import { DeterministicCaptureController } from "./app/deterministicCaptureController";
@@ -147,6 +149,8 @@ const quickPicPhotoActionOpcode = 0x11;
 const advertisingRewardActionOpcode = 0x16;
 const transitionActionOpcode = 0x14;
 installAppShell(app);
+const audioRuntime = new BrowserAudioRuntime();
+installBrowserAudioUnlock(audioRuntime);
 const inputSettings = new InputSettings((() => {
   try {
     return window.localStorage;
@@ -246,6 +250,7 @@ let peachRaceResultOpen = false;
 let peachRaceSuspendedTownSession = false;
 let activeDirectory: FileSystemDirectoryHandle | undefined;
 let activeManifest: ImportManifest | undefined;
+let nativeSfxRuntime: NativeSfxRuntime | undefined;
 const loadedWorldFieldNumbers = new Set<number>();
 const loadingWorldFields = new Map<number, Promise<void>>();
 const loadedSpecialOutdoorAreaCodes = new Set<number>();
@@ -568,6 +573,7 @@ requiredElement<HTMLButtonElement>("remove-install").addEventListener("click", a
   drivingWorld = undefined;
   activeDirectory = undefined;
   activeManifest = undefined;
+  nativeSfxRuntime = undefined;
   playerDialogueState = undefined;
   playerEquipmentState = undefined;
   playerCommerceState = undefined;
@@ -580,6 +586,30 @@ requiredElement<HTMLButtonElement>("remove-install").addEventListener("click", a
 
 if (!(import.meta.env.DEV && new URLSearchParams(location.search).has("devdisc"))) {
   void importController.restore();
+}
+
+function playNativeSfx(event: NativeSfxEvent): void {
+  nativeSfxRuntime?.dispatch(event);
+}
+
+function dispatchNativeSfxRequest(request: number): void {
+  nativeSfxRuntime?.dispatchPackedRequest(request);
+}
+
+async function loadNativeSfx(directory: FileSystemDirectoryHandle): Promise<void> {
+  try {
+    const [cqMainTsq, cqMainTvb, actionTsq, actionTvb] = await Promise.all([
+      readBytes(directory, "game/SOUND/CQ_MAIN.TSQ"),
+      readBytes(directory, "game/SOUND/CQ_MAIN.TVB"),
+      readBytes(directory, "game/SOUND/ACTION.TSQ"),
+      readBytes(directory, "game/SOUND/ACTION.TVB"),
+    ]);
+    nativeSfxRuntime = NativeSfxRuntime.fromAssets(audioRuntime, { cqMainTsq, cqMainTvb, actionTsq, actionTvb });
+    console.info("Native SFX: validated CQ_MAIN/ACTION request routes from the local PAL install.");
+  } catch (error) {
+    nativeSfxRuntime = undefined;
+    console.warn("Native SFX is unavailable; gameplay will continue without sound effects.", error);
+  }
 }
 
 async function showInstalled(manifest: ImportManifest): Promise<void> {
@@ -639,6 +669,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   const directory = await currentImportDirectory(upgradedManifest);
   activeDirectory = directory;
   activeManifest = upgradedManifest;
+  await loadNativeSfx(directory);
   equippedParts = await loadDevelopmentParts(directory);
   recoveredProgressStore = await RecoveredProgressStore.restore(directory);
   playerDialogueState = recoveredProgressStore.dialogueState;
@@ -1165,6 +1196,11 @@ function runPeachRaceFrame(timestamp: number): void {
   while (peachRaceAccumulatorMs >= 20) {
     const step = peachRaceCoordinator.step({ sceneTime: peachRaceSceneTime++, playerCommands: peachRaceCommandMask() });
     applyPeachRaceStartUiStates(step.session.countdown?.uiStateIndices ?? []);
+    if (step.session.countdown?.soundCue === 45) playNativeSfx("race-countdown");
+    for (const frame of step.session.frames) {
+      for (const request of frame.frame.soundRequests) dispatchNativeSfxRequest(request);
+      if (frame.carIndex === 0 && frame.completedLap) playNativeSfx("race-lap");
+    }
     peachRaceAccumulatorMs -= 20;
     applyPeachRaceResultIfReady();
     if (peachRaceResultOpen) {
@@ -1656,12 +1692,15 @@ function movePlayShellFocus(direction: number): void {
   const controls = playShellControls();
   const currentIndex = controls.findIndex((control) => control === document.activeElement);
   const nextIndex = moveNavigationIndex(controls, currentIndex, direction);
+  if (nextIndex !== currentIndex) playNativeSfx("menu-navigate");
   focusNavigationEntry(controls, nextIndex);
 }
 
 function adjustActivePlayShellSelect(direction: number): boolean {
   if (document.activeElement !== worldLocation) return false;
-  worldLocation.selectedIndex = cycleOptionIndex(worldLocation.selectedIndex, worldLocation.options.length, direction);
+  const previousIndex = worldLocation.selectedIndex;
+  worldLocation.selectedIndex = cycleOptionIndex(previousIndex, worldLocation.options.length, direction);
+  if (worldLocation.selectedIndex !== previousIndex) playNativeSfx("menu-navigate");
   worldLocation.dispatchEvent(new Event("change", { bubbles: true }));
   return true;
 }
@@ -1801,13 +1840,16 @@ function movePauseRootFocus(direction: number): void {
   const controls = pauseRootControls();
   const currentIndex = controls.findIndex((control) => control === document.activeElement);
   const nextIndex = moveNavigationIndex(controls, currentIndex, direction);
+  if (nextIndex !== currentIndex) playNativeSfx("menu-navigate");
   focusNavigationEntry(controls, nextIndex);
 }
 
 function adjustActivePauseSelect(direction: number): boolean {
   const active = document.activeElement;
   if (!(active instanceof HTMLSelectElement) || !pauseRoot.contains(active)) return false;
-  active.selectedIndex = cycleOptionIndex(active.selectedIndex, active.options.length, direction);
+  const previousIndex = active.selectedIndex;
+  active.selectedIndex = cycleOptionIndex(previousIndex, active.options.length, direction);
+  if (active.selectedIndex !== previousIndex) playNativeSfx("menu-navigate");
   active.dispatchEvent(new Event("change", { bubbles: true }));
   return true;
 }
@@ -1841,7 +1883,9 @@ function renderPauseWarpMenu(): void {
 }
 
 function movePauseWarpSelection(delta: number): void {
+  const previousIndex = pauseWarpState.selectedIndex;
   pauseWarpState = moveWarpMenuSelection(pauseWarpState, delta);
+  if (pauseWarpState.selectedIndex !== previousIndex) playNativeSfx("menu-navigate");
   renderPauseWarpMenu();
   focusSelectedWarpButton();
 }
@@ -2029,6 +2073,7 @@ function handleDialogueInput(event: SemanticActionEvent): void {
         keepQuickPicPhoto();
       } else if (event.action === "cancel") {
         event.consume();
+        playNativeSfx("menu-cancel");
         cancelQuickPicPhoto();
       }
       return;
@@ -2051,6 +2096,7 @@ function handleDialogueInput(event: SemanticActionEvent): void {
         purchaseSelectedPaint();
       } else if (event.action === "cancel") {
         event.consume();
+        playNativeSfx("menu-cancel");
         finishPaintShopSelector(false);
       }
       return;
@@ -2058,25 +2104,34 @@ function handleDialogueInput(event: SemanticActionEvent): void {
     if (partsShopSession) {
       if (event.action === "left") {
         event.consume();
+        const previous = partsShopSession.categoryIndex;
         partsShopSession.moveCategory(-1);
+        if (partsShopSession.categoryIndex !== previous) playNativeSfx("menu-navigate");
         renderPartsShopCatalogue();
       } else if (event.action === "right") {
         event.consume();
+        const previous = partsShopSession.categoryIndex;
         partsShopSession.moveCategory(1);
+        if (partsShopSession.categoryIndex !== previous) playNativeSfx("menu-navigate");
         renderPartsShopCatalogue();
       } else if (event.action === "up") {
         event.consume();
+        const previous = partsShopSession.itemIndex;
         partsShopSession.moveItem(-1);
+        if (partsShopSession.itemIndex !== previous) playNativeSfx("menu-navigate");
         renderPartsShopCatalogue();
       } else if (event.action === "down") {
         event.consume();
+        const previous = partsShopSession.itemIndex;
         partsShopSession.moveItem(1);
+        if (partsShopSession.itemIndex !== previous) playNativeSfx("menu-navigate");
         renderPartsShopCatalogue();
       } else if (isConfirmInput(event)) {
         event.consume();
         purchaseSelectedPart();
       } else if (event.action === "cancel") {
         event.consume();
+        playNativeSfx("menu-cancel");
         finishPartsShopCatalogue();
       }
       return;
@@ -2084,17 +2139,22 @@ function handleDialogueInput(event: SemanticActionEvent): void {
     if (bodyShopSession) {
       if (event.action === "left" || event.action === "up") {
         event.consume();
+        const previous = bodyShopSession.itemIndex;
         bodyShopSession.moveItem(-1);
+        if (bodyShopSession.itemIndex !== previous) playNativeSfx("menu-navigate");
         renderBodyShopCatalogue();
       } else if (event.action === "right" || event.action === "down") {
         event.consume();
+        const previous = bodyShopSession.itemIndex;
         bodyShopSession.moveItem(1);
+        if (bodyShopSession.itemIndex !== previous) playNativeSfx("menu-navigate");
         renderBodyShopCatalogue();
       } else if (isConfirmInput(event)) {
         event.consume();
         purchaseSelectedBody();
       } else if (event.action === "cancel") {
         event.consume();
+        playNativeSfx("menu-cancel");
         finishBodyShopCatalogue();
       }
       return;
@@ -2111,6 +2171,7 @@ function handleDialogueInput(event: SemanticActionEvent): void {
         finishShopNumericChoice();
       } else if (event.action === "cancel") {
         event.consume();
+        playNativeSfx("menu-cancel");
         endShopInteriorPreview();
       }
       return;
@@ -2119,10 +2180,12 @@ function handleDialogueInput(event: SemanticActionEvent): void {
     if (event.action === "up" && choices.length) {
       event.consume();
       shopInteriorSession.choiceIndex = (shopInteriorSession.choiceIndex - 1 + choices.length) % choices.length;
+      playNativeSfx("menu-navigate");
       renderShopInteriorDialogue();
     } else if (event.action === "down" && choices.length) {
       event.consume();
       shopInteriorSession.choiceIndex = (shopInteriorSession.choiceIndex + 1) % choices.length;
+      playNativeSfx("menu-navigate");
       renderShopInteriorDialogue();
     } else if (isConfirmInput(event)) {
       event.consume();
@@ -2133,12 +2196,17 @@ function handleDialogueInput(event: SemanticActionEvent): void {
       } else advanceShopInteriorDialogue();
     } else if (event.action === "cancel") {
       event.consume();
+      playNativeSfx("menu-cancel");
       endShopInteriorPreview();
     }
     return;
   }
   if (shopInteriorPreviewLoading) {
-    if (event.action === "cancel") { event.consume(); endShopInteriorPreview(); }
+    if (event.action === "cancel") {
+      event.consume();
+      playNativeSfx("menu-cancel");
+      endShopInteriorPreview();
+    }
     return;
   }
   // A room whose executable stream is not decoded yet still remains a safe,
@@ -2146,6 +2214,7 @@ function handleDialogueInput(event: SemanticActionEvent): void {
   if (shopInteriorPreviewInteraction) {
     if (event.action === "cancel" || isConfirmInput(event)) {
       event.consume();
+      playNativeSfx(event.action === "cancel" ? "menu-cancel" : "menu-confirm");
       endShopInteriorPreview();
     }
     return;
@@ -2183,10 +2252,12 @@ function handleDialogueInput(event: SemanticActionEvent): void {
     if (event.action === "up" && choices.length) {
       event.consume();
       qFactorySession.choiceIndex = (qFactorySession.choiceIndex - 1 + choices.length) % choices.length;
+      playNativeSfx("menu-navigate");
       renderQFactoryDialogue();
     } else if (event.action === "down" && choices.length) {
       event.consume();
       qFactorySession.choiceIndex = (qFactorySession.choiceIndex + 1) % choices.length;
+      playNativeSfx("menu-navigate");
       renderQFactoryDialogue();
     } else if (isConfirmInput(event)) {
       event.consume();
@@ -2195,6 +2266,7 @@ function handleDialogueInput(event: SemanticActionEvent): void {
       else advanceQFactoryDialogue();
     } else if (event.action === "cancel") {
       event.consume();
+      playNativeSfx("menu-cancel");
       if (qFactorySession.flow.currentExternalAction?.opcode === raceSelectActionOpcode) returnFromQFactoryHostAction();
       else endQFactoryInterior();
     }
@@ -2202,7 +2274,11 @@ function handleDialogueInput(event: SemanticActionEvent): void {
   }
   if (activeDialogue) {
     if (isConfirmInput(event)) { event.consume(); advanceResidentDialogue(); }
-    else if (event.action === "cancel") { event.consume(); endResidentDialogue(); }
+    else if (event.action === "cancel") {
+      event.consume();
+      playNativeSfx("menu-cancel");
+      endResidentDialogue();
+    }
     return;
   }
   if (event.action !== "interact" || !isDriving || !drivingGame) return;
@@ -2213,6 +2289,7 @@ function handleDialogueInput(event: SemanticActionEvent): void {
 
 function startResidentDialogue(speaker: string, pages: string[]): void {
   activeDialogue = { speaker, pages, pageIndex: 0 };
+  playNativeSfx("dialogue-open");
   drivingGame?.setPaused(true);
   worldSimulation?.setPaused(true);
   renderResidentDialogue();
@@ -2222,6 +2299,7 @@ function startResidentDialogue(speaker: string, pages: string[]): void {
 
 function advanceResidentDialogue(): void {
   if (!activeDialogue) return;
+  playNativeSfx("interaction-advance");
   if (activeDialogue.pageIndex + 1 < activeDialogue.pages.length) {
     activeDialogue.pageIndex += 1;
     renderResidentDialogue();
@@ -2334,6 +2412,7 @@ async function startShopInteriorPreview(interaction: FixedInteractionDefinition)
       const flow = new DialogueFlowClass(entity, state, probeSlot ?? fixedInteriorStartSlot(entity));
       shopInteriorSession = { flow, choiceIndex: defaultChoiceIndex(flow.currentChoices), interaction, entity };
       queueRecoveredProgressSave();
+      playNativeSfx("dialogue-open");
       requiredElement<HTMLElement>("factory-speaker").textContent = entity.name;
       renderShopInteriorDialogue();
       console.info(`${interaction.name} fixed interior start: ${packagePath} slot ${interaction.localIndex}, dialogue '${entity.name}' entity ${entity.entityIndex}${probeSlot ? ` probe slot 0x${probeSlot.toString(16).padStart(2, "0")}` : ""}, ${backdrop.width}x${backdrop.height}, ${backdrop.dmaPacketCount} DMA packets; outdoor state paused.`);
@@ -2403,6 +2482,7 @@ function endShopInteriorPreview(): void {
 function advanceShopInteriorDialogue(): void {
   const session = shopInteriorSession;
   if (!session || session.flow.currentChoices.length || session.flow.currentExternalAction) return;
+  playNativeSfx("interaction-advance");
   session.flow.advance();
   if (session.flow.ended) endShopInteriorPreview();
   else renderShopInteriorDialogue();
@@ -2414,6 +2494,7 @@ function chooseShopInteriorDialogue(index: number): void {
   const selected = session.flow.currentChoices[index];
   if (!selected) return;
   console.info(`${session.entity.name} dialogue: slot 0x${session.flow.currentSlot.toString(16).padStart(2, "0")} '${selected.text}' -> 0x${selected.targetSlot.toString(16).padStart(2, "0")}.`);
+  playNativeSfx("menu-confirm");
   session.flow.choose(index);
   queueRecoveredProgressSave();
   if (session.flow.ended) { endShopInteriorPreview(); return; }
@@ -2574,7 +2655,9 @@ function keepQuickPicPhoto(): void {
 function moveShopNumericChoice(direction: -1 | 1): void {
   const session = shopNumericChoiceSession;
   if (!session) return;
+  const previous = session.value;
   session.value = stepNativeNumericChoice(session.value, direction);
+  if (session.value !== previous) playNativeSfx("menu-navigate");
   renderShopNumericChoice();
 }
 
@@ -2592,6 +2675,7 @@ function finishShopNumericChoice(): void {
   const interior = shopInteriorSession;
   const numeric = shopNumericChoiceSession;
   if (!interior || !numeric || interior.flow.currentExternalAction !== numeric.action) return;
+  playNativeSfx("menu-confirm");
   const target = nativeNumericChoiceTarget(numeric.action, numeric.value);
   console.info(`${interior.entity.name} numeric selection ${numeric.value} returned to slot 0x${target.toString(16).padStart(2, "0")}.`);
   shopNumericChoiceSession = undefined;
@@ -2729,6 +2813,7 @@ function purchaseSelectedPart(): void {
   const ownership = playerDialogueState;
   const commerce = playerCommerceState;
   if (!session || !ownership || !commerce) return;
+  playNativeSfx("menu-confirm");
   const selected = session.selectedItem;
   if (secondHandShopActive) {
     const result = sellIndexedPart(ownership, commerce, selected.nativeCategory, selected.nativeItemIndex, selected.priceCake);
@@ -2846,6 +2931,7 @@ function purchaseSelectedBody(): void {
   const ownership = playerDialogueState;
   const commerce = playerCommerceState;
   if (!session || !ownership || !commerce) return;
+  playNativeSfx("menu-confirm");
   const selected = session.selectedItem;
   const result = purchaseIndexedItem(ownership, commerce, 0, selected.bodyId, selected.priceCake);
   renderBodyShopCatalogue();
@@ -3000,6 +3086,7 @@ function renderPaintShopSelector(message?: string): void {
 function movePaintShopCursor(direction: -1 | 1): void {
   const index = paintShopCursor.kind === "wheel" ? 6 : paintShopCursor.tone * 3 + paintShopCursor.channel;
   const next = (index + direction + 7) % 7;
+  playNativeSfx("menu-navigate");
   paintShopCursor = next === 6
     ? { kind: "wheel" }
     : { kind: "body", tone: Math.floor(next / 3) as NativePaintTone, channel: (next % 3) as NativePaintChannel };
@@ -3009,8 +3096,10 @@ function movePaintShopCursor(direction: -1 | 1): void {
 function stepPaintShopChannel(direction: -1 | 1): void {
   const session = paintShopSession;
   if (!session) return;
+  const previous = session.draftWord;
   if (paintShopCursor.kind === "wheel") session.stepWheelPaint(direction);
   else session.stepChannel(paintShopCursor.tone, paintShopCursor.channel, direction);
+  if (session.draftWord !== previous) playNativeSfx("menu-navigate");
   renderPaintShopSelector();
   previewPaintShopWord(session.draftWord);
 }
@@ -3020,6 +3109,7 @@ function purchaseSelectedPaint(): void {
   const equipment = playerEquipmentState;
   const commerce = playerCommerceState;
   if (!session || !equipment || !commerce) return;
+  playNativeSfx("menu-confirm");
   const result = purchasePaint(equipment, commerce, session.draftWord);
   if (result.status === "insufficient-funds") {
     renderPaintShopSelector(`Paint costs ${result.priceCake} Cake; only ${result.cakeBefore.toLocaleString("en-US")} Cake is available. Nothing was changed.`);
@@ -3117,6 +3207,7 @@ function renderShopInteriorDialogue(): void {
       }
     }
     if (dialogueChanged || equipmentChanged) {
+      if (equipmentChanged && external.opcode === 0x15) playNativeSfx("equipment-fit");
       queueRecoveredProgressSave();
       if (external.opcode === 0x07) {
         console.info(`${session.entity.name} original indexed progress [${external.operands[0] ?? 0},${external.operands[1] ?? 0}] stored in the browser install.`);
@@ -3257,6 +3348,7 @@ async function startQFactoryInterior(interaction: FixedInteractionDefinition): P
     const flow = new DialogueFlowClass(dialogueEntity, playerDialogueState, 0x04);
     qFactorySession = { flow, choiceIndex: defaultChoiceIndex(flow.currentChoices), interaction, raceOptionIndex: 0 };
     queueRecoveredProgressSave();
+    playNativeSfx("dialogue-open");
     renderQFactoryDialogue();
     console.info(`Q's Factory start: SHOP/T00 slot ${interaction.localIndex}, ${backdrop.width}x${backdrop.height}, ${backdrop.dmaPacketCount} DMA packets; outdoor state paused.`);
   } catch (error) {
@@ -3276,6 +3368,7 @@ async function startQFactoryInterior(interaction: FixedInteractionDefinition): P
 function advanceQFactoryDialogue(): void {
   const session = qFactorySession;
   if (!session || session.flow.currentChoices.length || session.flow.currentExternalAction) return;
+  playNativeSfx("interaction-advance");
   session.flow.advance();
   if (session.flow.ended) endQFactoryInterior();
   else renderQFactoryDialogue();
@@ -3287,6 +3380,7 @@ function chooseQFactoryDialogue(index: number): void {
   const selected = session.flow.currentChoices[index];
   if (!selected) return;
   console.info(`Q's Factory dialogue: slot 0x${session.flow.currentSlot.toString(16).padStart(2, "0")} '${selected.text}' -> 0x${selected.targetSlot.toString(16).padStart(2, "0")}.`);
+  playNativeSfx("menu-confirm");
   session.flow.choose(index);
   if (session.flow.ended) { endQFactoryInterior(); return; }
   session.choiceIndex = defaultChoiceIndex(session.flow.currentChoices);
@@ -3340,7 +3434,9 @@ function startChangeParts(): void {
 function movePartsCategory(direction: number): void {
   const session = changePartsSession;
   if (!session) return;
+  const previous = session.categoryIndex;
   session.categoryIndex = wrapIndex(session.categoryIndex + direction, session.catalogue.length);
+  if (session.categoryIndex !== previous) playNativeSfx("menu-navigate");
   session.partIndex = selectedNativeFittingPartIndex(session.catalogue[session.categoryIndex]!, session.draftSelectors);
   renderChangeParts();
 }
@@ -3349,7 +3445,9 @@ function movePartsSelection(direction: number): void {
   const session = changePartsSession;
   if (!session) return;
   const category = session.catalogue[session.categoryIndex]!;
+  const previous = session.partIndex;
   session.partIndex = wrapIndex(session.partIndex + direction, category.parts.length);
+  if (session.partIndex !== previous) playNativeSfx("menu-navigate");
   previewPartSelection(session.partIndex);
 }
 
@@ -3451,6 +3549,7 @@ function renderChangeParts(): void {
 function finishChangeParts(apply: boolean): void {
   const session = changePartsSession;
   if (!session) return;
+  playNativeSfx(apply ? "menu-confirm" : "menu-cancel");
   if (apply) {
     const ownership = playerDialogueState;
     const equipment = playerEquipmentState;
@@ -3477,7 +3576,10 @@ function finishChangeParts(apply: boolean): void {
 
     equippedParts = createPartLoadout(session.draft);
     applyEquippedParts();
-    if (fittedCount > 0) queueRecoveredProgressSave();
+    if (fittedCount > 0) {
+      playNativeSfx("equipment-fit");
+      queueRecoveredProgressSave();
+    }
     if (activeDirectory) {
       // Compatibility mirror for the older descriptive appearance layer. Native
       // selectors above are the authoritative recovered fitting state.
@@ -3563,6 +3665,7 @@ function moveQFactoryRaceSelection(direction: number): void {
   const availability = options.map((option) => ({ disabled: !qFactoryRaceLaunchSupported(option) }));
   const nextIndex = moveNavigationIndex(availability, session.raceOptionIndex, direction);
   if (nextIndex < 0) return;
+  if (nextIndex !== session.raceOptionIndex) playNativeSfx("menu-navigate");
   session.raceOptionIndex = nextIndex;
   renderQFactoryDialogue();
   const buttons = [...requiredElement<HTMLElement>("factory-choices").querySelectorAll<HTMLButtonElement>(".factory-race-choice")];
@@ -3575,6 +3678,7 @@ function selectQFactoryRace(index: number): void {
   if (!session || !action || action.opcode !== raceSelectActionOpcode) return;
   const option = qFactoryRaceChoices()[index];
   if (!option || !qFactoryRaceLaunchSupported(option)) return;
+  playNativeSfx("menu-confirm");
   session.raceOptionIndex = index;
   session.selectedRaceActivityId = option.activity.activityId;
   const { selectedTarget } = qFactoryRaceSelectionTargets(action);

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { closeSync, fstatSync, openSync, readSync } from "node:fs";
 import { describe, expect, test } from "vitest";
+import { NativeSfxRuntime, nativeSfxRoutes } from "../src/audio/nativeSfx";
 import { Iso9660Disc } from "../src/disc/iso9660";
 import { RawMode2SectorSource } from "../src/disc/randomAccess";
 import { decodePackedTsqRequest, readTsq, resolvePackedTsqRequest, tokenizeTsqBytecode } from "../src/formats/tsq";
@@ -113,6 +114,55 @@ describe.skipIf(!binPath)("PAL audio format authority", () => {
       const tokens = tokenizeTsqBytecode(cqMain.bytes, request40.entry.sequenceOffset);
       expect(tokens.map((token) => token.family)).toEqual(["flag-off", "key-off", "volume", "tone", "key-on", "step", "key-off", "end"]);
       expect(tokens[3]?.immediateBytes).toEqual([0x12]);
+    } finally {
+      close();
+    }
+  });
+
+  test("pins the recovered common SFX requests to their PAL TSQ priority, tone, and TVB span", async () => {
+    const { disc, close } = await openDisc();
+    try {
+      const banks = new Map([
+        [0, { tsq: readTsq(await disc.readFile("SOUND/CQ_MAIN.TSQ")), tvb: readTvb(await disc.readFile("SOUND/CQ_MAIN.TVB")) }],
+        [3, { tsq: readTsq(await disc.readFile("SOUND/ACTION.TSQ")), tvb: readTvb(await disc.readFile("SOUND/ACTION.TVB")) }],
+      ]);
+      for (const route of Object.values(nativeSfxRoutes)) {
+        const bank = banks.get(route.bank)!;
+        const entry = bank.tsq.entries[route.index]!;
+        expect(entry.priority).toBe(route.priority);
+        const tones = tokenizeTsqBytecode(bank.tsq.bytes, entry.sequenceOffset)
+          .filter((token) => token.family === "tone")
+          .flatMap((token) => token.immediateBytes);
+        expect(tones).toContain(route.tone);
+        expect(bank.tvb.sampleBySlot[route.tone]).toMatchObject({
+          startOffset: route.sampleStart,
+          endOffset: route.sampleEnd,
+        });
+      }
+    } finally {
+      close();
+    }
+  });
+
+  test("constructs and dispatches the common SFX runtime from retail banks", async () => {
+    const { disc, close } = await openDisc();
+    try {
+      const runtime = NativeSfxRuntime.fromAssets(
+        { playEvent: () => null },
+        {
+          cqMainTsq: await disc.readFile("SOUND/CQ_MAIN.TSQ"),
+          cqMainTvb: await disc.readFile("SOUND/CQ_MAIN.TVB"),
+          actionTsq: await disc.readFile("SOUND/ACTION.TSQ"),
+          actionTvb: await disc.readFile("SOUND/ACTION.TVB"),
+        },
+      );
+      for (const event of Object.keys(nativeSfxRoutes) as (keyof typeof nativeSfxRoutes)[]) {
+        expect(runtime.dispatch(event)).toMatchObject({
+          status: "locked",
+          request: nativeSfxRoutes[event].request,
+          event,
+        });
+      }
     } finally {
       close();
     }

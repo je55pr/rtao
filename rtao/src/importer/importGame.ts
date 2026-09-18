@@ -40,6 +40,10 @@ const explicitlyRequired = [
   "CARS/TIRE.BIN",
   "CARS/WHEEL.BIN",
   "SHOP/T00.BIN",
+  "SOUND/CQ_MAIN.TSQ",
+  "SOUND/CQ_MAIN.TVB",
+  "SOUND/ACTION.TSQ",
+  "SOUND/ACTION.TVB",
 ] as const;
 
 export async function importGame(
