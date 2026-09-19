@@ -26,6 +26,7 @@ Useful entry points include:
 - `car_visual_capture.py` — deterministic close-car visual captures;
 - `shop_census.py`, `shop_readiness.py`, `shop_room_capture.py`, `shop_regression.py` — fixed-interior archaeology and regression helpers;
 - `mips_probe.py`, `disasm_elf_context.py` — executable/R5900 disassembly helpers;
+- `elf_archaeology.py` — target-address, structure-offset, and static GIF A+D executable scanners;
 - `vu_micro_probe.py` — partial VU microinstruction diagnostics with explicit raw output for unknown forms.
 
 ### R5900 executable probe
@@ -51,3 +52,29 @@ py -3.12 tools/vu_micro_probe.py --self-test
 The decoder intentionally covers only the instruction forms retained from the useful historical diagnostic path. Unsupported encodings print as `.upper 0xXXXXXXXX` or `.lower 0xXXXXXXXX`; when the upper I flag is set, the lower word is shown as the immediate float instead of being decoded as an instruction.
 
 One-off sandbox scripts from the pre-repository workflow are retained under `docs/archive/one-off-tools/` and should not be treated as supported utilities.
+
+### ELF archaeology scanners
+
+`elf_archaeology.py` preserves the useful executable-search workflows from the retired C# diagnostics without depending on proprietary inputs. It accepts a complete little-endian ELF32 executable, or a flat virtual-address dump when `--base-address` is supplied.
+
+```bash
+py -3.12 tools/elf_archaeology.py find-address path/to/PAL.ELF 0x002a9020
+py -3.12 tools/elf_archaeology.py find-offset path/to/PAL.ELF 0xffc0 0x80
+py -3.12 tools/elf_archaeology.py find-gs-packets path/to/PAL.ELF
+py -3.12 tools/elf_archaeology.py self-test
+```
+
+`find-address` searches file-backed instructions for LUI followed within six words by an ADDIU or ORI using the same base register. ADDIU sign-extension/carry and ORI zero-extension are evaluated independently, so addresses whose low half has bit 15 set are handled correctly.
+
+`find-offset` searches signed 16-bit immediate offsets on useful EE loads/stores, including LQ/SQ, 64-bit scalar accesses, COP1 word accesses, and VU0 LQC2/SQC2 forms. Hex bounds such as `0xffe0` are interpreted as signed 16-bit values.
+
+`find-gs-packets` scans qword-aligned file-backed data for PACKED GIF tags containing one A+D descriptor and 1–32 register writes. Known GS addresses are named; valid but unknown addresses remain explicit as `GS_XX` rather than being assigned guessed semantics.
+
+Flat dumps produced by other maintained tooling can be scanned directly, for example:
+
+```bash
+py -3.12 tools/executable_probe.py 0x00100000 0x20000 scratch/pal-range.bin
+py -3.12 tools/elf_archaeology.py find-offset scratch/pal-range.bin 0xff80 0x80 --base-address 0x00100000
+```
+
+The `self-test` builds a synthetic ELF in memory and verifies both LUI materialization forms, signed structure offsets including LQ/SQ, packed GIF A+D recognition, GS register naming, rejection of malformed packets, and flat-dump address mapping.
