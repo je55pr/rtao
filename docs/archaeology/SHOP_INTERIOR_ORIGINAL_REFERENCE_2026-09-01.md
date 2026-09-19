@@ -38,6 +38,16 @@ Additional original-game visual/data references:
 - RTA Guide parts list and prices: <https://www.roadtripguide.info/items/parts>
 - RTA Guide body list and prices: <https://www.roadtripguide.info/items/bodies>
 
+## Native SHOP camera and placement constants
+
+The legacy C# compositor contained useful PAL constants that are now retained here because the browser renderer already consumes their equivalents.
+
+**Decoded facts.** `SLES_513.56` table `0x002A4630` supplies camera offset `(2.2, 1.1, -45)`. Its packed angle fields pass through the game's integer-to-float conversion before multiplication by `pi/2048`, yielding rotations `+23.90625°` and `-41.484375°`. The native ViewScreen setup uses `scrz=3564` with independent PAL scale factors `0.80` horizontally and `0.53` vertically. Geometry tables at `0x002A4650 / 0x002A4690 / 0x002A46D0` provide the floor and Change Parts platform extents; entry placement is rooted at `0x002A47C0`.
+
+**Validation witness.** `rtao/src/game/interiorView.ts` preserves the same focal/scaling contract in `createShopInteriorCamera()` and the decoded staff/platform/player placement constants. `rtao/tests/referenceEvidence.pal.test.ts` independently locks the 28-slot Peach package, slot-0 640×384 hash, slot-3 DMA count and the repeated slot-18/27 Quick-Pic backdrop against the PAL disc.
+
+**Historical/provisional interpretation.** The Three.js camera's concrete `position/lookAt` values are an equivalent host-space construction, not separately decoded native camera-table entries. Likewise the retained Change Parts route endpoint is an authored placement witness, not proof of the complete native platform animation/state machine.
+
 ## Repeated dynamic-room evidence
 
 The surviving original Peach FM image shows the common fixed-interior

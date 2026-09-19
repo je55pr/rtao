@@ -23,6 +23,16 @@ This is stronger than text matching. Resident labels and dialogue entity names l
 
 The English dialogue table provides an independent structural cross-check: in all 21 backed areas, the entity count is exactly `fixedInteractionCount + outdoorResidentCount`. Fixed hosts occupy the prefix; roaming residents follow it.
 
+### Peach validation anchors retained from the legacy C# probe
+
+These are now regression witnesses in `rtao/tests/referenceEvidence.pal.test.ts`; the old C# reader is no longer their authority.
+
+**Decoded facts.** Area 1 declares 28 fixed interactions and 11 outdoor residents. Its resident-definition pointer resolves so that the outdoor suffix begins at `0x002C2950`; the route pointer table is `0x002DBA28`. James's first route record spans `0x002C8170..0x002C8950` (84 24-byte points).
+
+**Validation witnesses.** Q's Factory Staff local slot 0 starts at corner approximately `(512.10,432.10)` and has polygon centre `(508.57,432.94)`; local slot 17 (Entrance to the cave) centres at approximately `(1189.0,528.78)`. Grandpa Tal at local slot 13 preserves two leading `(-1,-1)` sentinel corners. The eleven outdoor bodies/names and the six non-empty Peach route lengths are locked by the PAL test, together with James/Kevin spawn and first-route anchors. Across all authored areas the same test retains 81 outdoor residents, 77 with at least two route points, and 3,208 decoded route points.
+
+**Historical/provisional interpretation.** A non-empty route is retained as authored roaming geometry, not proof of a particular runtime schedule, speed law, or interaction availability. Those behaviours require separate executable/runtime evidence.
+
 ## World-wide result
 
 The 22 contiguous authored descriptors declare 250 fixed records in total, but descriptor 0 (`My Garage`) is a bootstrap/special slot: it declares one fixed count while its resident pointer is null and it has no dialogue area table or corresponding `SHOP/T-1` package. The probe therefore preserves that raw descriptor fact but does not pretend it is a backed room.

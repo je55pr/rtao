@@ -127,6 +127,10 @@ Q's Factory exposes 72 English pointer-table slots/streams. Tracing the executab
 - pre-text dispatcher at `0x0023C870`
 - post-text/action dispatcher at `0x0023D078`
 
+**Validation witnesses.** The PAL executable regression in `rtao/tests/referenceEvidence.pal.test.ts` locks Q's Factory as Peach dialogue entity 0 at `0x002E2338`, with slot `07` text at `0x00322350` and its observed `0F` / `04` target streams at `0x003220D0` / `0x003223A8`. It also locks James as entity 28 with 11 streams and retains `0x00326AA0` as one of his stream addresses.
+
+**Interpretation boundary.** These pointer identities are validation anchors, not semantic labels by themselves. Dialogue meaning remains derived from the phase-aware dispatcher/control-flow evidence below; the addresses do not justify inventing behavior for untraced opcodes.
+
 The same control byte can therefore have different semantics depending on whether it is encountered before visible text or at the terminal action boundary. For example, pre-text `0x01` is a conditional branch on a flag, while action-phase `0x01` presents a Yes/No choice with two dialogue targets. Action-phase `0x02` is the corresponding Yes/No selector with the opposite default cursor choice.
 
 Q's Factory uses action `0x09` for a variable-length menu encoded as:
