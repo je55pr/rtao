@@ -2,10 +2,16 @@ import { createHash } from "node:crypto";
 import { closeSync, fstatSync, openSync, readSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { nativeEngineLayers, nativeEnginePitchWord } from "../src/audio/nativeEngineAudio";
+import {
+  NativeTsqSequencer,
+  nativeTsqStepUpdates,
+  resolveTsqJumpTarget,
+  resolveTsqMusicChannelPrograms,
+} from "../src/audio/nativeTsqSequencer";
 import { NativeSfxRuntime, nativeSfxRoutes } from "../src/audio/nativeSfx";
 import { Iso9660Disc } from "../src/disc/iso9660";
 import { RawMode2SectorSource } from "../src/disc/randomAccess";
-import { decodePackedTsqRequest, readTsq, resolvePackedTsqRequest, tokenizeTsqBytecode } from "../src/formats/tsq";
+import { decodePackedTsqRequest, readTsq, readTsqBytecodeToken, resolvePackedTsqRequest, tokenizeTsqBytecode } from "../src/formats/tsq";
 import { readTvb } from "../src/formats/tvb";
 import { readPalVag, readPalVagFrame } from "../src/formats/vag";
 
@@ -116,6 +122,50 @@ describe.skipIf(!binPath)("PAL audio format authority", () => {
     try {
       for (const name of large) expect(readTsq(await disc.readFile(`SOUND/${name}`))).toMatchObject({ directoryEntryCount: 100, directoryEnd: 0x190 });
       for (const name of small) expect(readTsq(await disc.readFile(`SOUND/${name}`))).toMatchObject({ directoryEntryCount: 51, directoryEnd: 0xcc });
+    } finally {
+      close();
+    }
+  });
+
+  test("pins PAL SNDMOD countdown/F8 arithmetic and the BGM_01 36-channel loop trace", async () => {
+    const { disc, close } = await openDisc();
+    try {
+      const sndmod = await disc.readFile("SNDMOD.IRX");
+      const code = new DataView(sndmod.buffer, sndmod.byteOffset, sndmod.byteLength);
+      const textFileOffset = 0xa0;
+      expect(code.getUint32(textFileOffset + 0x4810, true)).toBe(0x2464ffff);
+      expect(code.getUint32(textFileOffset + 0x48a0, true)).toBe(0x00642021);
+      expect(code.getUint32(textFileOffset + 0x52c4, true)).toBe(0x2483ffff);
+
+      const tsq = readTsq(await disc.readFile("SOUND/BGM_01.TSQ"));
+      const programs = resolveTsqMusicChannelPrograms(tsq, 1);
+      expect(programs).toHaveLength(36);
+      expect(programs.every((program) => program.descriptor?.stateByte === 0x80)).toBe(true);
+      expect(programs.slice(0, 3).map((program) => program.startOffset)).toEqual([0x190, 0x354, 0x517]);
+
+      let pc = programs[0]!.startOffset;
+      let stepUpdates = 0;
+      let firstJump: ReturnType<typeof readTsqBytecodeToken> | undefined;
+      for (let count = 0; count < 20_000; count += 1) {
+        const token = readTsqBytecodeToken(tsq.bytes, pc);
+        if (token.family === "step") stepUpdates += nativeTsqStepUpdates(token);
+        if (token.family === "jump") {
+          firstJump = token;
+          break;
+        }
+        pc += token.length;
+      }
+      expect(firstJump).toBeDefined();
+      expect({
+        offset: firstJump!.offset,
+        target: resolveTsqJumpTarget(firstJump!),
+        stepUpdates,
+      }).toEqual({ offset: 0x34f, target: 0x193, stepUpdates: 7367 });
+
+      const sequencer = new NativeTsqSequencer(tsq.bytes, programs);
+      sequencer.advanceTo(10_000);
+      expect(sequencer.snapshot().channels.every((channel) =>
+        channel.jumpCount === 1 && !channel.ended)).toBe(true);
     } finally {
       close();
     }
