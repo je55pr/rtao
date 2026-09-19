@@ -21,7 +21,7 @@ const binPath = process.env.RTA_PAL_BIN;
 describe.skipIf(!executablePath)("promoted PAL executable witnesses", () => {
   const executable = (): Uint8Array => new Uint8Array(readFileSync(executablePath!));
 
-  test("retains Peach fixed-interaction and roaming anchors", () => {
+  test("retains Peach fixed-interaction and outdoor-route anchors", () => {
     const bytes = executable();
     const elf = new Elf32AddressSpace(bytes);
     const world = readOverworldCatalogue(bytes);
@@ -47,9 +47,9 @@ describe.skipIf(!executablePath)("promoted PAL executable witnesses", () => {
     expect(residents[0]).toMatchObject({ spawn: { x: 459, y: 30, z: 786 } });
     expect(residents[0]!.route).toHaveLength(84);
     expect(residents[0]!.route[0]).toEqual({ x: 482, z: 484 });
-    expect(Object.fromEntries(residents.filter((entry) => entry.route.length >= 2).map((entry) => [entry.name, entry.route.length]))).toEqual({
-      James: 84, Klien: 19, Barthou: 36, Pillow: 25, Kevin: 29, Newman: 71,
-    });
+    expect(residents.map((entry) => entry.route.length)).toEqual([
+      84, 36, 25, 18, 17, 16, 19, 36, 25, 29, 71,
+    ]);
     expect(residents[1]!.paint).toEqual({ primary: { r: 25, g: 38, b: 216 }, secondary: { r: 216, g: 216, b: 216 } });
     expect(residents[9]).toMatchObject({ spawn: { x: 858, z: 392 }, paint: {
       primary: { r: 216, g: 25, b: 25 }, secondary: { r: 216, g: 25, b: 25 },
