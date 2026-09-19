@@ -9,6 +9,8 @@ artifacts/
 cache/
 imports/
 **/node_modules/
+**/__pycache__/
+*.pyc
 rtao/dist/
 rtao/sandbox-dist/
 rtao/coverage/
@@ -25,4 +27,3 @@ web/
 *.bin
 *.BIN
 *.7z
-**/local-packages/*.nupkg

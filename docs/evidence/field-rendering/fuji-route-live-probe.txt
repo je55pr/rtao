@@ -1,6 +1,8 @@
 Road Trip Adventure PAL — live Peach -> Fuji seam probe
 ========================================================
 
+Historical evidence record: this capture used the now-retired C#/MonoGame runtime. The command below records provenance and is not a current build instruction.
+
 Environment
 -----------
 .NET SDK 10.0.400

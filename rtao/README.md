@@ -2,7 +2,7 @@
 
 This directory is the **active Three.js + TypeScript implementation** of RTAO.
 
-The earlier C#/MonoGame reconstruction is retained separately under `../reference/csharp/` for archaeology and comparison; new player-facing work should normally happen here.
+This is the repository's sole maintained implementation. Historical C#/MonoGame records are retained only as archived/evidence documentation, while reusable archaeology tooling lives under `../tools/`.
 
 ## Development
 

@@ -17,7 +17,6 @@ The GitHub repository is the canonical development source. The project intention
 | [`rtao/`](rtao/) | **Active implementation** — Three.js + TypeScript browser game, tests and capture bundle |
 | [`tools/`](tools/) | Maintained archaeology, deterministic capture and evidence-generation utilities |
 | [`docs/`](docs/) | Architecture, archaeology notes, evidence and archived historical material |
-| [`reference/csharp/`](reference/csharp/) | Earlier C#/MonoGame implementation retained as reference/archaeology, not the active product |
 | [`docs/STATUS.md`](docs/STATUS.md) | Concise current implementation/evidence boundary |
 | [`AGENTS.md`](AGENTS.md) | Shared working conventions for ChatGPT, Claude and future contributors |
 

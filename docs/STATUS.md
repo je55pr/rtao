@@ -88,4 +88,4 @@ The first playable Peach Raceway slice and its Q's Factory launch path have been
 - Architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md)
 - Completion rules: [`development/DEFINITION_OF_DONE.md`](development/DEFINITION_OF_DONE.md)
 
-Original game data must remain local. Do not infer missing native behavior from the C# reference or convenience; PAL evidence remains authoritative.
+Original game data must remain local. Do not infer missing native behavior from retired implementation history or convenience; PAL evidence remains authoritative.

@@ -27,9 +27,9 @@ Primary supporting material:
 - `docs/archaeology/` — interpreted subsystem notes;
 - `docs/evidence/` — retained traces, oracles, deterministic captures and logs.
 
-## Reference implementation
+## Implementation boundary
 
-`reference/csharp/` contains the earlier C#/MonoGame implementation. It remains useful for archaeology and format comparisons, but it is not a co-equal product target and must not silently override PAL evidence.
+`rtao/` is the single maintained implementation. The retired C#/MonoGame source tree is no longer tracked; preserved knowledge is carried forward through current browser tests, archaeology/evidence documents and maintained repository-level tools. Historical archived records remain context only and never override PAL evidence.
 
 ## Generated/local data
 

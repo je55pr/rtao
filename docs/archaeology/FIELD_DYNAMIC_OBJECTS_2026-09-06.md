@@ -19,8 +19,8 @@ decodes it and renders:
 Geometry, texture and the MSCALF-4 vertex format are evidence-backed. The
 per-object animation, facing and scale are **host approximations** — the
 originals are composed into a per-object matrix by EE object-update code that is
-not decoded. The palm-crown sway is a direct port of the C# reference's
-`PalmCrownMesh`; the C# notes it is likewise unverified.
+not decoded. The palm-crown sway descends from the retired C# implementation's
+`PalmCrownMesh`; the retired implementation's notes likewise mark it unverified.
 
 ## Extra[1] object survey (all 64 fields)
 

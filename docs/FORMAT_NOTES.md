@@ -116,7 +116,7 @@ L0 = (-0.707106769,  0.707106769,  0)
 L1 = ( 0.447221488,  0.447221488, -0.774587572)
 ```
 
-Function `0x00227128` updates only the third column as `normalize(L0 - cameraForward)`, equivalent to the Blinn half-vector for the camera's opposing view direction. The MonoGame renderer reflects source X once, combines those three columns with each object's rotation, and runs the decoded colour equation on retained source normals/colours before drawing. The full world/view matrix is not used as a substitute normal basis.
+Function `0x00227128` updates only the third column as `normalize(L0 - cameraForward)`, equivalent to the Blinn half-vector for the camera's opposing view direction. The retired MonoGame renderer reflected source X once, combined those three columns with each object's rotation, and ran the decoded colour equation on retained source normals/colours before drawing. This remains historical corroboration; the full world/view matrix is not used as a substitute normal basis.
 
 ## PAL dialogue / interaction bytecode
 
@@ -159,7 +159,7 @@ Traced pre-text behavior includes conditional flag branches, result/team/rally/p
 
 Action widths are not globally fixed by byte value alone. In roaming-resident streams, actions `0x08` and `0x09` also occur in short forms with a single zero sentinel. The tokenizer therefore preserves these context-dependent forms rather than applying Q's Factory's richer payload interpretation to every entity.
 
-The engine-neutral `PalDialogueFlow` executes the proven branch/state/menu/Yes-No subset and exposes gameplay-owned operations such as parts selection, race selection, saving and race launch as explicit external actions. This lets the MonoGame runtime follow original dialogue targets without fabricating unreconstructed host systems.
+The retired engine-neutral `PalDialogueFlow` established the proven branch/state/menu/Yes-No subset and exposed gameplay-owned operations such as parts selection, race selection, saving and race launch as explicit external actions. Its retained observations are historical evidence only; maintained dialogue/runtime behavior now lives in the TypeScript browser implementation.
 
 ## PAL race/activity catalogue and rewards
 
@@ -201,7 +201,7 @@ column = 2*b + (c & 1)
 row    = 2*a + (c >> 1)
 ```
 
-for field digits `abc`. Odd source rows begin at `column*1600 + 800`; even rows begin at `column*1600`. Source X is cyclic over 12,800 units. This is kept separate from the MonoGame local-X reflection and from fixed map/debug unwrapping.
+for field digits `abc`. Odd source rows begin at `column*1600 + 800`; even rows begin at `column*1600`. Source X is cyclic over 12,800 units. This is kept separate from the historical MonoGame local-X reflection and from fixed map/debug unwrapping.
 
 Field-local source X uses half-open ownership: `[0,1600)`. Therefore a point exactly at local X=1600 belongs to the next cyclic sector at local X=0. This matters in runtime normalization: accepting X=1600 in the current candidate and merely rewriting it to 0 changes its canonical position by one complete 1600-unit sector.
 
@@ -276,7 +276,7 @@ The five V3-32 vectors per HG2 field vertex include distinct `DayColor` and `Nig
 
 A separate billboard family is unambiguously day-hidden. FLD/220 has exactly 62 camera-facing light sprites whose average authored NightColor is at least 180 while DayColor is at most 110: 8 soft yellow glows (TBP 10505), 48 green suspension-cable coronas (TBP 10525), and 6 orange/yellow tower coronas (TBP 10534). A full-world scan found no other outdoor billboards matching that signature, and original daytime/nighttime bridge captures show these exact effects absent by day and bright at night. `IsNightLightBillboard` captures that evidence-driven family so the daytime renderer omits only those sprites while preserving their original data for a later clock renderer.
 
-The small FLD/221 hole reported at render-local X193/Z1443 also has authored render/collision coverage. Its disappearance under draw-order experiments established a depth/alpha issue: alpha-bearing fringe textures were submitted with blending while fully transparent texels could still write depth. The renderer separates opaque from alpha-bearing texture groups and uses MonoGame `AlphaTestEffect` with `AlphaFunction=Greater` / `ReferenceAlpha=0` for the latter. Fully transparent texels are discarded before depth output, while visible foliage/edge texels continue to write depth and therefore occlude farther cards.
+The small FLD/221 hole reported at render-local X193/Z1443 also has authored render/collision coverage. Its disappearance under draw-order experiments established a depth/alpha issue: alpha-bearing fringe textures were submitted with blending while fully transparent texels could still write depth. The retired MonoGame renderer separated opaque from alpha-bearing texture groups and used `AlphaTestEffect` with `AlphaFunction=Greater` / `ReferenceAlpha=0` for the latter; this is retained as historical evidence rather than current implementation guidance. Fully transparent texels are discarded before depth output, while visible foliage/edge texels continue to write depth and therefore occlude farther cards.
 
 HumanEyes later exposed a second alpha mismatch as white/cyan outlines around trees and bunting. The source textures contain arbitrary RGB in transparent/near-transparent indexed palette entries and request linear filtering. Straight-alpha bilinear interpolation lets that hidden RGB contaminate edge samples before blending. Alpha-bearing field textures are now premultiplied on upload and drawn with premultiplied `BlendState.AlphaBlend`; interpolation is therefore alpha-weighted while the alpha-test/depth behavior above remains intact. This is still an approximation of HG2's exact GS TEST/ALPHA pipeline, but it matches the observed foliage/bunting edges without raising the alpha cutoff and destroying authored soft pixels.
 

@@ -55,14 +55,14 @@ interface AnimatedDynamicObject {
  * HOST APPROXIMATIONS for FLD dynamic-object animation. The Extra[1] geometry and
  * textures are evidence-backed, but the per-frame object matrix (spin, sway,
  * facing, scale) is composed by EE object-update code that is not yet decoded —
- * the same gap the C# reference notes for the palm-crown sway. These constants
+ * the same gap recorded by the retired C# implementation for the palm-crown sway. These constants
  * are tuned to read like the original, not recovered from `SLES_513.56`.
  * See docs/archaeology/FIELD_DYNAMIC_OBJECTS_2026-09-06.md.
  */
 const approximateRotorSpinRadiansPerSecond = 1.15;
 const approximateRotorFacingYaw = 0;
 const approximateRotorScale = 0.42;
-/** Palm-crown sway, ported from the C# reference's PalmCrownMesh. */
+/** Palm-crown sway retained from the retired C# implementation's PalmCrownMesh evidence. */
 const crownSway = { swayHz: 1.45, swayAmplitude: 0.045, crossHz: 1.07, crossAmplitude: 0.022, groupPhaseStep: 0.42 };
 
 type AnimatedFieldObjectKind = Extract<FieldObjectKind, "turbine-rotor" | "palm-crown">;

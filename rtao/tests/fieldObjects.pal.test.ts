@@ -51,7 +51,7 @@ describe.skipIf(!binPath)("FLD Extra[1] dynamic field objects", () => {
   test("FLD/220 and FLD/221 carry the coastal palm-crown object", async () => {
     const { disc, close } = await openDisc();
     try {
-      // Exact counts, matching the C# reference's disc-backed regression
+      // Exact counts retained from the retired C# implementation's disc-backed regression
       // (FieldPalmTreeReader): 106 dominant trunk caps in FLD/220, 6 in FLD/221.
       // Locking them keeps the broader TS cap heuristic from silently spreading
       // crowns onto unrelated geometry.

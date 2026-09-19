@@ -43,7 +43,7 @@ The self-test uses fixed instruction words for COP0/COP1, accumulator/min/max/rs
 
 ### VU1 MPG extraction
 
-`vu_mpg_extract.py` works directly on a user-supplied little-endian ELF32 executable; it does not read or ship game data and has no dependency on `reference/csharp`. The finder scans file-backed PT_LOAD ranges for aligned VIF MPG command words:
+`vu_mpg_extract.py` works directly on a user-supplied little-endian ELF32 executable; it does not read or ship game data and is standalone from the retired C# implementation. The finder scans file-backed PT_LOAD ranges for aligned VIF MPG command words:
 
 ```bash
 py -3.12 tools/vu_mpg_extract.py --self-test

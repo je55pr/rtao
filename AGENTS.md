@@ -6,8 +6,8 @@ This repository is a shared development surface for human contributors and codin
 
 - GitHub `main` is the public stable release branch.
 - GitHub `dev` is the active integration branch for ongoing development and the source for the DEV player.
-- The active game is **`rtao/`** (Three.js / TypeScript).
-- **`reference/csharp/`** is the earlier C#/MonoGame implementation retained for archaeology and comparison. Do not treat it as the active product unless a task explicitly targets it.
+- The canonical implementation is **`rtao/`** (Three.js / TypeScript). It is the only maintained game/runtime source tree.
+- Historical C#/MonoGame material has been retired from the live source tree; retained archaeology/evidence lives under `docs/` and maintained reusable diagnostics live under `tools/`.
 - `docs/STATUS.md` is the concise current implementation/evidence boundary.
 - GitHub issues are the actionable backlog and task status.
 - The final pre-GitLab state blobs are preserved verbatim under `docs/archive/state/` for historical lookup; do not use them as current instructions.
@@ -91,11 +91,7 @@ RTA_PAL_EXECUTABLE=/path/to/SLES_513.56 npm run test:pal
 
 Some cases also require `RTA_PAL_BIN`. PAL-backed tests require local original-game inputs and may not be executable in every agent runtime. If a full PAL gate cannot be run, say so explicitly; do not imply it passed.
 
-C# reference work, when specifically needed, is self-contained under:
-
-```bash
-cd reference/csharp
-```
+Historical C#/MonoGame records under `docs/archive/` are context only. Do not restore or target a second implementation; port any still-useful evidence or diagnostics into the maintained TypeScript/browser or `tools/` surfaces.
 
 ## Project tracking
 
