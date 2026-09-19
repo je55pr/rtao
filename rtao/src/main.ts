@@ -1,4 +1,5 @@
 import "./styles.css";
+import { AudioSettings, type AudioSettingsChannel } from "./audio/audioSettings";
 import { BrowserAudioRuntime, installBrowserAudioUnlock } from "./audio/browserAudio";
 import { ordinaryRaceBgmSetup, resolveFixedRoomBgm, resolveQFactoryBgm, type NativeBgmProgram } from "./audio/nativeBgm";
 import { NativeBgmRuntime } from "./audio/nativeBgmRuntime";
@@ -154,15 +155,18 @@ const quickPicPhotoActionOpcode = 0x11;
 const advertisingRewardActionOpcode = 0x16;
 const transitionActionOpcode = 0x14;
 installAppShell(app);
-const audioRuntime = new BrowserAudioRuntime();
-installBrowserAudioUnlock(audioRuntime);
-const inputSettings = new InputSettings((() => {
+const hostSettingsStorage = (() => {
   try {
     return window.localStorage;
   } catch {
     return undefined;
   }
-})());
+})();
+const audioSettings = new AudioSettings(hostSettingsStorage);
+const audioRuntime = new BrowserAudioRuntime();
+audioRuntime.setGains(audioSettings.effectiveGains());
+installBrowserAudioUnlock(audioRuntime);
+const inputSettings = new InputSettings(hostSettingsStorage);
 const semanticInput = new BrowserSemanticInput(window, inputSettings);
 semanticInput.start();
 const raceInput = semanticInput.createScope();
@@ -227,6 +231,24 @@ const inputBindingConflictMessage = requiredElement<HTMLElement>("input-binding-
 const inputBindingConflictHint = requiredElement<HTMLElement>("input-binding-conflict-hint");
 const inputBindingConflictKeep = requiredElement<HTMLButtonElement>("input-binding-conflict-keep");
 const inputBindingConflictReplace = requiredElement<HTMLButtonElement>("input-binding-conflict-replace");
+const audioSettingsChannels = ["master", "music", "sfx"] as const satisfies readonly AudioSettingsChannel[];
+const audioChannelLabels: Readonly<Record<AudioSettingsChannel, string>> = {
+  master: "Master",
+  music: "Music",
+  sfx: "SFX",
+};
+const audioVolumeControls = Object.fromEntries(audioSettingsChannels.map((channel) => [
+  channel,
+  requiredElement<HTMLInputElement>(`audio-${channel}-volume`),
+])) as Record<AudioSettingsChannel, HTMLInputElement>;
+const audioVolumeOutputs = Object.fromEntries(audioSettingsChannels.map((channel) => [
+  channel,
+  requiredElement<HTMLOutputElement>(`audio-${channel}-value`),
+])) as Record<AudioSettingsChannel, HTMLOutputElement>;
+const audioMuteButtons = Object.fromEntries(audioSettingsChannels.map((channel) => [
+  channel,
+  requiredElement<HTMLButtonElement>(`audio-${channel}-mute`),
+])) as Record<AudioSettingsChannel, HTMLButtonElement>;
 const sceneFadeElement = requiredElement<HTMLElement>("scene-fade");
 const sceneFade = new SceneFade(
   {
@@ -532,6 +554,16 @@ pauseOverlay.addEventListener("click", (event) => {
   if (pauseMenuPage === "binding-conflict") finishInputBindingConflict(false);
   else if (pauseMenuPage === "warp") showPauseRoot();
   else closePauseMenu();
+});
+for (const channel of audioSettingsChannels) {
+  audioVolumeControls[channel].addEventListener("input", () => {
+    audioSettings.setVolume(channel, audioVolumeControls[channel].valueAsNumber / 100);
+  });
+  audioMuteButtons[channel].addEventListener("click", () => audioSettings.toggleMuted(channel));
+}
+audioSettings.subscribe(() => {
+  audioRuntime.setGains(audioSettings.effectiveGains());
+  renderAudioSettings();
 });
 inputRestoreDefaults.addEventListener("click", () => {
   semanticInput.cancelBindingCapture();
@@ -1988,8 +2020,8 @@ function activateActivePlayShellControl(): void {
   if (active !== worldLocation) focusNavigationEntry(playShellControls(), 0);
 }
 
-function pauseRootControls(): Array<HTMLButtonElement | HTMLSelectElement> {
-  return [...pauseRoot.querySelectorAll<HTMLButtonElement | HTMLSelectElement>("button, select")];
+function pauseRootControls(): Array<HTMLButtonElement | HTMLSelectElement | HTMLInputElement> {
+  return [...pauseRoot.querySelectorAll<HTMLButtonElement | HTMLSelectElement | HTMLInputElement>("button, select, input")];
 }
 
 const inputBindingRows: readonly { action: SemanticAction; label: string }[] = [
@@ -2006,6 +2038,19 @@ const inputBindingRows: readonly { action: SemanticAction; label: string }[] = [
 
 function inputActionLabel(action: SemanticAction): string {
   return inputBindingRows.find((entry) => entry.action === action)?.label ?? action;
+}
+
+function renderAudioSettings(): void {
+  for (const channel of audioSettingsChannels) {
+    const state = audioSettings.state[channel];
+    const percentage = Math.round(state.volume * 100);
+    audioVolumeControls[channel].value = String(percentage);
+    audioVolumeOutputs[channel].textContent = `${percentage}%`;
+    const muteButton = audioMuteButtons[channel];
+    muteButton.textContent = state.muted ? "Unmute" : "Mute";
+    muteButton.setAttribute("aria-pressed", String(state.muted));
+    muteButton.setAttribute("aria-label", `${state.muted ? "Unmute" : "Mute"} ${audioChannelLabels[channel]} audio`);
+  }
 }
 
 function renderInputBindings(): void {
@@ -2162,6 +2207,7 @@ function refreshControlHelp(): void {
   requiredElement<HTMLElement>("shop-key-hint").textContent = `${actionBindingLabel(inputSettings, "left")} / ${actionBindingLabel(inputSettings, "right")} category · ${actionBindingLabel(inputSettings, "up")} / ${actionBindingLabel(inputSettings, "down")} item · ${confirmHelp} buy · ${cancelHelp} return`;
 }
 
+renderAudioSettings();
 renderInputBindings();
 refreshControlHelp();
 
@@ -2173,14 +2219,30 @@ function movePauseRootFocus(direction: number): void {
   focusNavigationEntry(controls, nextIndex);
 }
 
-function adjustActivePauseSelect(direction: number): boolean {
+function adjustActivePauseSetting(direction: number): boolean {
   const active = document.activeElement;
-  if (!(active instanceof HTMLSelectElement) || !pauseRoot.contains(active)) return false;
-  const previousIndex = active.selectedIndex;
-  active.selectedIndex = cycleOptionIndex(previousIndex, active.options.length, direction);
-  if (active.selectedIndex !== previousIndex) playNativeSfx("menu-navigate");
-  active.dispatchEvent(new Event("change", { bubbles: true }));
-  return true;
+  if (!(active instanceof HTMLElement) || !pauseRoot.contains(active)) return false;
+  if (active instanceof HTMLSelectElement) {
+    const previousIndex = active.selectedIndex;
+    active.selectedIndex = cycleOptionIndex(previousIndex, active.options.length, direction);
+    if (active.selectedIndex !== previousIndex) playNativeSfx("menu-navigate");
+    active.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  }
+  if (active instanceof HTMLInputElement && active.type === "range") {
+    const previousValue = active.valueAsNumber;
+    const step = Number.parseFloat(active.step) || 1;
+    const minimum = active.min === "" ? 0 : Number.parseFloat(active.min);
+    const maximum = active.max === "" ? 100 : Number.parseFloat(active.max);
+    const nextValue = Math.min(maximum, Math.max(minimum, previousValue + (direction < 0 ? -step : step)));
+    if (nextValue !== previousValue) {
+      active.valueAsNumber = nextValue;
+      playNativeSfx("menu-navigate");
+      active.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    return true;
+  }
+  return false;
 }
 
 function activateActivePauseControl(): void {
@@ -2189,7 +2251,8 @@ function activateActivePauseControl(): void {
     active.click();
     return;
   }
-  if (!adjustActivePauseSelect(1)) pauseResume.click();
+  if (active instanceof HTMLInputElement && active.type === "range" && pauseRoot.contains(active)) return;
+  if (!adjustActivePauseSetting(1)) pauseResume.click();
 }
 
 function renderPauseWarpMenu(): void {
@@ -2353,10 +2416,10 @@ function handleShellInput(event: SemanticActionEvent): void {
       movePauseRootFocus(1);
     } else if (event.action === "left") {
       event.consume();
-      adjustActivePauseSelect(-1);
+      adjustActivePauseSetting(-1);
     } else if (event.action === "right") {
       event.consume();
-      adjustActivePauseSelect(1);
+      adjustActivePauseSetting(1);
     } else if (isConfirmInput(event)) {
       event.consume();
       activateActivePauseControl();

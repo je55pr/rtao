@@ -358,6 +358,14 @@ h1 em { color: var(--red); font-style: normal; }
 .pause-panel h2 { margin: -6px 0 16px; font-size: 30px; line-height: 1; letter-spacing: -.05em; }
 .pause-section { margin-bottom: 18px; }
 .pause-section h3 { margin: 0 0 8px; color: #746c7b; font: 9px Consolas, "Courier New", monospace; letter-spacing: .09em; text-transform: uppercase; }
+.pause-section-help { margin: -2px 0 8px; color: #746c7b; font: 10px/1.35 Consolas, "Courier New", monospace; }
+.audio-settings { display: grid; gap: 6px; }
+.audio-setting-row { display: grid; grid-template-columns: 62px minmax(130px, 1fr) 42px 70px; gap: 8px; align-items: center; }
+.audio-setting-row label { color: #57505f; font-size: 11px; }
+.audio-setting-row input[type="range"] { width: 100%; accent-color: var(--ink); }
+.audio-setting-row output { color: #57505f; font: 10px Consolas, "Courier New", monospace; text-align: right; }
+.audio-mute-button { padding: 6px 8px; font: 10px/1.2 Consolas, "Courier New", monospace; }
+.audio-mute-button[aria-pressed="true"] { box-shadow: inset 0 0 0 2px rgba(39,34,52,.32); }
 .pause-controls { margin: 0; border-top: 1px solid rgba(39,34,52,.17); }
 .pause-controls div { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid rgba(39,34,52,.12); font-size: 12px; }
 .pause-controls dt { color: #57505f; }

@@ -12,6 +12,10 @@ describe("pause Warp shell", () => {
     expect(app.innerHTML).toContain('id="pause-warp-menu" hidden');
     expect(app.innerHTML).toContain('id="pause-warp-destinations"');
     expect(app.innerHTML).toContain('id="pause-warp-back"');
+    expect(app.innerHTML).toContain('id="audio-master-volume"');
+    expect(app.innerHTML).toContain('id="audio-music-mute"');
+    expect(app.innerHTML).toContain('id="audio-sfx-volume"');
+    expect(app.innerHTML).toContain("separately from recovered PAL save data");
     expect(app.innerHTML).toContain("Esc back");
     expect(app.innerHTML).not.toMatch(/debug warp|warp debug/i);
   });

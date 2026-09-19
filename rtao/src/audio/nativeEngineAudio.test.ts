@@ -81,6 +81,7 @@ describe("NativeEngineAudioRuntime", () => {
     runtime.start({ engineSpeed: 4000, layerSelector: 0, effectSelector: 3 });
 
     expect(records).toHaveLength(2);
+    expect(records.map((record) => record.options.bus)).toEqual(["sfx", "sfx"]);
     expect(records.map((record) => record.options.loop)).toEqual([
       { startFrame: 23 * 28, endFrame: 217 * 28 },
       { startFrame: 25 * 28, endFrame: 199 * 28 },

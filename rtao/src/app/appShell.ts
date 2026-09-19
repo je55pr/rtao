@@ -187,6 +187,31 @@ const appShellHtml = `
           </section>
 
           <section class="pause-section">
+            <h3>Audio</h3>
+            <p class="pause-section-help">Saved on this browser, separately from recovered PAL save data.</p>
+            <div class="audio-settings" aria-label="Audio settings">
+              <div class="audio-setting-row">
+                <label for="audio-master-volume">Master</label>
+                <input id="audio-master-volume" type="range" min="0" max="100" step="5" value="100">
+                <output id="audio-master-value" for="audio-master-volume">100%</output>
+                <button class="quiet-button audio-mute-button" id="audio-master-mute" type="button" aria-pressed="false">Mute</button>
+              </div>
+              <div class="audio-setting-row">
+                <label for="audio-music-volume">Music</label>
+                <input id="audio-music-volume" type="range" min="0" max="100" step="5" value="100">
+                <output id="audio-music-value" for="audio-music-volume">100%</output>
+                <button class="quiet-button audio-mute-button" id="audio-music-mute" type="button" aria-pressed="false">Mute</button>
+              </div>
+              <div class="audio-setting-row">
+                <label for="audio-sfx-volume">SFX</label>
+                <input id="audio-sfx-volume" type="range" min="0" max="100" step="5" value="100">
+                <output id="audio-sfx-value" for="audio-sfx-volume">100%</output>
+                <button class="quiet-button audio-mute-button" id="audio-sfx-mute" type="button" aria-pressed="false">Mute</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="pause-section">
             <h3>Controls</h3>
             <dl class="pause-controls">
               <div><dt>Drive</dt><dd id="control-help-drive">Left stick + triggers · W A S D / arrows</dd></div>
