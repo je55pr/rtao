@@ -80,6 +80,7 @@ export interface BrowserAudioSnapshot {
   readonly state: "locked" | BrowserAudioContextState;
   readonly gains: AudioGainState;
   readonly pendingLoops: number;
+  readonly pendingEvents: number;
   readonly activeSources: number;
 }
 
@@ -104,6 +105,11 @@ interface PendingLoop {
   readonly loop?: PcmLoop;
   readonly offsetFrame?: number;
   readonly startAtSeconds?: number;
+}
+
+interface PendingEvent {
+  readonly state: PlaybackState;
+  readonly clip: PcmClip;
 }
 
 function assertGain(value: number, label: string): void {
@@ -138,6 +144,7 @@ export class BrowserAudioRuntime {
   private musicGain = 1;
   private sfxGain = 1;
   private readonly pendingLoops = new Map<PlaybackState, PendingLoop>();
+  private readonly pendingEvents = new Map<PlaybackState, PendingEvent>();
   private readonly activeSources = new Set<PlaybackState>();
   private readonly buffers = new WeakMap<PcmClip, AudioBufferFacade>();
 
@@ -148,6 +155,7 @@ export class BrowserAudioRuntime {
       state: this.disposed ? "closed" : (this.context?.state ?? "locked"),
       gains: { master: this.masterGain, music: this.musicGain, sfx: this.sfxGain },
       pendingLoops: this.pendingLoops.size,
+      pendingEvents: this.pendingEvents.size,
       activeSources: this.activeSources.size,
     };
   }
@@ -213,12 +221,22 @@ export class BrowserAudioRuntime {
     return this.context?.state === "running" ? this.context.currentTime : undefined;
   }
 
-  /** One-shots are deliberately not queued while locked, avoiding a delayed burst after unlock. */
+  /**
+   * One-shots are not retained across an ordinary autoplay lock. The narrow
+   * exception is an unlock already in flight from the same trusted gesture:
+   * retain those event-time cues until that resume settles so the first menu,
+   * dialogue, or interaction sound is not lost to an asynchronous resume.
+   */
   playEvent(clip: PcmClip, options: AudioPlaybackOptions = {}): AudioPlaybackHandle | null {
     this.assertOpen();
     assertPcmClip(clip);
     assertPlaybackOptions(options);
-    if (this.context?.state !== "running" || !this.graph) return null;
+    if (this.context?.state !== "running" || !this.graph) {
+      if (!this.unlocking) return null;
+      const { state, handle } = this.createHandle(options);
+      this.pendingEvents.set(state, { state, clip });
+      return handle;
+    }
     const { state, handle } = this.createHandle(options);
     this.startPlayback(state, clip, this.graph.sfx);
     return handle;
@@ -228,8 +246,9 @@ export class BrowserAudioRuntime {
   async dispose(): Promise<void> {
     if (this.disposed) return;
     this.disposed = true;
-    for (const state of [...this.pendingLoops.keys(), ...this.activeSources]) this.stopState(state);
+    for (const state of [...this.pendingLoops.keys(), ...this.pendingEvents.keys(), ...this.activeSources]) this.stopState(state);
     this.pendingLoops.clear();
+    this.pendingEvents.clear();
     this.activeSources.clear();
     this.graph?.music.disconnect();
     this.graph?.sfx.disconnect();
@@ -276,10 +295,15 @@ export class BrowserAudioRuntime {
     try {
       const context = this.ensureContext();
       if (context.state !== "running") await context.resume();
-      if (this.disposed || context.state !== "running") return false;
+      if (this.disposed || context.state !== "running") {
+        this.dropPendingEvents();
+        return false;
+      }
       this.startPendingLoops();
+      this.startPendingEvents();
       return true;
     } catch {
+      this.dropPendingEvents();
       return false;
     }
   }
@@ -315,6 +339,19 @@ export class BrowserAudioRuntime {
         pending.startAtSeconds,
       );
     }
+  }
+
+  private startPendingEvents(): void {
+    if (!this.graph || this.context?.state !== "running") return;
+    for (const [state, pending] of [...this.pendingEvents]) {
+      this.pendingEvents.delete(state);
+      if (state.stopped) continue;
+      this.startPlayback(state, pending.clip, this.graph.sfx);
+    }
+  }
+
+  private dropPendingEvents(): void {
+    for (const state of [...this.pendingEvents.keys()]) this.stopState(state);
   }
 
   private startPlayback(
@@ -402,6 +439,7 @@ export class BrowserAudioRuntime {
     if (state.stopped && state.cleaned) return;
     state.stopped = true;
     this.pendingLoops.delete(state);
+    this.pendingEvents.delete(state);
     try {
       state.source?.stop(0);
     } catch {

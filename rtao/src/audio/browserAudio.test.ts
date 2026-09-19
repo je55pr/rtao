@@ -80,7 +80,9 @@ class FakeAudioContext implements AudioContextFacade {
   resumeCount = 0;
   closeCount = 0;
   resumeShouldRun = true;
+  deferResume = false;
   private currentState: BrowserAudioContextState = "suspended";
+  private finishDeferredResume?: () => void;
 
   get state(): BrowserAudioContextState {
     return this.currentState;
@@ -106,7 +108,23 @@ class FakeAudioContext implements AudioContextFacade {
 
   async resume(): Promise<void> {
     this.resumeCount += 1;
+    if (this.deferResume) {
+      await new Promise<void>((resolve) => {
+        this.finishDeferredResume = () => {
+          if (this.resumeShouldRun) this.currentState = "running";
+          resolve();
+        };
+      });
+      return;
+    }
     if (this.resumeShouldRun) this.currentState = "running";
+  }
+
+  finishResume(): void {
+    const finish = this.finishDeferredResume;
+    if (!finish) throw new Error("No deferred resume is pending.");
+    this.finishDeferredResume = undefined;
+    finish();
   }
 
   async close(): Promise<void> {
@@ -250,6 +268,58 @@ describe("BrowserAudioRuntime", () => {
     expect(audio.snapshot().pendingLoops).toBe(0);
     expect(factoryCalls).toBe(0);
     await audio.unlock();
+    expect(context.sources).toHaveLength(0);
+  });
+
+  it("retains a same-gesture one-shot while asynchronous autoplay unlock settles", async () => {
+    const context = new FakeAudioContext();
+    context.deferResume = true;
+    const audio = new BrowserAudioRuntime(() => context);
+    const target = new EventTarget();
+    installBrowserAudioUnlock(audio, target);
+    let cue = audio.playEvent(clip);
+    expect(cue).toBeNull();
+
+    target.addEventListener("pointerdown", () => {
+      cue = audio.playEvent(clip, { gain: 0.35 });
+    });
+    target.dispatchEvent(new Event("pointerdown"));
+
+    expect(context.resumeCount).toBe(1);
+    expect(audio.snapshot()).toMatchObject({ state: "suspended", pendingEvents: 1, activeSources: 0 });
+    expect(cue).not.toBeNull();
+    expect(context.sources).toHaveLength(0);
+
+    context.finishResume();
+    await flushMicrotasks();
+
+    expect(audio.snapshot()).toMatchObject({ state: "running", pendingEvents: 0, activeSources: 1 });
+    expect(context.sources).toHaveLength(1);
+    expect(context.gains[3]!.gain.value).toBe(0.35);
+    expect(context.gains[3]!.connections[0]).toBe(context.gains[2]);
+  });
+
+  it("drops same-gesture one-shots when autoplay resume fails", async () => {
+    const context = new FakeAudioContext();
+    context.deferResume = true;
+    context.resumeShouldRun = false;
+    const audio = new BrowserAudioRuntime(() => context);
+    const target = new EventTarget();
+    installBrowserAudioUnlock(audio, target);
+    let cue = audio.playEvent(clip);
+
+    target.addEventListener("keydown", () => {
+      cue = audio.playEvent(clip);
+    });
+    target.dispatchEvent(new Event("keydown"));
+    expect(cue).not.toBeNull();
+    expect(audio.snapshot().pendingEvents).toBe(1);
+
+    context.finishResume();
+    await flushMicrotasks();
+
+    expect(cue!.stopped).toBe(true);
+    expect(audio.snapshot()).toMatchObject({ state: "suspended", pendingEvents: 0, activeSources: 0 });
     expect(context.sources).toHaveLength(0);
   });
 
