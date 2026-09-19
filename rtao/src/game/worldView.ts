@@ -149,7 +149,7 @@ function createOutdoorSceneResources(name: string, compiled: CompiledFieldMesh):
       horizontalBounds.expandByPoint(new THREE.Vector2(geometry.boundingBox.min.x, geometry.boundingBox.min.z));
       horizontalBounds.expandByPoint(new THREE.Vector2(geometry.boundingBox.max.x, geometry.boundingBox.max.z));
     }
-    const materialBaseKey = `${batch.textureIndex}|${batch.textureFunction}|${batch.rgbaColorComponent ? 1 : 0}|${batch.hasTransparency ? 1 : 0}|${batch.billboard ? 1 : 0}`;
+    const materialBaseKey = `${batch.textureIndex}|${batch.textureFunction}|${batch.rgbaColorComponent ? 1 : 0}|${batch.hasTransparency ? 1 : 0}|${batch.billboard ? 1 : 0}|${batch.stableAtmosphere ? 1 : 0}|${batch.nightOnly ? 1 : 0}`;
     const approximateMaterialKey = `${materialBaseKey}|approx`;
     let approximateMaterial = materialMap.get(approximateMaterialKey);
     if (!approximateMaterial) {
@@ -160,7 +160,12 @@ function createOutdoorSceneResources(name: string, compiled: CompiledFieldMesh):
     approximateMesh.name = `${group.name} batch ${index}`;
     approximateMesh.userData.rtaNightOnly = batch.nightOnly;
     approximateMesh.userData.rtaRenderPath = batch.billboard ? "all" : "approximate";
-    approximateMesh.renderOrder = batch.hasTransparency ? 2 : (!batch.billboard && batch.chunkIndex === 64 ? 0 : 1);
+    // Ordinary billboard foliage is depth-participating cutout coverage, not a
+    // blended transparent layer. Keep only the proven night-light coronas in
+    // the transparent queue; tree cards can then occlude one another correctly.
+    approximateMesh.renderOrder = batch.billboard && batch.hasTransparency && !batch.nightOnly
+      ? 1
+      : (batch.hasTransparency ? 2 : (!batch.billboard && batch.chunkIndex === 64 ? 0 : 1));
     group.add(approximateMesh);
     if (geometry.boundingSphere) distanceCullEntries.push({
       mesh: approximateMesh,
@@ -1264,6 +1269,7 @@ function createFieldMaterial(batch: CompiledFieldBatch, textures: THREE.Texture[
   // selector. Billboards execute MSCALF 6 and remain outside this profile.
   const atmosphereDistances = new THREE.Vector4(290, 544, 800, batch.billboard ? 0 : 1);
   const renderPolicy = fieldMaterialRenderPolicy(renderPath, batch.hasTransparency);
+  const billboardCutoutCoverage = renderPath === "approximate" && batch.billboard && batch.hasTransparency && !batch.nightOnly;
   const material = new THREE.MeshBasicMaterial({
     map: batch.textureIndex >= 0 ? textures[batch.textureIndex] : null,
     vertexColors: true,
@@ -1273,10 +1279,10 @@ function createFieldMaterial(batch: CompiledFieldBatch, textures: THREE.Texture[
     // buildings and solid foliage texels populate framebuffer + depth before
     // the fade-only RGB pass blends partial coverage. Marking both passes
     // transparent made tree fringes blend against sky and defeated early-Z.
-    transparent: renderPolicy.transparent,
-    alphaTest: renderPolicy.alphaTest,
-    alphaToCoverage: renderPolicy.alphaToCoverage,
-    depthWrite: renderPolicy.depthWrite,
+    transparent: billboardCutoutCoverage ? false : renderPolicy.transparent,
+    alphaTest: billboardCutoutCoverage ? 1 / 255 : renderPolicy.alphaTest,
+    alphaToCoverage: billboardCutoutCoverage || renderPolicy.alphaToCoverage,
+    depthWrite: billboardCutoutCoverage ? true : renderPolicy.depthWrite,
   });
   // Three.js otherwise renders transparent DoubleSide materials once for
   // back faces and again for front faces. HG2's RGB_ONLY fallback is one GS
