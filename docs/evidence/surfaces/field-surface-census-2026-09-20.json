@@ -1,0 +1,1924 @@
+{
+  "schema": 1,
+  "authority": {
+    "executable": "SLES_513.56",
+    "executableSha256": "2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9"
+  },
+  "scope": {
+    "standardFieldCount": 64,
+    "specialOutdoorSources": [
+      "ACTION/A16.BIN"
+    ],
+    "payloadRetained": false,
+    "selectorMeaning": [
+      "Dry",
+      "Off-road",
+      "Wet",
+      "Grass",
+      "Snow",
+      "Ice"
+    ],
+    "raceSlotsExcluded": [
+      6,
+      7
+    ]
+  },
+  "standard": {
+    "populations": [
+      65095,
+      675958,
+      0,
+      122861,
+      11169,
+      2957,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "occurrences": [
+      [
+        "FLD/011",
+        "FLD/012",
+        "FLD/013",
+        "FLD/022",
+        "FLD/023",
+        "FLD/103",
+        "FLD/110",
+        "FLD/111",
+        "FLD/113",
+        "FLD/120",
+        "FLD/121",
+        "FLD/203",
+        "FLD/210",
+        "FLD/212",
+        "FLD/213",
+        "FLD/220",
+        "FLD/221",
+        "FLD/222",
+        "FLD/223",
+        "FLD/232",
+        "FLD/233",
+        "FLD/330"
+      ],
+      [
+        "FLD/000",
+        "FLD/001",
+        "FLD/002",
+        "FLD/003",
+        "FLD/010",
+        "FLD/011",
+        "FLD/012",
+        "FLD/013",
+        "FLD/020",
+        "FLD/021",
+        "FLD/022",
+        "FLD/023",
+        "FLD/030",
+        "FLD/031",
+        "FLD/032",
+        "FLD/033",
+        "FLD/100",
+        "FLD/101",
+        "FLD/102",
+        "FLD/103",
+        "FLD/110",
+        "FLD/111",
+        "FLD/112",
+        "FLD/113",
+        "FLD/120",
+        "FLD/121",
+        "FLD/122",
+        "FLD/123",
+        "FLD/130",
+        "FLD/131",
+        "FLD/132",
+        "FLD/133",
+        "FLD/200",
+        "FLD/202",
+        "FLD/203",
+        "FLD/210",
+        "FLD/211",
+        "FLD/212",
+        "FLD/213",
+        "FLD/220",
+        "FLD/221",
+        "FLD/222",
+        "FLD/223",
+        "FLD/230",
+        "FLD/231",
+        "FLD/232",
+        "FLD/233",
+        "FLD/300",
+        "FLD/301",
+        "FLD/302",
+        "FLD/303",
+        "FLD/310",
+        "FLD/311",
+        "FLD/312",
+        "FLD/313",
+        "FLD/320",
+        "FLD/321",
+        "FLD/322",
+        "FLD/323",
+        "FLD/330",
+        "FLD/331",
+        "FLD/332",
+        "FLD/333"
+      ],
+      [],
+      [
+        "FLD/013",
+        "FLD/023",
+        "FLD/102",
+        "FLD/103",
+        "FLD/112",
+        "FLD/113",
+        "FLD/200",
+        "FLD/201",
+        "FLD/202",
+        "FLD/203",
+        "FLD/210",
+        "FLD/211",
+        "FLD/212",
+        "FLD/213",
+        "FLD/221",
+        "FLD/222",
+        "FLD/223",
+        "FLD/230",
+        "FLD/232",
+        "FLD/233",
+        "FLD/301",
+        "FLD/310",
+        "FLD/321",
+        "FLD/330"
+      ],
+      [
+        "FLD/203"
+      ],
+      [
+        "FLD/113",
+        "FLD/203"
+      ],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      []
+    ]
+  },
+  "overworldAndSpecialOutdoor": {
+    "populations": [
+      67448,
+      675958,
+      0,
+      122861,
+      11169,
+      2957,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "occurrences": [
+      [
+        "FLD/011",
+        "FLD/012",
+        "FLD/013",
+        "FLD/022",
+        "FLD/023",
+        "FLD/103",
+        "FLD/110",
+        "FLD/111",
+        "FLD/113",
+        "FLD/120",
+        "FLD/121",
+        "FLD/203",
+        "FLD/210",
+        "FLD/212",
+        "FLD/213",
+        "FLD/220",
+        "FLD/221",
+        "FLD/222",
+        "FLD/223",
+        "FLD/232",
+        "FLD/233",
+        "FLD/330",
+        "ACTION/A16"
+      ],
+      [
+        "FLD/000",
+        "FLD/001",
+        "FLD/002",
+        "FLD/003",
+        "FLD/010",
+        "FLD/011",
+        "FLD/012",
+        "FLD/013",
+        "FLD/020",
+        "FLD/021",
+        "FLD/022",
+        "FLD/023",
+        "FLD/030",
+        "FLD/031",
+        "FLD/032",
+        "FLD/033",
+        "FLD/100",
+        "FLD/101",
+        "FLD/102",
+        "FLD/103",
+        "FLD/110",
+        "FLD/111",
+        "FLD/112",
+        "FLD/113",
+        "FLD/120",
+        "FLD/121",
+        "FLD/122",
+        "FLD/123",
+        "FLD/130",
+        "FLD/131",
+        "FLD/132",
+        "FLD/133",
+        "FLD/200",
+        "FLD/202",
+        "FLD/203",
+        "FLD/210",
+        "FLD/211",
+        "FLD/212",
+        "FLD/213",
+        "FLD/220",
+        "FLD/221",
+        "FLD/222",
+        "FLD/223",
+        "FLD/230",
+        "FLD/231",
+        "FLD/232",
+        "FLD/233",
+        "FLD/300",
+        "FLD/301",
+        "FLD/302",
+        "FLD/303",
+        "FLD/310",
+        "FLD/311",
+        "FLD/312",
+        "FLD/313",
+        "FLD/320",
+        "FLD/321",
+        "FLD/322",
+        "FLD/323",
+        "FLD/330",
+        "FLD/331",
+        "FLD/332",
+        "FLD/333"
+      ],
+      [],
+      [
+        "FLD/013",
+        "FLD/023",
+        "FLD/102",
+        "FLD/103",
+        "FLD/112",
+        "FLD/113",
+        "FLD/200",
+        "FLD/201",
+        "FLD/202",
+        "FLD/203",
+        "FLD/210",
+        "FLD/211",
+        "FLD/212",
+        "FLD/213",
+        "FLD/221",
+        "FLD/222",
+        "FLD/223",
+        "FLD/230",
+        "FLD/232",
+        "FLD/233",
+        "FLD/301",
+        "FLD/310",
+        "FLD/321",
+        "FLD/330"
+      ],
+      [
+        "FLD/203"
+      ],
+      [
+        "FLD/113",
+        "FLD/203"
+      ],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      []
+    ]
+  },
+  "sources": [
+    {
+      "id": "FLD/000",
+      "path": "FLD/000.BIN",
+      "triangleCount": 13327,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13327,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/001",
+      "path": "FLD/001.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/002",
+      "path": "FLD/002.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/003",
+      "path": "FLD/003.BIN",
+      "triangleCount": 13460,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13460,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/010",
+      "path": "FLD/010.BIN",
+      "triangleCount": 13327,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13327,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/011",
+      "path": "FLD/011.BIN",
+      "triangleCount": 14828,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 398,
+          "surfaceWord": "0x80000550",
+          "centroid": [
+            1058.224731,
+            39.5,
+            1500.10966
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 14430,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/012",
+      "path": "FLD/012.BIN",
+      "triangleCount": 15416,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 8739,
+          "surfaceWord": "0x80000000",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 6677,
+          "surfaceWord": "0x00100651",
+          "centroid": [
+            1533.333333,
+            -40.867708,
+            66.666667
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/013",
+      "path": "FLD/013.BIN",
+      "triangleCount": 15773,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 10026,
+          "surfaceWord": "0x80000550",
+          "centroid": [
+            1533,
+            31,
+            64.999969
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 4643,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            1586.666667,
+            25,
+            13.333333
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 1104,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            733.184713,
+            30.268749,
+            344.159627
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/020",
+      "path": "FLD/020.BIN",
+      "triangleCount": 8564,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 8564,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/021",
+      "path": "FLD/021.BIN",
+      "triangleCount": 13495,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13495,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/022",
+      "path": "FLD/022.BIN",
+      "triangleCount": 14525,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 8222,
+          "surfaceWord": "0x80001000",
+          "centroid": [
+            196.17509,
+            35.833295,
+            262.435598
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 6303,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            1520,
+            25,
+            170
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/023",
+      "path": "FLD/023.BIN",
+      "triangleCount": 8664,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 3821,
+          "surfaceWord": "0x80000000",
+          "centroid": [
+            1503.333333,
+            33,
+            266.333333
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 4417,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            1573.333333,
+            35.349125,
+            13.333333
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 426,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            640,
+            25,
+            626.666321
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/030",
+      "path": "FLD/030.BIN",
+      "triangleCount": 8825,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 8825,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/031",
+      "path": "FLD/031.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/032",
+      "path": "FLD/032.BIN",
+      "triangleCount": 7815,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 7815,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            1533.333333,
+            27.358475,
+            66.666667
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/033",
+      "path": "FLD/033.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/100",
+      "path": "FLD/100.BIN",
+      "triangleCount": 13327,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13327,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/101",
+      "path": "FLD/101.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/102",
+      "path": "FLD/102.BIN",
+      "triangleCount": 15418,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13867,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 1551,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            206.666667,
+            98,
+            1194.666667
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/103",
+      "path": "FLD/103.BIN",
+      "triangleCount": 14890,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 1377,
+          "surfaceWord": "0x10000000",
+          "centroid": [
+            1533.333333,
+            0,
+            66.666667
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 9853,
+          "surfaceWord": "0x00100651",
+          "centroid": [
+            1533.333333,
+            -40.867708,
+            66.666667
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 3660,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            561,
+            71.015559,
+            193.333333
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/110",
+      "path": "FLD/110.BIN",
+      "triangleCount": 15746,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 1723,
+          "surfaceWord": "0x80011000",
+          "centroid": [
+            298.960897,
+            51.399979,
+            702.609802
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 14023,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/111",
+      "path": "FLD/111.BIN",
+      "triangleCount": 7343,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 1962,
+          "surfaceWord": "0x80001000",
+          "centroid": [
+            1293.666667,
+            31,
+            93.46814
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 5381,
+          "surfaceWord": "0x00100651",
+          "centroid": [
+            1579.429728,
+            -42.046953,
+            78.289215
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/112",
+      "path": "FLD/112.BIN",
+      "triangleCount": 6575,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 4306,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            1493.333333,
+            97.333333,
+            13.333333
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 2269,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            1493.333333,
+            101,
+            1013.333333
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/113",
+      "path": "FLD/113.BIN",
+      "triangleCount": 15077,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 1986,
+          "surfaceWord": "0x10000000",
+          "centroid": [
+            1333.333333,
+            0,
+            66.666667
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 5769,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            1586.666667,
+            25,
+            13.333333
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 5103,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            805.661601,
+            19.500372,
+            303.029999
+          ]
+        },
+        {
+          "selector": 5,
+          "count": 2219,
+          "surfaceWord": "0x80000555",
+          "centroid": [
+            530.697469,
+            31.186669,
+            84.067215
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/120",
+      "path": "FLD/120.BIN",
+      "triangleCount": 10914,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 4506,
+          "surfaceWord": "0x80001000",
+          "centroid": [
+            160.055583,
+            33,
+            514.060689
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 6408,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            1493.333333,
+            25,
+            93.333333
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/121",
+      "path": "FLD/121.BIN",
+      "triangleCount": 17192,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 3053,
+          "surfaceWord": "0x00000000",
+          "centroid": [
+            435.833333,
+            35,
+            3.3337
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 14139,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            1493.333333,
+            28.825492,
+            93.333333
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/122",
+      "path": "FLD/122.BIN",
+      "triangleCount": 8533,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 8533,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1537.638021,
+            -32.853518,
+            88.80717
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/123",
+      "path": "FLD/123.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/130",
+      "path": "FLD/130.BIN",
+      "triangleCount": 12915,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 12915,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            1533.333333,
+            31.57737,
+            106.666667
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/131",
+      "path": "FLD/131.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/132",
+      "path": "FLD/132.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/133",
+      "path": "FLD/133.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/200",
+      "path": "FLD/200.BIN",
+      "triangleCount": 16492,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 9537,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 6955,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            322,
+            97.666667,
+            6.666667
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/201",
+      "path": "FLD/201.BIN",
+      "triangleCount": 4891,
+      "selectors": [
+        {
+          "selector": 3,
+          "count": 4891,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            1586.666667,
+            145,
+            13.333333
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/202",
+      "path": "FLD/202.BIN",
+      "triangleCount": 16357,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 11116,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 5241,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            1462,
+            97.666667,
+            26.666667
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/203",
+      "path": "FLD/203.BIN",
+      "triangleCount": 23440,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 2534,
+          "surfaceWord": "0x10000000",
+          "centroid": [
+            547.666667,
+            162.618922,
+            93.333333
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 4507,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            691.666667,
+            186,
+            93.333333
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 4492,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            1533.333333,
+            188.756582,
+            106.666667
+          ]
+        },
+        {
+          "selector": 4,
+          "count": 11169,
+          "surfaceWord": "0x00000444",
+          "centroid": [
+            1129.941935,
+            234,
+            206.001343
+          ]
+        },
+        {
+          "selector": 5,
+          "count": 738,
+          "surfaceWord": "0x00000455",
+          "centroid": [
+            873.333333,
+            231.979996,
+            293.333333
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/210",
+      "path": "FLD/210.BIN",
+      "triangleCount": 18104,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 965,
+          "surfaceWord": "0x10000000",
+          "centroid": [
+            1054,
+            83.885208,
+            86.666667
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 9039,
+          "surfaceWord": "0x00100651",
+          "centroid": [
+            1053.333333,
+            82.88475,
+            93.333333
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 8100,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            1493.333333,
+            151,
+            13.333333
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/211",
+      "path": "FLD/211.BIN",
+      "triangleCount": 10696,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 6495,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            1001.666667,
+            53,
+            6.666667
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 4201,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            1533.333333,
+            114.751572,
+            13.333333
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/212",
+      "path": "FLD/212.BIN",
+      "triangleCount": 21518,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 1009,
+          "surfaceWord": "0x10000000",
+          "centroid": [
+            192.114543,
+            103.119136,
+            189.235764
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 2841,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            1485.638224,
+            161.472244,
+            172.197444
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 17668,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            1486.666585,
+            186.244075,
+            53.333333
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/213",
+      "path": "FLD/213.BIN",
+      "triangleCount": 23108,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 1248,
+          "surfaceWord": "0x10000000",
+          "centroid": [
+            1506.666667,
+            98.684413,
+            165.333333
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 11044,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            1306.666667,
+            58.666667,
+            6.666667
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 10816,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            1573.333333,
+            116.736654,
+            26.666667
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/220",
+      "path": "FLD/220.BIN",
+      "triangleCount": 10626,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 2011,
+          "surfaceWord": "0x80001550",
+          "centroid": [
+            1379.93335,
+            17,
+            360
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 8615,
+          "surfaceWord": "0x00100651",
+          "centroid": [
+            1506.666667,
+            -28.690516,
+            93.333333
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/221",
+      "path": "FLD/221.BIN",
+      "triangleCount": 14031,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 1441,
+          "surfaceWord": "0x10000000",
+          "centroid": [
+            1466.666667,
+            0,
+            133.333333
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 9082,
+          "surfaceWord": "0x00100651",
+          "centroid": [
+            1506.666667,
+            -16.113722,
+            106.666667
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 3508,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            813.037374,
+            20.333333,
+            881.271606
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/222",
+      "path": "FLD/222.BIN",
+      "triangleCount": 20318,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 775,
+          "surfaceWord": "0x10000000",
+          "centroid": [
+            1509.226969,
+            47.986215,
+            768.006694
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 10155,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            1566.666667,
+            22.288591,
+            13.333333
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 9388,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            211.309326,
+            24.739885,
+            98.37031
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/223",
+      "path": "FLD/223.BIN",
+      "triangleCount": 20955,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 6886,
+          "surfaceWord": "0x00000000",
+          "centroid": [
+            963.18809,
+            30,
+            3.619033
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 2469,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            970.673971,
+            30.333333,
+            3.736485
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 11600,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            1533.333333,
+            31,
+            133.333333
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/230",
+      "path": "FLD/230.BIN",
+      "triangleCount": 8063,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 7151,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 912,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            1593.333333,
+            24.422222,
+            1188.333333
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/231",
+      "path": "FLD/231.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/232",
+      "path": "FLD/232.BIN",
+      "triangleCount": 8870,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 577,
+          "surfaceWord": "0x10000000",
+          "centroid": [
+            1133.333333,
+            0,
+            66.666667
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 6170,
+          "surfaceWord": "0x00000111",
+          "centroid": [
+            1140.916667,
+            3.333333,
+            93.333333
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 2123,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            1533.333333,
+            31,
+            66.666667
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/233",
+      "path": "FLD/233.BIN",
+      "triangleCount": 16840,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 1454,
+          "surfaceWord": "0x80000000",
+          "centroid": [
+            1167.38383,
+            34.834081,
+            442.44224
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 14710,
+          "surfaceWord": "0x00100651",
+          "centroid": [
+            1546.666667,
+            -38.31665,
+            26.666667
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 676,
+          "surfaceWord": "0x80000553",
+          "centroid": [
+            1055.363159,
+            9.514999,
+            597.801697
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/300",
+      "path": "FLD/300.BIN",
+      "triangleCount": 13327,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13327,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/301",
+      "path": "FLD/301.BIN",
+      "triangleCount": 16175,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 11021,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 5154,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            1133.333333,
+            99,
+            66.666667
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/302",
+      "path": "FLD/302.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/303",
+      "path": "FLD/303.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/310",
+      "path": "FLD/310.BIN",
+      "triangleCount": 16990,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 10791,
+          "surfaceWord": "0x00100651",
+          "centroid": [
+            57.598592,
+            -41.877664,
+            109.490382
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 6199,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            1506.666667,
+            189,
+            6.666667
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/311",
+      "path": "FLD/311.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/312",
+      "path": "FLD/312.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/313",
+      "path": "FLD/313.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/320",
+      "path": "FLD/320.BIN",
+      "triangleCount": 13327,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13327,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/321",
+      "path": "FLD/321.BIN",
+      "triangleCount": 15612,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 11543,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 4069,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            1258.970866,
+            32.678837,
+            6.666667
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/322",
+      "path": "FLD/322.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/323",
+      "path": "FLD/323.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/330",
+      "path": "FLD/330.BIN",
+      "triangleCount": 15711,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 382,
+          "surfaceWord": "0x10000000",
+          "centroid": [
+            333.333333,
+            0,
+            66.666667
+          ]
+        },
+        {
+          "selector": 1,
+          "count": 12574,
+          "surfaceWord": "0x00100651",
+          "centroid": [
+            357.980225,
+            -3.753564,
+            46.018939
+          ]
+        },
+        {
+          "selector": 3,
+          "count": 2755,
+          "surfaceWord": "0x00000313",
+          "centroid": [
+            1533.333374,
+            31,
+            3.333333
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/331",
+      "path": "FLD/331.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/332",
+      "path": "FLD/332.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FLD/333",
+      "path": "FLD/333.BIN",
+      "triangleCount": 13332,
+      "selectors": [
+        {
+          "selector": 1,
+          "count": 13332,
+          "surfaceWord": "0x80100651",
+          "centroid": [
+            1542.606283,
+            -35.025472,
+            81.601379
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ACTION/A16",
+      "path": "ACTION/A16.BIN",
+      "triangleCount": 2353,
+      "selectors": [
+        {
+          "selector": 0,
+          "count": 2353,
+          "surfaceWord": "0x00002550",
+          "centroid": [
+            1466.666667,
+            50,
+            133.333333
+          ]
+        }
+      ]
+    }
+  ]
+}
