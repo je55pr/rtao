@@ -1,4 +1,10 @@
 import type { RaceCameraPose, RacePose, RaceView } from "../raceView";
+import {
+  advanceNativeChaseCamera,
+  createNativeChaseCameraState,
+  type NativeChaseCameraState,
+} from "../nativeChaseCamera";
+import { browserOrdinaryChasePresetIndex } from "../browserChaseCameraSafety";
 import { stepOrdinaryRaceAi, type NativeRaceAiMemory } from "../raceAi";
 import type { OrdinaryRaceSessionCarView, OrdinaryRaceSessionStepResult } from "./raceSession";
 import type { OrdinaryRaceRuntime } from "./ordinaryRaceRuntime";
@@ -38,17 +44,23 @@ export function racePoseFromSessionCar(car: OrdinaryRaceSessionCarView): RacePos
   };
 }
 
-export function ordinaryRaceChaseCamera(pose: RacePose): RaceCameraPose {
-  const [x, y, z] = pose.position;
-  const forwardX = Math.sin(pose.yaw);
-  const forwardZ = Math.cos(pose.yaw);
-  return {
-    position: [x - forwardX * 10, y + 4.8, z - forwardZ * 10],
-    target: [x + forwardX * 16, y + 1, z + forwardZ * 16],
-  };
+export function ordinaryRaceChaseCamera(car: OrdinaryRaceSessionCarView): RaceCameraPose {
+  const pose = racePoseFromSessionCar(car);
+  const camera = advanceNativeChaseCamera(
+    createNativeChaseCameraState(browserOrdinaryChasePresetIndex),
+    {
+      position: pose.position,
+      nativeYaw: car.state.vehicle.yaw,
+      nativeSlip: car.state.vehicle.slipAngle,
+    },
+    { yawSign: -1 },
+  );
+  return { position: camera.position, target: camera.target };
 }
 export class OrdinaryRaceCoordinator {
   private readonly ai = new Map<number, AiRuntimeState>();
+  private cameraState: NativeChaseCameraState =
+    createNativeChaseCameraState(browserOrdinaryChasePresetIndex);
 
   constructor(readonly runtime: OrdinaryRaceRuntime) {
     for (const initial of runtime.initialCommands) {
@@ -63,6 +75,7 @@ export class OrdinaryRaceCoordinator {
         },
       });
     }
+    this.advancePlayerCamera();
   }
 
   step(input: OrdinaryRaceCoordinatorStepInput): OrdinaryRaceCoordinatorStepResult {
@@ -74,6 +87,7 @@ export class OrdinaryRaceCoordinator {
       shortFinalPhase: input.shortFinalPhase ?? false,
       commandSource: (car) => this.commandFor(car, input.playerCommands),
     });
+    this.advancePlayerCamera();
     return { session, poses: this.poses() };
   }
   syncView(view: RaceView): void {
@@ -83,7 +97,10 @@ export class OrdinaryRaceCoordinator {
     }
     const player = poses.find((entry) => entry.carIndex === 0);
     if (!player) throw new Error("Ordinary race presentation has no player car 0.");
-    view.setCameraPose(ordinaryRaceChaseCamera(player.pose));
+    view.setCameraPose({
+      position: this.cameraState.position,
+      target: this.cameraState.target,
+    });
     view.renderOnce();
   }
 
@@ -92,6 +109,20 @@ export class OrdinaryRaceCoordinator {
       carIndex,
       pose: racePoseFromSessionCar(this.runtime.session.entrant(carIndex)),
     }));
+  }
+
+  private advancePlayerCamera(): void {
+    const car = this.runtime.session.entrant(0);
+    const pose = racePoseFromSessionCar(car);
+    this.cameraState = advanceNativeChaseCamera(
+      this.cameraState,
+      {
+        position: pose.position,
+        nativeYaw: car.state.vehicle.yaw,
+        nativeSlip: car.state.vehicle.slipAngle,
+      },
+      { yawSign: -1 },
+    );
   }
 
   private commandFor(car: OrdinaryRaceSessionCarView, playerCommands: number) {

@@ -1,7 +1,9 @@
 import {
-  advanceBrowserChaseCamera,
-  type BrowserChaseCameraState,
-} from "../src/game/browserChaseCamera";
+  advanceNativeChaseCamera,
+  createNativeChaseCameraState,
+  resetNativeChaseLag,
+  selectNativeChasePreset,
+} from "../src/game/nativeChaseCamera";
 import type {
   DrivingCameraObservation,
   DrivingValidationObservation,
@@ -18,11 +20,12 @@ export interface PalFrameObservationResult {
 export interface PalCameraTraceSample {
   readonly label: string;
   readonly tick: number;
-  readonly browserPose: {
+  readonly nativeVehicle: {
     readonly position: DrivingValidationVector;
-    readonly yaw: number;
-    readonly cameraLift: number;
-    readonly snap?: boolean;
+    readonly nativeYaw: number;
+    readonly nativeSlip: number;
+    readonly presetIndex: number;
+    readonly resetLag?: boolean;
   };
   readonly palCamera: {
     readonly position: DrivingValidationVector;
@@ -78,22 +81,14 @@ export function parsePalCameraTrace(text: string): PalCameraTrace {
   return { schema: 1, tolerance: value.tolerance, samples };
 }
 
-export function browserCameraObservations(trace: PalCameraTrace): DrivingCameraObservation[] {
-  let state: BrowserChaseCameraState = {
-    position: [0, 0, 0],
-    target: [0, 0, 0],
-    ready: false,
-  };
+export function nativeCameraObservations(trace: PalCameraTrace): DrivingCameraObservation[] {
+  let state = createNativeChaseCameraState(trace.samples[0]!.nativeVehicle.presetIndex);
   return trace.samples.map((sample) => {
-    state = advanceBrowserChaseCamera(
-      state,
-      {
-        position: sample.browserPose.position,
-        yaw: sample.browserPose.yaw,
-        cameraLift: sample.browserPose.cameraLift,
-      },
-      sample.browserPose.snap ?? false,
-    );
+    if (sample.nativeVehicle.presetIndex !== state.presetIndex) {
+      state = selectNativeChasePreset(state, sample.nativeVehicle.presetIndex);
+    }
+    if (sample.nativeVehicle.resetLag) state = resetNativeChaseLag(state);
+    state = advanceNativeChaseCamera(state, sample.nativeVehicle);
     return {
       label: sample.label,
       tick: sample.tick,
@@ -116,13 +111,15 @@ function parseCameraSample(value: unknown, index: number): PalCameraTraceSample 
   if (!isRecord(value) || typeof value.label !== "string" || !Number.isInteger(value.tick)) {
     throw new TypeError(`PAL camera sample ${index} needs a label and integer tick.`);
   }
-  const browserPose = value.browserPose;
+  const nativeVehicle = value.nativeVehicle;
   const palCamera = value.palCamera;
-  if (!isRecord(browserPose) || !isVector3(browserPose.position)
-    || typeof browserPose.yaw !== "number" || !Number.isFinite(browserPose.yaw)
-    || !isFiniteNonNegative(browserPose.cameraLift)
-    || (browserPose.snap !== undefined && typeof browserPose.snap !== "boolean")) {
-    throw new TypeError(`PAL camera sample ${index} has an invalid browserPose.`);
+  if (!isRecord(nativeVehicle) || !isVector3(nativeVehicle.position)
+    || !Number.isInteger(nativeVehicle.nativeYaw)
+    || !Number.isInteger(nativeVehicle.nativeSlip)
+    || !Number.isInteger(nativeVehicle.presetIndex)
+    || nativeVehicle.presetIndex < 0 || nativeVehicle.presetIndex > 9
+    || (nativeVehicle.resetLag !== undefined && typeof nativeVehicle.resetLag !== "boolean")) {
+    throw new TypeError(`PAL camera sample ${index} has invalid native vehicle camera inputs.`);
   }
   if (!isRecord(palCamera) || !isVector3(palCamera.position) || !isVector3(palCamera.target)) {
     throw new TypeError(`PAL camera sample ${index} has an invalid palCamera.`);
@@ -130,11 +127,12 @@ function parseCameraSample(value: unknown, index: number): PalCameraTraceSample 
   return {
     label: value.label,
     tick: value.tick,
-    browserPose: {
-      position: browserPose.position,
-      yaw: browserPose.yaw,
-      cameraLift: browserPose.cameraLift,
-      ...(browserPose.snap === undefined ? {} : { snap: browserPose.snap }),
+    nativeVehicle: {
+      position: nativeVehicle.position,
+      nativeYaw: nativeVehicle.nativeYaw,
+      nativeSlip: nativeVehicle.nativeSlip,
+      presetIndex: nativeVehicle.presetIndex,
+      ...(nativeVehicle.resetLag === undefined ? {} : { resetLag: nativeVehicle.resetLag }),
     },
     palCamera: {
       position: palCamera.position,

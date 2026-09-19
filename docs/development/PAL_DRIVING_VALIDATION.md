@@ -12,8 +12,9 @@ The gate has three deliberately separate parts:
 - free-roam motion core: `NativeDrivingMotion` is compared update-by-update
   with the executable's original `0x0021B1C0` scalar vehicle call while both
   receive the same explicit contact inputs;
-- chase camera: the pure browser chase-camera policy is compared with a local
-  numeric trace captured from PAL observations.
+- chase camera: the retained executable-backed runtime contract is covered by
+  deterministic tests, while an optional measured PAL output trace can compare
+  the production native-camera seam end-to-end when supplied locally.
 
 Original executable, disc and camera-capture inputs remain local. No retail
 payload is required or permitted in Git.
@@ -78,15 +79,16 @@ camera outputs. Point it at a JSON file with this copyright-safe numeric schema:
     {
       "label": "representative-turn",
       "tick": 0,
-      "browserPose": {
+      "nativeVehicle": {
         "position": [100, 2, 200],
-        "yaw": 0,
-        "cameraLift": 4.2,
-        "snap": true
+        "nativeYaw": 0,
+        "nativeSlip": 0,
+        "presetIndex": 0,
+        "resetLag": false
       },
       "palCamera": {
-        "position": [100, 6, 192],
-        "target": [100, 3, 200]
+        "position": [100, 4, 193],
+        "target": [100, 2, 200]
       }
     }
   ]
@@ -98,11 +100,12 @@ contract is the current camera authority; a future local output trace should
 contain only measured numeric observations and labels, never executable, disc,
 screenshot, texture, audio or other retail payload data.
 
-The camera test feeds each `browserPose` through the same pure
-`advanceBrowserChaseCamera` function used by `WorldView`. It then compares that
-output with `palCamera`. This means changing the browser camera constants or
-smoothing produces a field-level failure against the local PAL observations,
-rather than silently changing feel.
+The optional output test feeds each retained native vehicle position/yaw/slip
+sample through the same `advanceNativeChaseCamera` runtime used by ordinary
+free-roam and races, then compares that result with `palCamera`. No measured
+end-to-end PAL output trace is retained in Git yet, so this second gate remains
+conditional on `RTA_PAL_CAMERA_TRACE` rather than treating the browser projection
+as proven output-builder parity.
 
 ## Boundary
 
@@ -127,11 +130,22 @@ effect but the upstream outdoor command producer is not yet recovered.
 Developer Shift/RB boost remains a browser traversal aid outside native motion
 state and therefore cannot multiply recovered yaw.
 
-The current production chase camera remains browser policy even though the
-native runtime contract is now recovered. `browserChaseCamera.ts` is still a
-behavior-preserving validation seam; its existing distance, lift and smoothing
-constants must not be reclassified as native until implementation work replaces
-them from the retained contract and validates the result.
+The production ordinary chase path now consumes a retained PAL preset,
+native vehicle yaw/slip and the recovered float32 per-invocation lag recurrence
+through `nativeChaseCamera.ts`. Free-roam advances that state on the same 50 Hz
+fixed ticks as native vehicle motion; ordinary races use the same camera runtime
+after each recovered race step. The previous browser distance/lift/blend and
+instant-snap policy has been removed. The handoff does not prove the upstream
+initial preset selector, so `browserOrdinaryChasePresetIndex` keeps the current
+record-0 choice explicitly host-side rather than declaring it a native default.
+
+End-to-end PAL output-builder parity is still bounded by the optional measured
+camera trace above. Preset fields whose render meaning is not proven, the timed
+recenter angle and slip state are retained without inventing projection effects.
+`browserChaseCameraSafety.ts` remains an explicitly host-only height-clearance
+adapter; it is not the native `gp-0x3e60` obstruction loop. The recovered
+semantic `Change View` action likewise has no browser binding until that binding
+is independently proven.
 
 The broader gate remains:
 

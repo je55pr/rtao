@@ -75,6 +75,10 @@ export class NativeDrivingMotion {
     this.vehicle = createNativeRaceVehicleState(nativeYawFromRadians(yaw, authority.yawScale));
   }
 
+  get nativeVehicle(): NativeRaceVehicleState {
+    return this.vehicle;
+  }
+
   setSelector(category: number, selector: number): void {
     if (!Number.isInteger(category) || category < 1 || category > 6) {
       throw new RangeError(`Native driving category must be 1..6; got ${category}.`);

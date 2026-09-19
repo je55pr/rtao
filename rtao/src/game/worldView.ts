@@ -6,7 +6,7 @@ import type { FieldObjectAsset, FieldObjectKind, FieldObjectSectionTransform, Na
 import type { SkyTextureSet } from "../formats/skyTexture";
 import { choroCoinRenderPosition } from "./choroCoinProgress";
 import type { CaptureSize, CarVisualCaptureScene, FieldOverviewCaptureScene, WorldOverviewCaptureScene } from "./captureScenes";
-import { advanceBrowserChaseCamera } from "./browserChaseCamera";
+import type { BrowserChasePose } from "./browserChaseCameraSafety";
 import { renderPng } from "./renderCapture";
 import { fieldExtent, relativeRenderTranslation } from "./worldTopology";
 import { authenticFieldVisibilityProfile, hg2TimeUnits, outdoorAtmosphere, type OutdoorVisibilityMode, visibilityProfile } from "./fieldLighting";
@@ -175,8 +175,6 @@ export class WorldView {
   private timeOfDayUnits = hg2TimeUnits(12);
   private visibilityMode: OutdoorVisibilityMode = "extended";
   private vehicle: THREE.Object3D | undefined;
-  private readonly chaseTarget = new THREE.Vector3();
-  private chaseReady = false;
   private originFieldNumber = 223;
   private frameHandle = 0;
   private readonly animatedDynamicObjects: AnimatedDynamicObject[] = [];
@@ -572,8 +570,12 @@ export class WorldView {
     this.controls.enabled = false;
     this.horizon.visible = this.shouldShowHorizon();
     this.applyOutdoorState();
-    this.chaseReady = false;
-    this.updateDriving(fieldNumber, position, yaw, 0, 0, true);
+    this.originFieldNumber = fieldNumber;
+    this.positionSectors();
+    this.vehicle.position.set(position.x, position.y + 0.02, position.z);
+    this.vehicle.rotation.order = "YXZ";
+    this.vehicle.rotation.set(0, yaw, 0);
+    this.horizon.position.set(position.x, -3000, position.z);
   }
 
   updateDriving(
@@ -582,17 +584,15 @@ export class WorldView {
     yaw: number,
     pitch: number,
     roll: number,
-    snap = false,
-    cameraLift = 6.1,
+    camera: BrowserChasePose,
   ): void {
     if (!this.vehicle) return;
     this.activateStandardWorld();
     if (this.originFieldNumber !== fieldNumber) {
       this.originFieldNumber = fieldNumber;
       this.positionSectors();
-      snap = true;
     }
-    this.updateDrivingPose(position, yaw, pitch, roll, snap, cameraLift);
+    this.updateDrivingPose(position, yaw, pitch, roll, camera);
   }
 
   updateSpecialOutdoorDriving(
@@ -601,40 +601,32 @@ export class WorldView {
     yaw: number,
     pitch: number,
     roll: number,
-    snap = false,
-    cameraLift = 6.1,
+    camera: BrowserChasePose,
   ): void {
     if (!this.vehicle) return;
-    if (this.activeSpecialOutdoorAreaCode !== areaCode) snap = true;
     this.activateSpecialOutdoor(areaCode);
-    this.updateDrivingPose(position, yaw, pitch, roll, snap, cameraLift);
+    this.updateDrivingPose(position, yaw, pitch, roll, camera);
   }
 
-  private updateDrivingPose(position: { x: number; y: number; z: number }, yaw: number, pitch: number, roll: number, snap: boolean, cameraLift: number): void {
+  private updateDrivingPose(
+    position: { x: number; y: number; z: number },
+    yaw: number,
+    pitch: number,
+    roll: number,
+    camera: BrowserChasePose,
+  ): void {
     if (!this.vehicle) return;
     this.vehicle.position.set(position.x, position.y + 0.02, position.z);
     this.vehicle.rotation.order = "YXZ";
     this.vehicle.rotation.set(-pitch, yaw, roll);
-    const chase = advanceBrowserChaseCamera(
-      {
-        position: [this.camera.position.x, this.camera.position.y, this.camera.position.z],
-        target: [this.chaseTarget.x, this.chaseTarget.y, this.chaseTarget.z],
-        ready: this.chaseReady,
-      },
-      { position: [position.x, position.y, position.z], yaw, cameraLift },
-      snap,
-    );
-    this.camera.position.set(...chase.position);
-    this.chaseTarget.set(...chase.target);
-    this.chaseReady = chase.ready;
-    this.camera.lookAt(this.chaseTarget);
+    this.camera.position.set(...camera.position);
+    this.camera.lookAt(...camera.target);
     this.horizon.position.set(position.x, -3000, position.z);
   }
 
   stopDriving(): void {
     this.vehicle?.removeFromParent();
     this.vehicle = undefined;
-    this.chaseReady = false;
     this.controls.enabled = true;
     this.showWorldOverview();
   }

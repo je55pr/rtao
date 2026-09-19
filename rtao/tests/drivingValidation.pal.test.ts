@@ -30,7 +30,7 @@ import {
   type NativeRaceVehicleState,
 } from "../src/game/nativeRaceVehicle";
 import {
-  browserCameraObservations,
+  nativeCameraObservations,
   nativeRaceFrameObservation,
   palCameraObservations,
   parsePalCameraTrace,
@@ -202,19 +202,19 @@ function palScalarMotionStep(
   };
 }
 
-test("camera trace schema feeds the production chase-camera seam", () => {
+test("camera trace schema feeds the production native chase-camera seam", () => {
   const trace = parsePalCameraTrace(JSON.stringify({
     schema: 1,
     tolerance: 1e-12,
     samples: [{
       label: "synthetic-schema-smoke",
       tick: 0,
-      browserPose: { position: [10, 2, 20], yaw: 0, cameraLift: 4.2, snap: true },
-      palCamera: { position: [10, 6.2, 12.2], target: [10, 2.7199999999999998, 20] },
+      nativeVehicle: { position: [10, 2, 20], nativeYaw: 0, nativeSlip: 0, presetIndex: 0 },
+      palCamera: { position: [10, 4, 13], target: [10, 2, 20] },
     }],
   }));
   expect(() => assertBrowserCameraTraceMatchesPal(
-    browserCameraObservations(trace),
+    nativeCameraObservations(trace),
     palCameraObservations(trace),
     trace.tolerance,
   )).not.toThrow();
@@ -361,10 +361,10 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
 });
 
 describe.skipIf(!cameraTracePath)("PAL chase-camera observations", () => {
-  test("current browser chase policy is compared against the local recovered camera trace", () => {
+  test("native chase runtime is compared against the optional measured PAL camera trace", () => {
     const trace = parsePalCameraTrace(readFileSync(cameraTracePath!, "utf8"));
     expect(() => assertBrowserCameraTraceMatchesPal(
-      browserCameraObservations(trace),
+      nativeCameraObservations(trace),
       palCameraObservations(trace),
       trace.tolerance,
     )).not.toThrow();

@@ -5,6 +5,16 @@ import {
   type NativeDrivingMotionAuthority,
 } from "./nativeDrivingMotion";
 import { nativeTyreContactThreshold } from "./nativeTyrePerformance";
+import {
+  advanceNativeChaseCamera,
+  createNativeChaseCameraState,
+  resetNativeChaseLag,
+  type NativeChaseCameraState,
+} from "./nativeChaseCamera";
+import {
+  applyBrowserChaseObstructionSafety,
+  browserOrdinaryChasePresetIndex,
+} from "./browserChaseCameraSafety";
 import type { DrivingSurfaceKind, DrivingWorld, Vec3 } from "./worldCollision";
 import { BrowserSemanticInput, type SemanticActionEvent, type SemanticInputScope } from "../input/semanticInput";
 import type { WorldView } from "./worldView";
@@ -26,6 +36,10 @@ export interface CarState {
   readonly fieldNumber: number;
   readonly position: Vec3;
   readonly yaw: number;
+  /** Direct native car +0x1D4 camera input. */
+  readonly nativeYaw: number;
+  /** Direct native car +0x1D6 camera input. */
+  readonly nativeSlipAngle: number;
   readonly speed: number;
   readonly steeringAngle: number;
   readonly wheelSpin: number;
@@ -61,6 +75,8 @@ export class ArcadeCarController {
       fieldNumber: resolvedFieldNumber,
       position: resolved?.position ?? position,
       yaw,
+      nativeYaw: this.motion.nativeVehicle.yaw,
+      nativeSlipAngle: this.motion.nativeVehicle.slipAngle,
       speed: 0,
       steeringAngle: 0,
       wheelSpin: 0,
@@ -122,6 +138,8 @@ export class ArcadeCarController {
       fieldNumber: -1,
       position: resolved?.position ?? candidate,
       yaw: current.yaw,
+      nativeYaw: this.motion.nativeVehicle.yaw,
+      nativeSlipAngle: this.motion.nativeVehicle.slipAngle,
       speed: 0,
       steeringAngle: 0,
       wheelSpin: 0,
@@ -149,6 +167,8 @@ export class ArcadeCarController {
       fieldNumber: resolvedFieldNumber,
       position: resolved?.position ?? position,
       yaw,
+      nativeYaw: this.motion.nativeVehicle.yaw,
+      nativeSlipAngle: this.motion.nativeVehicle.slipAngle,
       speed: 0,
       steeringAngle: 0,
       wheelSpin: 0,
@@ -232,6 +252,8 @@ export class ArcadeCarController {
       fieldNumber: nextLocation.kind === "standard-world" ? nextLocation.fieldNumber : -1,
       position: { x: resolved.position.x, y: attitude.y, z: resolved.position.z },
       yaw,
+      nativeYaw: motion.nativeVehicle.yaw,
+      nativeSlipAngle: motion.nativeVehicle.slipAngle,
       speed,
       steeringAngle,
       wheelSpin,
@@ -282,6 +304,8 @@ export class BrowserDrivingGame {
   private running = false;
   private paused = false;
   private inputOverride: DriveInput | undefined;
+  private chaseCameraState: NativeChaseCameraState =
+    createNativeChaseCameraState(browserOrdinaryChasePresetIndex);
 
   constructor(
     private readonly world: DrivingWorld,
@@ -304,8 +328,10 @@ export class BrowserDrivingGame {
     this.controls.reset();
     this.unsubscribeControls = this.input.subscribe(this.handleControlEvent);
     const state = this.controller.state;
+    this.chaseCameraState = createNativeChaseCameraState(browserOrdinaryChasePresetIndex);
+    this.advanceCamera(state);
     this.view.startDriving(this.car, state.fieldNumber, state.position, state.yaw);
-    this.applyState(state, true);
+    this.applyState(state);
     this.frameHandle = requestAnimationFrame(this.frame);
   }
 
@@ -346,24 +372,26 @@ export class BrowserDrivingGame {
   enterArea(fieldNumber: number, position: { readonly x: number; readonly z: number }): void {
     this.controls.reset();
     this.controller.enterArea(fieldNumber, position);
+    this.chaseCameraState = resetNativeChaseLag(this.chaseCameraState);
     this.accumulator = 0;
     this.lastTime = performance.now();
-    this.applyState(this.controller.state, true);
+    this.applyState(this.controller.state);
   }
 
   enterSpecialOutdoor(areaCode: number, position: { readonly x: number; readonly z: number }): void {
     this.controls.reset();
     this.controller.enterSpecialOutdoor(areaCode, position);
+    this.chaseCameraState = resetNativeChaseLag(this.chaseCameraState);
     this.accumulator = 0;
     this.lastTime = performance.now();
-    this.applyState(this.controller.state, true);
+    this.applyState(this.controller.state);
   }
 
   private readonly frame = (time: number): void => {
     if (!this.running) return;
     if (this.paused) {
       this.lastTime = time;
-      this.applyState(this.controller.state, false);
+      this.applyState(this.controller.state);
       this.frameHandle = requestAnimationFrame(this.frame);
       return;
     }
@@ -371,32 +399,53 @@ export class BrowserDrivingGame {
     this.lastTime = time;
     while (this.accumulator >= nativeDrivingFixedStepSeconds) {
       this.controller.update(nativeDrivingFixedStepSeconds, this.driveInput());
+      this.advanceCamera(this.controller.state);
       this.accumulator -= nativeDrivingFixedStepSeconds;
     }
-    this.applyState(this.controller.state, false);
+    this.applyState(this.controller.state);
     this.frameHandle = requestAnimationFrame(this.frame);
   };
 
-  private applyState(state: CarState, snap: boolean): void {
+  private advanceCamera(state: CarState): void {
+    this.chaseCameraState = advanceNativeChaseCamera(
+      this.chaseCameraState,
+      {
+        position: [state.position.x, state.position.y, state.position.z],
+        nativeYaw: state.nativeYaw,
+        nativeSlip: state.nativeSlipAngle,
+      },
+    );
+  }
+
+  private applyState(state: CarState): void {
     this.car.setWheelState(state.steeringAngle, state.wheelSpin);
-    const forwardX = Math.sin(state.yaw), forwardZ = Math.cos(state.yaw);
-    let cameraLift = 4.2;
-    for (let step = 1; step <= 6; step += 1) {
-      const distance = 7.8 * step / 6;
-      const point = {
-        x: state.position.x - forwardX * distance,
-        y: state.position.y,
-        z: state.position.z - forwardZ * distance,
-      };
-      const obstruction = state.location.kind === "special-outdoor"
+    const nativePose = {
+      position: this.chaseCameraState.position,
+      target: this.chaseCameraState.target,
+    };
+    const chase = applyBrowserChaseObstructionSafety(nativePose, (point) =>
+      state.location.kind === "special-outdoor"
         ? this.world.sampleSpecialOutdoorHighest(state.location.areaCode, point)
-        : this.world.sampleHighest(state.fieldNumber, point);
-      if (obstruction) cameraLift = Math.max(cameraLift, obstruction.y - state.position.y + 1.8);
-    }
+        : this.world.sampleHighest(state.fieldNumber, point)
+    );
     if (state.location.kind === "special-outdoor") {
-      this.view.updateSpecialOutdoorDriving(state.location.areaCode, state.position, state.yaw, state.pitch, state.roll, snap, cameraLift);
+      this.view.updateSpecialOutdoorDriving(
+        state.location.areaCode,
+        state.position,
+        state.yaw,
+        state.pitch,
+        state.roll,
+        chase,
+      );
     } else {
-      this.view.updateDriving(state.location.fieldNumber, state.position, state.yaw, state.pitch, state.roll, snap, cameraLift);
+      this.view.updateDriving(
+        state.location.fieldNumber,
+        state.position,
+        state.yaw,
+        state.pitch,
+        state.roll,
+        chase,
+      );
     }
     this.onState(state);
     this.onNativeEngineState?.(state, this.running && !this.paused);
