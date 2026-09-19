@@ -1,6 +1,7 @@
+import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import type { ChoroCoinPlacement } from "../formats/choroCoins";
-import { dynamicObjectPhaseSeed, nativeFourthColumnToRenderColumn, visibleChoroCoinPlacements } from "./worldView";
+import { dynamicObjectPhaseSeed, horizontalBoundsWithinDistance, nativeFourthColumnToRenderColumn, visibleChoroCoinPlacements } from "./worldView";
 
 describe("native field-object fourth-column reflection", () => {
   it("preserves homogeneous w while reflecting native field X", () => {
@@ -12,6 +13,18 @@ describe("native field-object fourth-column reflection", () => {
     const peachMesh0 = nativeFourthColumnToRenderColumn([1053.5, 1014.0, 1054.9000244, 1015.5999756]);
     expect(peachMesh0[0]).toBeCloseTo(1600 * 1015.5999756 - 1053.5);
     expect(peachMesh0.slice(1)).toEqual([1014.0, 1054.9000244, 1015.5999756]);
+  });
+});
+
+describe("outdoor visibility culling", () => {
+  const bounds = new THREE.Box2(new THREE.Vector2(0, 0), new THREE.Vector2(1600, 1600));
+
+  it("keeps a sector whose compiled bounds intersect the active range", () => {
+    expect(horizontalBoundsWithinDistance(bounds, 1600, 0, 1500, 800, 800)).toBe(true);
+  });
+
+  it("rejects a sector wholly beyond the active range", () => {
+    expect(horizontalBoundsWithinDistance(bounds, 3200, 0, 800, 800, 800)).toBe(false);
   });
 });
 

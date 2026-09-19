@@ -21,6 +21,7 @@ interface SectorRenderResources {
   readonly group: THREE.Group;
   readonly textures: THREE.Texture[];
   readonly materials: THREE.Material[];
+  readonly horizontalBounds: THREE.Box2;
   readonly triangles: number;
   readonly primitives: number;
   dynamic?: SectorDynamicResources;
@@ -80,6 +81,7 @@ function createOutdoorSceneResources(name: string, compiled: CompiledFieldMesh):
     return texture;
   });
   const materialMap = new Map<string, THREE.MeshBasicMaterial>();
+  const horizontalBounds = new THREE.Box2();
   const group = new THREE.Group();
   group.name = name;
   compiled.batches.forEach((batch, index) => {
@@ -91,6 +93,10 @@ function createOutdoorSceneResources(name: string, compiled: CompiledFieldMesh):
     geometry.setAttribute("nightColor", new THREE.BufferAttribute(batch.nightColors, 3, true));
     geometry.setAttribute("uv", new THREE.BufferAttribute(batch.uvs, 2));
     setBatchBounds(geometry, batch);
+    if (geometry.boundingBox) {
+      horizontalBounds.expandByPoint(new THREE.Vector2(geometry.boundingBox.min.x, geometry.boundingBox.min.z));
+      horizontalBounds.expandByPoint(new THREE.Vector2(geometry.boundingBox.max.x, geometry.boundingBox.max.z));
+    }
     const materialBaseKey = `${batch.textureIndex}|${batch.textureFunction}|${batch.rgbaColorComponent ? 1 : 0}|${batch.hasTransparency ? 1 : 0}|${batch.billboard ? 1 : 0}`;
     const approximateMaterialKey = `${materialBaseKey}|approx`;
     let approximateMaterial = materialMap.get(approximateMaterialKey);
@@ -121,10 +127,14 @@ function createOutdoorSceneResources(name: string, compiled: CompiledFieldMesh):
       }
     }
   });
+  if (horizontalBounds.isEmpty()) {
+    horizontalBounds.set(new THREE.Vector2(0, 0), new THREE.Vector2(fieldExtent, fieldExtent));
+  }
   return {
     group,
     textures,
     materials: [...materialMap.values()],
+    horizontalBounds,
     triangles: compiled.triangleCount,
     primitives: compiled.primitiveCount,
   };
@@ -149,6 +159,23 @@ export function visibleChoroCoinPlacements(
   collectedIndices: ReadonlySet<number>,
 ): readonly ChoroCoinPlacement[] {
   return placements.filter((placement) => placement.fieldNumber === fieldNumber && !collectedIndices.has(placement.index));
+}
+
+export function horizontalBoundsWithinDistance(
+  bounds: THREE.Box2,
+  offsetX: number,
+  offsetZ: number,
+  pointX: number,
+  pointZ: number,
+  maxDistance: number,
+): boolean {
+  const minX = bounds.min.x + offsetX;
+  const maxX = bounds.max.x + offsetX;
+  const minZ = bounds.min.y + offsetZ;
+  const maxZ = bounds.max.y + offsetZ;
+  const dx = pointX < minX ? minX - pointX : pointX > maxX ? pointX - maxX : 0;
+  const dz = pointZ < minZ ? minZ - pointZ : pointZ > maxZ ? pointZ - maxZ : 0;
+  return dx * dx + dz * dz <= maxDistance * maxDistance;
 }
 
 interface WorldActorRenderState {
@@ -726,6 +753,7 @@ export class WorldView {
       this.sky?.position.copy(captureCamera.position);
       this.nightSky?.position.copy(captureCamera.position);
       return await renderPng(this.renderer, size.width, size.height, () => {
+        this.applyDistanceCulling(captureCamera);
         this.renderer.clear(true, true, true);
         this.renderer.render(this.scene, captureCamera);
       });
@@ -793,6 +821,7 @@ export class WorldView {
       this.sky?.position.copy(carCamera.position);
       this.nightSky?.position.copy(carCamera.position);
       return await renderPng(this.renderer, size.width, size.height, () => {
+        this.applyDistanceCulling(carCamera);
         this.renderer.clear(true, true, true);
         this.renderer.render(this.scene, carCamera);
       });
@@ -913,6 +942,20 @@ export class WorldView {
 
   private shouldShowHorizon(): boolean {
     return outdoorAtmosphere(this.timeOfDayUnits).weights.night < 0.999;
+  }
+
+  private applyDistanceCulling(camera: THREE.Camera): void {
+    const farDistance = visibilityProfile(this.visibilityMode).farDistance;
+    for (const sector of this.sectors.values()) {
+      sector.group.visible = farDistance === null || horizontalBoundsWithinDistance(
+        sector.horizontalBounds,
+        sector.group.position.x,
+        sector.group.position.z,
+        camera.position.x,
+        camera.position.z,
+        farDistance,
+      );
+    }
   }
 
   private applyOutdoorState(): void {
@@ -1046,6 +1089,7 @@ export class WorldView {
       }
     }
     this.lastFrameTimestamp = now;
+    this.applyDistanceCulling(this.camera);
     this.renderer.render(this.scene, this.camera);
     this.frameHandle = requestAnimationFrame(this.frame);
   };
@@ -1158,20 +1202,27 @@ function createFieldMaterial(batch: CompiledFieldBatch, textures: THREE.Texture[
       )
       .replace(
         "#include <opaque_fragment>",
-        `float rtaFogSpan = max(rtaAtmosphereDistances.z - rtaAtmosphereDistances.x, 0.0001);
+        `${renderPath === "approximate" ? `// Browser convenience path. Unlimited sets w=0, so skip the entire
+        // atmosphere-distance composition rather than paying its pow/mix cost for every fragment.
+        if (rtaAtmosphereDistances.w > 0.5) {
+          float rtaFogSpan = max(rtaAtmosphereDistances.z - rtaAtmosphereDistances.x, 0.0001);
+          float rtaAlphaSpan = max(rtaAtmosphereDistances.z - rtaAtmosphereDistances.y, 0.0001);
+          float rtaFogSource = clamp((rtaAtmosphereDistances.z - vRtaViewDepth) / rtaFogSpan, 0.0, 1.0);
+          float rtaAlphaSource = clamp((rtaAtmosphereDistances.z - vRtaViewDepth) / rtaAlphaSpan, 0.0, 1.0);
+          vec3 rtaAtmosphereEncoded = rtaLinearToSrgb(rtaAtmosphereColor);
+          vec3 rtaOutgoingEncoded = rtaLinearToSrgb(outgoingLight);
+          float rtaSourceFactor = rtaFogSource * rtaAlphaSource;
+          vec3 rtaCompositedEncoded = mix(rtaAtmosphereEncoded, rtaOutgoingEncoded, rtaSourceFactor);
+          outgoingLight = rtaSrgbToLinear(rtaCompositedEncoded);
+        }` : `// Authentic field path: GS fog modifies source RGB first; ALPHA_2 then
+        // blends that result against the *actual* framebuffer destination.
+        float rtaFogSpan = max(rtaAtmosphereDistances.z - rtaAtmosphereDistances.x, 0.0001);
         float rtaAlphaSpan = max(rtaAtmosphereDistances.z - rtaAtmosphereDistances.y, 0.0001);
         float rtaFogSource = clamp((rtaAtmosphereDistances.z - vRtaViewDepth) / rtaFogSpan, 0.0, 1.0);
         float rtaAlphaSource = clamp((rtaAtmosphereDistances.z - vRtaViewDepth) / rtaAlphaSpan, 0.0, 1.0);
         vec3 rtaAtmosphereEncoded = rtaLinearToSrgb(rtaAtmosphereColor);
         vec3 rtaOutgoingEncoded = rtaLinearToSrgb(outgoingLight);
-        ${renderPath === "approximate" ? `// Fast browser visibility path: approximate the framebuffer destination as
-        // the same atmospheric colour and collapse fog then alpha to one factor.
-        float rtaSourceFactor = mix(1.0, rtaFogSource * rtaAlphaSource, rtaAtmosphereDistances.w);
-        vec3 rtaCompositedEncoded = mix(rtaAtmosphereEncoded, rtaOutgoingEncoded, rtaSourceFactor);
-        outgoingLight = rtaSrgbToLinear(rtaCompositedEncoded);` : `// Authentic field path: GS fog modifies source RGB first; ALPHA_2 then
-        // blends that result against the *actual* framebuffer destination.
-        float rtaFogFactor = mix(1.0, rtaFogSource, rtaAtmosphereDistances.w);
-        vec3 rtaFoggedEncoded = mix(rtaAtmosphereEncoded, rtaOutgoingEncoded, rtaFogFactor);
+        vec3 rtaFoggedEncoded = mix(rtaAtmosphereEncoded, rtaOutgoingEncoded, rtaFogSource);
         outgoingLight = rtaSrgbToLinear(rtaFoggedEncoded);
         float rtaFinalAlpha = clamp(diffuseColor.a * rtaAlphaSource, 0.0, 1.0);
         const float rtaGsAlphaReference = 127.0 / 128.0;
