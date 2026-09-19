@@ -41,7 +41,8 @@ describe("native driving cross-mode integration", () => {
       const inverse = inverseNativeRaceMatrix(matrix);
       const localVelocity = transformNativeRaceIntegerVector(inverse, raceVelocity);
       const drag = nativeRaceDrag(localVelocity[2], localVelocity[0], equipment.mass, 0, 0, 0);
-      const commands = 1 | (steering < 0 ? 0x8000 : steering > 0 ? 0x2000 : 0);
+      // Browser semantic steering is reflected relative to PAL course yaw.
+      const commands = 1 | (steering < 0 ? 0x2000 : steering > 0 ? 0x8000 : 0);
       const race = advanceNativeRaceVehicleVelocity(
         raceVehicle,
         equipment,

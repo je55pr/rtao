@@ -107,6 +107,19 @@ describe("recovered driving integration", () => {
     expect(sports.state.speed).toBe(normal.state.speed);
     expect(sports.state.distanceTravelled).toBe(normal.state.distanceTravelled);
   });
+  test("maps browser left/right steering onto the reflected PAL yaw directions", () => {
+    const left = controller(flatWorld());
+    const right = controller(flatWorld());
+    for (let frame = 0; frame < 60; frame += 1) {
+      left.update(nativeDrivingFixedStepSeconds, { throttle: 1, steering: -1, boost: false });
+      right.update(nativeDrivingFixedStepSeconds, { throttle: 1, steering: 1, boost: false });
+    }
+    expect(left.state.yaw).toBeGreaterThan(-0.1);
+    expect(right.state.yaw).toBeLessThan(-0.1);
+    expect(left.state.steeringAngle).toBeGreaterThan(0);
+    expect(right.state.steeringAngle).toBeLessThan(0);
+  });
+
   test("developer boost scales traversal only and never multiplies recovered yaw", () => {
     const normal = controller(flatWorld());
     const boosted = controller(flatWorld());

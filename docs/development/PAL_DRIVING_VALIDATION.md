@@ -12,9 +12,12 @@ The gate has three deliberately separate parts:
 - free-roam motion core: `NativeDrivingMotion` is compared update-by-update
   with the executable's original `0x0021B1C0` scalar vehicle call while both
   receive the same explicit contact inputs;
-- chase camera: the retained executable-backed runtime contract is covered by
-  deterministic tests, while an optional measured PAL output trace can compare
-  the production native-camera seam end-to-end when supplied locally.
+- chase camera: the retained executable-backed preset/yaw/slip/lag/recenter
+  contract is covered by deterministic tests. Live browser rendering currently
+  uses an explicitly host-owned chase framing fallback because the recovered
+  `0.001` recurrence is not proven to be final world-space camera output. An
+  optional measured PAL output trace is still required before replacing that
+  presentation fallback with a native output-builder projection.
 
 Original executable, disc and camera-capture inputs remain local. No retail
 payload is required or permitted in Git.

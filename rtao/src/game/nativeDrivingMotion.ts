@@ -163,8 +163,11 @@ function nativeDrivingCommands(input: NativeDrivingMotionInput, vehicle: NativeR
     // pedal scaling inside native force arithmetic.
     commands |= vehicle.nativeSpeed > 0 ? 2 : 5;
   }
-  if (input.steering < 0) commands |= 0x8000;
-  else if (input.steering > 0) commands |= 0x2000;
+  // Browser semantic steering is -1 left / +1 right. Browser/Three.js yaw
+  // is reflected relative to PAL course yaw, so the host bridge swaps the
+  // native steering bits without changing their recovered meanings.
+  if (input.steering < 0) commands |= 0x2000;
+  else if (input.steering > 0) commands |= 0x8000;
   return commands;
 }
 

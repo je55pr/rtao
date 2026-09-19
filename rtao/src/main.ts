@@ -1515,8 +1515,9 @@ function peachRaceCommandMask(): number {
   const steering = raceInput.axis("driveSteering");
   if (throttle > 0) commands |= 1;
   if (throttle < 0) commands |= 2;
-  if (steering < 0) commands |= 0x8000;
-  if (steering > 0) commands |= 0x2000;
+  // Browser semantic steering is reflected relative to PAL course yaw.
+  if (steering < 0) commands |= 0x2000;
+  if (steering > 0) commands |= 0x8000;
   return commands;
 }
 

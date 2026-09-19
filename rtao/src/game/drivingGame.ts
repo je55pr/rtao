@@ -12,6 +12,10 @@ import {
   type NativeChaseCameraState,
 } from "./nativeChaseCamera";
 import {
+  advanceBrowserChaseCamera,
+  type BrowserChaseCameraState,
+} from "./browserChaseCamera";
+import {
   applyBrowserChaseObstructionSafety,
   browserOrdinaryChasePresetIndex,
 } from "./browserChaseCameraSafety";
@@ -215,7 +219,7 @@ export class ArcadeCarController {
     const moveZ = motion.deltaZ * developerTravelScale;
     // Wheel animation is downstream of the recovered frame boundary. Retain a
     // presentation-only projection of recovered steering/speed until recovered.
-    const steeringAngle = -motion.steeringFraction * 0.48;
+    const steeringAngle = motion.steeringFraction * 0.48;
     let wheelSpin = old.wheelSpin - speed * dt / 0.355;
     if (Math.abs(wheelSpin) > Math.PI * 2) wheelSpin %= Math.PI * 2;
     const candidate = { x: old.position.x + moveX, y: old.position.y, z: old.position.z + moveZ };
@@ -306,6 +310,9 @@ export class BrowserDrivingGame {
   private inputOverride: DriveInput | undefined;
   private chaseCameraState: NativeChaseCameraState =
     createNativeChaseCameraState(browserOrdinaryChasePresetIndex);
+  private browserChaseCameraState: BrowserChaseCameraState = {
+    position: [0, 0, 0], target: [0, 0, 0], ready: false,
+  };
 
   constructor(
     private readonly world: DrivingWorld,
@@ -329,7 +336,8 @@ export class BrowserDrivingGame {
     this.unsubscribeControls = this.input.subscribe(this.handleControlEvent);
     const state = this.controller.state;
     this.chaseCameraState = createNativeChaseCameraState(browserOrdinaryChasePresetIndex);
-    this.advanceCamera(state);
+    this.browserChaseCameraState = { position: [0, 0, 0], target: [0, 0, 0], ready: false };
+    this.advanceCamera(state, true);
     this.view.startDriving(this.car, state.fieldNumber, state.position, state.yaw);
     this.applyState(state);
     this.frameHandle = requestAnimationFrame(this.frame);
@@ -373,6 +381,7 @@ export class BrowserDrivingGame {
     this.controls.reset();
     this.controller.enterArea(fieldNumber, position);
     this.chaseCameraState = resetNativeChaseLag(this.chaseCameraState);
+    this.advanceCamera(this.controller.state, true);
     this.accumulator = 0;
     this.lastTime = performance.now();
     this.applyState(this.controller.state);
@@ -382,6 +391,7 @@ export class BrowserDrivingGame {
     this.controls.reset();
     this.controller.enterSpecialOutdoor(areaCode, position);
     this.chaseCameraState = resetNativeChaseLag(this.chaseCameraState);
+    this.advanceCamera(this.controller.state, true);
     this.accumulator = 0;
     this.lastTime = performance.now();
     this.applyState(this.controller.state);
@@ -399,14 +409,17 @@ export class BrowserDrivingGame {
     this.lastTime = time;
     while (this.accumulator >= nativeDrivingFixedStepSeconds) {
       this.controller.update(nativeDrivingFixedStepSeconds, this.driveInput());
-      this.advanceCamera(this.controller.state);
+      this.advanceCamera(this.controller.state, false);
       this.accumulator -= nativeDrivingFixedStepSeconds;
     }
     this.applyState(this.controller.state);
     this.frameHandle = requestAnimationFrame(this.frame);
   };
 
-  private advanceCamera(state: CarState): void {
+  private advanceCamera(state: CarState, snap: boolean): void {
+    // Keep advancing the recovered native camera state for evidence-backed
+    // yaw/slip/recenter behavior, but do not project its unproven 0.001 lag
+    // recurrence directly into browser world-space coordinates.
     this.chaseCameraState = advanceNativeChaseCamera(
       this.chaseCameraState,
       {
@@ -415,15 +428,20 @@ export class BrowserDrivingGame {
         nativeSlip: state.nativeSlipAngle,
       },
     );
+    this.browserChaseCameraState = advanceBrowserChaseCamera(
+      this.browserChaseCameraState,
+      { position: [state.position.x, state.position.y, state.position.z], yaw: state.yaw, cameraLift: 4.2 },
+      snap,
+    );
   }
 
   private applyState(state: CarState): void {
     this.car.setWheelState(state.steeringAngle, state.wheelSpin);
-    const nativePose = {
-      position: this.chaseCameraState.position,
-      target: this.chaseCameraState.target,
+    const hostPose = {
+      position: this.browserChaseCameraState.position,
+      target: this.browserChaseCameraState.target,
     };
-    const chase = applyBrowserChaseObstructionSafety(nativePose, (point) =>
+    const chase = applyBrowserChaseObstructionSafety(hostPose, (point) =>
       state.location.kind === "special-outdoor"
         ? this.world.sampleSpecialOutdoorHighest(state.location.areaCode, point)
         : this.world.sampleHighest(state.fieldNumber, point)

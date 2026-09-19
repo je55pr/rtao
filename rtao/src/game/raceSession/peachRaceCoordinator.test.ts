@@ -28,8 +28,8 @@ describe("Peach race coordinator presentation bridge", () => {
       },
     } as unknown as OrdinaryRaceSessionCarView;
     const camera = peachRaceChaseCamera(car);
-    expect(camera.position).toEqual([100, 4, 193]);
-    expect(camera.target).toEqual([100, 2, 200]);
+    expect(camera.position).toEqual([100, 6.8, 190]);
+    expect(camera.target).toEqual([100, 3, 216]);
   });
 
   test("uses stable native car-slot presentation IDs", () => {

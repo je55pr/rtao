@@ -46,16 +46,17 @@ export function racePoseFromSessionCar(car: OrdinaryRaceSessionCarView): RacePos
 
 export function ordinaryRaceChaseCamera(car: OrdinaryRaceSessionCarView): RaceCameraPose {
   const pose = racePoseFromSessionCar(car);
-  const camera = advanceNativeChaseCamera(
-    createNativeChaseCameraState(browserOrdinaryChasePresetIndex),
-    {
-      position: pose.position,
-      nativeYaw: car.state.vehicle.yaw,
-      nativeSlip: car.state.vehicle.slipAngle,
-    },
-    { yawSign: -1 },
-  );
-  return { position: camera.position, target: camera.target };
+  const [x, y, z] = pose.position;
+  const forwardX = Math.sin(pose.yaw);
+  const forwardZ = Math.cos(pose.yaw);
+  // Host presentation fallback. The retained PAL camera contract proves the
+  // preset/yaw inputs, but not that its 0.001 recurrence is final world-space
+  // position output. Keep the stable browser framing until a numeric PAL trace
+  // closes that output-builder boundary.
+  return {
+    position: [x - forwardX * 10, y + 4.8, z - forwardZ * 10],
+    target: [x + forwardX * 16, y + 1, z + forwardZ * 16],
+  };
 }
 export class OrdinaryRaceCoordinator {
   private readonly ai = new Map<number, AiRuntimeState>();
@@ -97,10 +98,10 @@ export class OrdinaryRaceCoordinator {
     }
     const player = poses.find((entry) => entry.carIndex === 0);
     if (!player) throw new Error("Ordinary race presentation has no player car 0.");
-    view.setCameraPose({
-      position: this.cameraState.position,
-      target: this.cameraState.target,
-    });
+    // Native camera state is still advanced for retained contract coverage,
+    // but browser rendering uses the host fallback until PAL output parity is
+    // proven with a numeric camera trace.
+    view.setCameraPose(ordinaryRaceChaseCamera(this.runtime.session.entrant(0)));
     view.renderOnce();
   }
 
