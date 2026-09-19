@@ -1063,7 +1063,7 @@ async function hydrateCompletedInstall(manifest: ImportManifest): Promise<void> 
 function updatePeachRaceAvailability(): void {
   if (peachRaceCoordinator) {
     raceToggle.disabled = false;
-    raceToggle.textContent = "Leave Peach Raceway";
+    raceToggle.textContent = `Leave ${peachRaceCoordinator.runtime.activityName}`;
     return;
   }
   const ready = !!activeDirectory && !!activeExecutableBytes
@@ -1585,7 +1585,7 @@ function currentGameHudState(driveState?: CarState): GameHudState {
     return {
       mode: "race",
       cake,
-      location: "Peach Raceway",
+      location: peachRaceCoordinator.runtime.activityName,
       raceStatus: raceStatusText({
         raceReleased: session.isRaceReleased,
         finishIndex: player.finishIndex,
