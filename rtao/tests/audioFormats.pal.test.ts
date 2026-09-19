@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { closeSync, fstatSync, openSync, readSync } from "node:fs";
 import { describe, expect, test } from "vitest";
+import { nativeEngineLayers, nativeEnginePitchWord } from "../src/audio/nativeEngineAudio";
 import { NativeSfxRuntime, nativeSfxRoutes } from "../src/audio/nativeSfx";
 import { Iso9660Disc } from "../src/disc/iso9660";
 import { RawMode2SectorSource } from "../src/disc/randomAccess";
@@ -78,6 +79,27 @@ describe.skipIf(!binPath)("PAL audio format authority", () => {
       expect(cq.waveOffsets[0x12]).toBe(0x115c0);
       expect(cq.adsrWords[0x12]).toBe(0xd2f2e11e);
       expect(cq.nativeAdsrWords[0x12]).toBe(0x0d0d1eee);
+    } finally {
+      close();
+    }
+  });
+
+  test("pins the PAL engine loop pair and exact RPM pitch vectors", async () => {
+    const { disc, close } = await openDisc();
+    try {
+      const cq = readTvb(await disc.readFile("SOUND/CQ_MAIN.TVB"));
+      for (const layer of nativeEngineLayers) {
+        const sample = cq.sampleBySlot[layer.slot]!;
+        expect(sample).toMatchObject({
+          startOffset: layer.startOffset,
+          endOffset: layer.endOffset,
+          frameCount: layer.adpcmFrames,
+        });
+        expect(cq.adsrWords[layer.slot]).toBe(0xd2f2e11e);
+        expect(sample.adpcm[layer.loopStartAdpcmFrame * 16 + 1]).toBe(6);
+        expect(sample.adpcm[(layer.adpcmFrames - 1) * 16 + 1]).toBe(3);
+      }
+      expect([4000, 4001, 6000, 10_000].map(nativeEnginePitchWord)).toEqual([9500, 10001, 13000, 16383]);
     } finally {
       close();
     }

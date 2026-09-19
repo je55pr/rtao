@@ -33,6 +33,10 @@ export interface CarState {
   readonly roll: number;
   readonly surfaceFlags: number;
   readonly surfaceKind: DrivingSurfaceKind;
+  /** Direct recovered car +0x1D0 engine RPM, retained for native engine audio. */
+  readonly nativeEngineSpeed: number;
+  /** Recovered engine-sound layer selector; semantic polarity is intentionally unnamed. */
+  readonly nativeEngineLayerSelector: 0 | 1;
   /** Monotonic successful travel in browser world units; debug teleports add nothing. */
   readonly distanceTravelled: number;
 }
@@ -64,6 +68,8 @@ export class ArcadeCarController {
       roll: 0,
       surfaceFlags: resolved?.surfaceFlags ?? 0,
       surfaceKind: world.drivingSurface(resolved?.fieldNumber ?? fieldNumber, resolved?.position ?? position, resolved?.y ?? position.y),
+      nativeEngineSpeed: 0,
+      nativeEngineLayerSelector: 0,
       distanceTravelled: 0,
     };
   }
@@ -123,6 +129,8 @@ export class ArcadeCarController {
       roll: 0,
       surfaceFlags: resolved?.surfaceFlags ?? 0,
       surfaceKind: this.world.specialOutdoorDrivingSurface(areaCode, resolved?.position ?? candidate, resolved?.y ?? candidate.y),
+      nativeEngineSpeed: 0,
+      nativeEngineLayerSelector: 0,
       distanceTravelled: current.distanceTravelled,
     };
   }
@@ -148,6 +156,8 @@ export class ArcadeCarController {
       roll: 0,
       surfaceFlags: resolved?.surfaceFlags ?? 0,
       surfaceKind: this.world.drivingSurface(resolved?.fieldNumber ?? fieldNumber, resolved?.position ?? position, resolved?.y ?? position.y),
+      nativeEngineSpeed: 0,
+      nativeEngineLayerSelector: 0,
       distanceTravelled: this.mutable.distanceTravelled,
     };
   }
@@ -229,6 +239,8 @@ export class ArcadeCarController {
       roll: attitude.roll,
       surfaceFlags: resolved.surfaceFlags,
       surfaceKind,
+      nativeEngineSpeed: motion.nativeVehicle.engineSpeed,
+      nativeEngineLayerSelector: (motion.commands & 1) as 0 | 1,
       distanceTravelled: old.distanceTravelled + distanceMoved,
     };
   }
@@ -278,6 +290,7 @@ export class BrowserDrivingGame {
     private readonly onState: (state: CarState) => void,
     private readonly input: BrowserSemanticInput,
     motionAuthority: NativeDrivingMotionAuthority,
+    private readonly onNativeEngineState?: (state: CarState, active: boolean) => void,
   ) {
     this.controller = new ArcadeCarController(world, motionAuthority);
     this.controls = input.createScope();
@@ -303,6 +316,7 @@ export class BrowserDrivingGame {
     this.unsubscribeControls?.();
     this.unsubscribeControls = undefined;
     this.controls.reset();
+    this.onNativeEngineState?.(this.controller.state, false);
     this.view.stopDriving();
   }
 
@@ -326,6 +340,7 @@ export class BrowserDrivingGame {
     this.accumulator = 0;
     this.lastTime = performance.now();
     this.controls.reset();
+    this.onNativeEngineState?.(this.controller.state, this.running && !paused);
   }
 
   enterArea(fieldNumber: number, position: { readonly x: number; readonly z: number }): void {
@@ -384,6 +399,7 @@ export class BrowserDrivingGame {
       this.view.updateDriving(state.location.fieldNumber, state.position, state.yaw, state.pitch, state.roll, snap, cameraLift);
     }
     this.onState(state);
+    this.onNativeEngineState?.(state, this.running && !this.paused);
   }
 
   private driveInput(): DriveInput {

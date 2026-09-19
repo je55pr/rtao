@@ -39,6 +39,7 @@ export interface NativeDrivingMotionInput {
 }
 
 export interface NativeDrivingMotionStep {
+  readonly commands: number;
   readonly deltaX: number;
   readonly deltaZ: number;
   readonly speed: number;
@@ -135,6 +136,7 @@ export class NativeDrivingMotion {
     const deltaZ = nativeVelocityStep(this.velocity[2]) / this.authority.positionDivisor;
     const speed = drive.localForwardSpeed * tickScale / nativeDrivingFixedStepSeconds;
     return {
+      commands,
       deltaX,
       deltaZ,
       speed,

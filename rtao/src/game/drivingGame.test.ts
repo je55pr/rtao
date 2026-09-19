@@ -39,6 +39,8 @@ describe("recovered driving integration", () => {
     expect(a.state).toEqual(b.state);
     expect(a.state.speed).toBeGreaterThan(0);
     expect(a.state.position.z).toBeGreaterThan(555);
+    expect(a.state.nativeEngineSpeed).toBeGreaterThan(0);
+    expect(a.state.nativeEngineLayerSelector).toBe(1);
     expect(a.state.distanceTravelled).toBeGreaterThan(0);
   });
 

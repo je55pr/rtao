@@ -1,5 +1,6 @@
 import "./styles.css";
 import { BrowserAudioRuntime, installBrowserAudioUnlock } from "./audio/browserAudio";
+import { NativeEngineAudioRuntime } from "./audio/nativeEngineAudio";
 import { NativeSfxRuntime, type NativeSfxEvent } from "./audio/nativeSfx";
 import { installAppShell } from "./app/appShell";
 import { diagnosticsReportText, FrameRateSampler, liveDiagnosticsRows } from "./app/debugDiagnostics";
@@ -257,6 +258,7 @@ let peachRaceSuspendedTownSession = false;
 let activeDirectory: FileSystemDirectoryHandle | undefined;
 let activeManifest: ImportManifest | undefined;
 let nativeSfxRuntime: NativeSfxRuntime | undefined;
+let nativeEngineAudioRuntime: NativeEngineAudioRuntime | undefined;
 const loadedWorldFieldNumbers = new Set<number>();
 const loadingWorldFields = new Map<number, Promise<void>>();
 const loadedSpecialOutdoorAreaCodes = new Set<number>();
@@ -588,6 +590,7 @@ requiredElement<HTMLButtonElement>("remove-install").addEventListener("click", a
   activeDirectory = undefined;
   activeManifest = undefined;
   nativeSfxRuntime = undefined;
+  nativeEngineAudioRuntime = undefined;
   playerDialogueState = undefined;
   playerEquipmentState = undefined;
   playerCommerceState = undefined;
@@ -623,6 +626,46 @@ async function loadNativeSfx(directory: FileSystemDirectoryHandle): Promise<void
   } catch (error) {
     nativeSfxRuntime = undefined;
     console.warn("Native SFX is unavailable; gameplay will continue without sound effects.", error);
+  }
+}
+
+async function loadNativeEngineAudio(directory: FileSystemDirectoryHandle): Promise<void> {
+  try {
+    nativeEngineAudioRuntime?.stop();
+    const cqMainTvb = await readBytes(directory, "game/SOUND/CQ_MAIN.TVB");
+    nativeEngineAudioRuntime = NativeEngineAudioRuntime.fromCqMainTvb(audioRuntime, cqMainTvb);
+    console.info("Native engine audio: validated CQ_MAIN loop slots 42/41 from the local PAL install.");
+  } catch (error) {
+    nativeEngineAudioRuntime = undefined;
+    console.warn("Native engine audio is unavailable; driving will continue silently.", error);
+  }
+}
+
+function syncNativeEngineAudio(engineSpeed: number, layerSelector: 0 | 1, active: boolean): void {
+  const runtime = nativeEngineAudioRuntime;
+  if (!runtime) return;
+  try {
+    const frame = { engineSpeed, layerSelector };
+    if (active) {
+      if (runtime.snapshot().running) runtime.update(frame);
+      else runtime.start(frame);
+      runtime.setMuted(false);
+    } else if (runtime.snapshot().running) {
+      runtime.setMuted(true);
+    }
+  } catch (error) {
+    try { runtime.stop(); } catch { /* Engine audio must never break driving cleanup. */ }
+    nativeEngineAudioRuntime = undefined;
+    console.warn("Native engine audio failed; driving will continue silently.", error);
+  }
+}
+
+function stopNativeEngineAudioPlayback(): void {
+  try {
+    nativeEngineAudioRuntime?.stop();
+  } catch (error) {
+    nativeEngineAudioRuntime = undefined;
+    console.warn("Native engine audio cleanup failed; gameplay will continue.", error);
   }
 }
 
@@ -684,6 +727,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   activeDirectory = directory;
   activeManifest = upgradedManifest;
   await loadNativeSfx(directory);
+  await loadNativeEngineAudio(directory);
   equippedParts = await loadDevelopmentParts(directory);
   recoveredProgressStore = await RecoveredProgressStore.restore(directory);
   playerDialogueState = recoveredProgressStore.dialogueState;
@@ -1208,7 +1252,10 @@ function runPeachRaceFrame(timestamp: number): void {
   peachRaceAccumulatorMs += Math.min(100, Math.max(0, timestamp - peachRaceLastTimestamp));
   peachRaceLastTimestamp = timestamp;
   while (peachRaceAccumulatorMs >= 20) {
-    const step = peachRaceCoordinator.step({ sceneTime: peachRaceSceneTime++, playerCommands: peachRaceCommandMask() });
+    const playerCommands = peachRaceCommandMask();
+    const step = peachRaceCoordinator.step({ sceneTime: peachRaceSceneTime++, playerCommands });
+    const engineSpeed = peachRaceCoordinator.runtime.session.entrant(0).state.vehicle.engineSpeed;
+    syncNativeEngineAudio(engineSpeed, (playerCommands & 1) as 0 | 1, true);
     applyPeachRaceStartUiStates(step.session.countdown?.uiStateIndices ?? []);
     if (step.session.countdown?.soundCue === 45) playNativeSfx("race-countdown");
     for (const frame of step.session.frames) {
@@ -1319,6 +1366,7 @@ function hidePeachRaceResults(): void {
 
 function stopPeachRace(): void {
   const resumeTownSession = peachRaceSuspendedTownSession && !!drivingGame && isDriving;
+  stopNativeEngineAudioPlayback();
   hidePeachRaceResults();
   renderPeachRaceStartSignal(0);
   peachRaceSuspendedTownSession = false;
@@ -1374,6 +1422,7 @@ async function toggleDriving(): Promise<void> {
     handleDriveState,
     semanticInput,
     readNativeDrivingMotionAuthority(activeExecutableBytes),
+    (state, enabled) => syncNativeEngineAudio(state.nativeEngineSpeed, state.nativeEngineLayerSelector, enabled),
   );
   applyNativeDrivingEquipment(drivingGame, playerEquipmentState);
   advertisingDistanceTracker.reset();
@@ -1448,6 +1497,7 @@ function stopDrivingSession(): void {
   queueRecoveredProgressSave();
   drivingGame?.stop();
   drivingGame = undefined;
+  stopNativeEngineAudioPlayback();
   interactionContactTracker.clear();
   fujiProbeIndex = -1;
   isDriving = false;

@@ -152,6 +152,26 @@ describe("BrowserAudioRuntime", () => {
     expect(context.gains[3]!.connections[0]).toBe(context.gains[1]);
     expect(loop.stopped).toBe(false);
   });
+
+  it("updates pending and active loop parameters without restarting the source", async () => {
+    const context = new FakeAudioContext();
+    const audio = new BrowserAudioRuntime(() => context);
+    const loop = audio.playLoop(clip, { gain: 0.1, playbackRate: 1 });
+    loop.setGain(0.35);
+    loop.setPlaybackRate(1.75);
+
+    expect(await audio.unlock()).toBe(true);
+    expect(context.sources).toHaveLength(1);
+    expect(context.sources[0]!.playbackRate.value).toBe(1.75);
+    expect(context.gains[3]!.gain.value).toBe(0.35);
+
+    loop.setGain(0.6);
+    loop.setPlaybackRate(2.25);
+    expect(context.sources).toHaveLength(1);
+    expect(context.sources[0]!.playbackRate.value).toBe(2.25);
+    expect(context.gains[3]!.gain.value).toBe(0.6);
+  });
+
   it("plays one-shot events only after unlock and reuses decoded Web Audio buffers", async () => {
     const context = new FakeAudioContext();
     const audio = new BrowserAudioRuntime(() => context);

@@ -64,6 +64,8 @@ export interface AudioLoopOptions extends AudioPlaybackOptions {
 export interface AudioPlaybackHandle {
   readonly stopped: boolean;
   stop(): void;
+  setGain(gain: number): void;
+  setPlaybackRate(playbackRate: number): void;
 }
 
 export interface BrowserAudioSnapshot {
@@ -82,6 +84,8 @@ interface AudioGraph {
 interface PlaybackState {
   stopped: boolean;
   cleaned: boolean;
+  gain: number;
+  playbackRate: number;
   source?: AudioBufferSourceFacade;
   localGain?: GainNodeFacade;
 }
@@ -97,11 +101,15 @@ function assertGain(value: number, label: string): void {
   }
 }
 
+function assertPlaybackRate(value: number): void {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new RangeError(`Playback rate must be finite and positive; got ${value}.`);
+  }
+}
+
 function assertPlaybackOptions(options: AudioPlaybackOptions): void {
   if (options.gain !== undefined) assertGain(options.gain, "Playback");
-  if (options.playbackRate !== undefined && (!Number.isFinite(options.playbackRate) || options.playbackRate <= 0)) {
-    throw new RangeError(`Playback rate must be finite and positive; got ${options.playbackRate}.`);
-  }
+  if (options.playbackRate !== undefined) assertPlaybackRate(options.playbackRate);
 }
 
 function defaultAudioContextFactory(): AudioContextFacade {
@@ -175,10 +183,10 @@ export class BrowserAudioRuntime {
     assertPcmClip(clip);
     assertPlaybackOptions(options);
     if (options.loop) assertPcmLoop(options.loop, clip);
-    const { state, handle } = this.createHandle();
+    const { state, handle } = this.createHandle(options);
     const pending = { state, clip, options };
     if (this.context?.state === "running" && this.graph) {
-      this.startPlayback(state, clip, this.graph[options.bus ?? "music"], options, options.loop ?? {
+      this.startPlayback(state, clip, this.graph[options.bus ?? "music"], options.loop ?? {
         startFrame: 0,
         endFrame: clip.frameCount,
       });
@@ -194,8 +202,8 @@ export class BrowserAudioRuntime {
     assertPcmClip(clip);
     assertPlaybackOptions(options);
     if (this.context?.state !== "running" || !this.graph) return null;
-    const { state, handle } = this.createHandle();
-    this.startPlayback(state, clip, this.graph.sfx, options);
+    const { state, handle } = this.createHandle(options);
+    this.startPlayback(state, clip, this.graph.sfx);
     return handle;
   }
 
@@ -253,7 +261,6 @@ export class BrowserAudioRuntime {
         state,
         pending.clip,
         this.graph[pending.options.bus ?? "music"],
-        pending.options,
         pending.options.loop ?? { startFrame: 0, endFrame: pending.clip.frameCount },
       );
     }
@@ -263,7 +270,6 @@ export class BrowserAudioRuntime {
     state: PlaybackState,
     clip: PcmClip,
     bus: GainNodeFacade,
-    options: AudioPlaybackOptions,
     loop?: PcmLoop,
   ): void {
     if (state.stopped) return;
@@ -272,8 +278,8 @@ export class BrowserAudioRuntime {
     const source = context.createBufferSource();
     const localGain = context.createGain();
     source.buffer = this.audioBuffer(clip);
-    source.playbackRate.value = options.playbackRate ?? 1;
-    localGain.gain.value = options.gain ?? 1;
+    source.playbackRate.value = state.playbackRate;
+    localGain.gain.value = state.gain;
     if (loop) {
       source.loop = true;
       source.loopStart = loop.startFrame / clip.sampleRate;
@@ -311,8 +317,13 @@ export class BrowserAudioRuntime {
     return buffer;
   }
 
-  private createHandle(): { state: PlaybackState; handle: AudioPlaybackHandle } {
-    const state: PlaybackState = { stopped: false, cleaned: false };
+  private createHandle(options: AudioPlaybackOptions): { state: PlaybackState; handle: AudioPlaybackHandle } {
+    const state: PlaybackState = {
+      stopped: false,
+      cleaned: false,
+      gain: options.gain ?? 1,
+      playbackRate: options.playbackRate ?? 1,
+    };
     return {
       state,
       handle: {
@@ -320,6 +331,16 @@ export class BrowserAudioRuntime {
           return state.stopped;
         },
         stop: () => this.stopState(state),
+        setGain: (gain) => {
+          assertGain(gain, "Playback");
+          state.gain = gain;
+          if (!state.stopped && state.localGain) state.localGain.gain.value = gain;
+        },
+        setPlaybackRate: (playbackRate) => {
+          assertPlaybackRate(playbackRate);
+          state.playbackRate = playbackRate;
+          if (!state.stopped && state.source) state.source.playbackRate.value = playbackRate;
+        },
       },
     };
   }
