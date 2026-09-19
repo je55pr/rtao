@@ -1,9 +1,10 @@
 /**
  * PAL BGM contract recovered from SLES_513.56 / SNDMOD.IRX.
  *
- * This module deliberately stops at proven selection/transport intent. It does
- * not turn authored area indices into scene selectors and it does not pretend
- * that TSQ is a flat PCM loop: native loops live in per-channel F8 bytecode.
+ * This module deliberately stops at proven selection/transport intent. The
+ * PAL outdoor path proves ordinary free-roam does not use the common scene
+ * selector, so authored area indices are never converted into BGM selectors.
+ * TSQ is also not a flat PCM loop: native loops live in per-channel F8 bytecode.
  */
 export interface NativeBgmProgram {
   readonly tsqFile: string;
@@ -21,6 +22,12 @@ export type NativeBgmTransportCommand =
 
 export const palOrdinaryRaceMusicStartUpdate = 250;
 export const palMusicFadeAudioUpdates = 64;
+export const qFactoryBgmProgram: NativeBgmProgram = { tsqFile: "ROOM_1.TSQ", sequenceIndex: 1 };
+
+export type NativeBgmScene =
+  | { readonly kind: "ordinary-free-roam" }
+  | { readonly kind: "q-factory" }
+  | { readonly kind: "ordinary-race"; readonly sceneSelector: number };
 
 const commonSceneTrack = new Map<number, number>([
   [0, 1],
@@ -56,8 +63,9 @@ function bgmFile(track: number): string {
 }
 
 /**
- * Resolves the shared scene handler's byte at scene +0x22.
- * Unknown common selector values use the native BGM_02 fallback.
+ * Resolves the activity/race common handler's byte at scene +0x22.
+ * Outdoor free-roam writes a different sentinel there and never references
+ * this handler. Unknown activity selector values use the native BGM_02 fallback.
  */
 export function resolveCommonSceneBgm(sceneSelector: number): NativeBgmProgram {
   assertSceneSelector(sceneSelector);
@@ -65,15 +73,30 @@ export function resolveCommonSceneBgm(sceneSelector: number): NativeBgmProgram {
   return { tsqFile: bgmFile(track), sequenceIndex: 1 };
 }
 /**
- * Fixed interiors share ROOM_1.TSQ. The executable proves sequences 1..4 but
- * the retained archaeology does not assign Q's Factory (or room names) to one
- * of them, so callers must supply only a separately recovered sequence.
+ * Fixed interiors share ROOM_1.TSQ. Q's Factory is now proven to use sequence
+ * 1; other fixed-room paths legitimately select 2..4 and remain unmapped to
+ * browser room identities until their native context routing is recovered.
  */
 export function resolveRoomBgm(sequenceIndex: number): NativeBgmProgram {
   if (!Number.isSafeInteger(sequenceIndex) || sequenceIndex < 1 || sequenceIndex > 4) {
     throw new RangeError(`ROOM_1 sequence must be an integer in 1..4; got ${sequenceIndex}.`);
   }
   return { tsqFile: "ROOM_1.TSQ", sequenceIndex };
+}
+
+export function resolveQFactoryBgm(): NativeBgmProgram {
+  return { ...qFactoryBgmProgram };
+}
+
+/**
+ * Scene-level boundary for currently recovered normal gameplay. PAL proves that
+ * ordinary free-roam does not use the activity/race selector; returning no
+ * program is deliberate until its separate music owner is recovered.
+ */
+export function resolveNativeBgmScene(scene: NativeBgmScene): NativeBgmProgram | undefined {
+  if (scene.kind === "ordinary-free-roam") return undefined;
+  if (scene.kind === "q-factory") return resolveQFactoryBgm();
+  return resolveCommonSceneBgm(scene.sceneSelector);
 }
 
 /** Initial scene setup selects the program before issuing native start. */

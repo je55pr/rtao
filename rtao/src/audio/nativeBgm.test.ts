@@ -7,6 +7,8 @@ import {
   palMusicFadeAudioUpdates,
   palOrdinaryRaceMusicStartUpdate,
   resolveCommonSceneBgm,
+  resolveNativeBgmScene,
+  resolveQFactoryBgm,
   resolveRoomBgm,
   transitionBgmTo,
 } from "./nativeBgm";
@@ -36,12 +38,22 @@ describe("PAL native BGM selection", () => {
     expect(() => resolveCommonSceneBgm(256)).toThrow(RangeError);
   });
 
-  it("keeps ROOM_1 selection explicit because room-to-sequence identity is not recovered", () => {
+  it("pins Q's Factory to recovered ROOM_1 sequence 1 while retaining the bounded room range", () => {
+    expect(resolveQFactoryBgm()).toEqual({ tsqFile: "ROOM_1.TSQ", sequenceIndex: 1 });
     for (let sequence = 1; sequence <= 4; sequence += 1) {
       expect(resolveRoomBgm(sequence)).toEqual({ tsqFile: "ROOM_1.TSQ", sequenceIndex: sequence });
     }
     expect(() => resolveRoomBgm(0)).toThrow(RangeError);
     expect(() => resolveRoomBgm(5)).toThrow(RangeError);
+  });
+
+  it("does not turn ordinary free-roam location identity into an activity BGM selector", () => {
+    expect(resolveNativeBgmScene({ kind: "ordinary-free-roam" })).toBeUndefined();
+    expect(resolveNativeBgmScene({ kind: "q-factory" })).toEqual({ tsqFile: "ROOM_1.TSQ", sequenceIndex: 1 });
+    expect(resolveNativeBgmScene({ kind: "ordinary-race", sceneSelector: 3 })).toEqual({
+      tsqFile: "BGM_08.TSQ",
+      sequenceIndex: 1,
+    });
   });
 });
 
