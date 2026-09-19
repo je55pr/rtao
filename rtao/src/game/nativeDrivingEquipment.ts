@@ -11,7 +11,11 @@ export interface NativeDrivingEquipmentTarget {
   setNativeBrakeSelector(selector: number): void;
 }
 
-/** Applies native save categories 1..6 to the browser driving bridge. */
+/**
+ * Applies the six recovered scalar-driving categories. Categories 7..14 are
+ * deliberately excluded: their unresolved equip-side effects remain issue #30
+ * archaeology rather than browser handling guesses.
+ */
 export function applyNativeDrivingEquipment(
   target: NativeDrivingEquipmentTarget,
   equipment: NativeDrivingEquipmentSource | undefined,

@@ -102,6 +102,17 @@ const scenarios = [
   },
 ] as const;
 
+const freeRoamEquipmentCases = [
+  { label: "baseline", selectors: [0, 0, 0, 0, 0, 0, 0] },
+  { label: "sports-tyre", selectors: [0, 1, 0, 0, 0, 0, 0] },
+  { label: "panther-engine", selectors: [0, 0, 1, 0, 0, 0, 0] },
+  { label: "hyper-chassis", selectors: [0, 0, 0, 4, 0, 0, 0] },
+  { label: "speed-transmission", selectors: [0, 0, 0, 0, 3, 0, 0] },
+  { label: "x3-steering", selectors: [0, 0, 0, 0, 0, 3, 0] },
+  { label: "soft-brake", selectors: [0, 0, 0, 0, 0, 0, 1] },
+  { label: "combined", selectors: [0, 11, 5, 4, 3, 3, 1] },
+] as const;
+
 async function openPalDisc(path: string): Promise<{ disc: Iso9660Disc; close(): void }> {
   const handle = openSync(path, "r");
   const source = new RawMode2SectorSource({
@@ -292,49 +303,56 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
     }
   }, 120_000);
 
-  test("free-roam native motion boundary matches the PAL scalar vehicle call", async () => {
+  test("free-roam native equipment selectors match the PAL scalar vehicle call independently and combined", async () => {
     const opened = await openPalDisc(binPath!);
     try {
       const executable = await opened.disc.readFile("SLES_513.56");
       const authority = readNativeDrivingMotionAuthority(executable);
-      const equipment = authority.equipment([0, 0, 0, 0, 0, 0, 0]);
-      const motion = new NativeDrivingMotion(authority, 0);
-      const machine = new PalScalarMachine(executable);
-      let palState = createNativeRaceVehicleState(0);
-      let palVelocity: NativeRaceVector = [0, 0, 0, 0];
 
-      for (let tick = 0; tick < 120; tick += 1) {
-        const throttle = tick < 100 ? 1 : 0;
-        const steering = tick < 40 ? 0 : tick < 80 ? 1 : -1;
-        const commands = (throttle > 0 ? 1 : 0)
-          | (steering > 0 ? 0x2000 : steering < 0 ? 0x8000 : 0);
-        const yawRadians = Math.fround(
-          Math.fround((palState.yaw << 16 >> 16) * authority.yawScale) / 32768,
-        );
-        const matrix = nativeRaceYawMatrix(yawRadians, authority.math);
-        const inverse = inverseNativeRaceMatrix(matrix);
-        const localVelocity = transformNativeRaceIntegerVector(inverse, palVelocity);
-        const drag = nativeRaceDrag(localVelocity[2], localVelocity[0], equipment.mass, 0, 0, 0);
-        const pal = palScalarMotionStep(
-          machine,
-          palState,
-          equipment,
-          matrix,
-          drag.forward,
-          drag.side,
-          commands,
-          89,
-        );
-        const browser = motion.step({
-          throttle,
-          steering,
-          surfaceKind: "paved-road",
-          contact: { driveContact: true, accelerationY: 89, allowsYaw: true },
-        });
-        expect(browser.nativeVehicle, `tick ${tick} vehicle state`).toEqual(pal.state);
-        expect(browser.nativeVelocity, `tick ${tick} world velocity`).toEqual(pal.worldVelocity);
-        palState = pal.state;
-        palVelocity = pal.worldVelocity;
+      for (const equipmentCase of freeRoamEquipmentCases) {
+        const equipment = authority.equipment(equipmentCase.selectors);
+        const motion = new NativeDrivingMotion(authority, 0);
+        for (let category = 1; category <= 6; category += 1) {
+          motion.setSelector(category, equipmentCase.selectors[category]!);
+        }
+        const machine = new PalScalarMachine(executable);
+        let palState = createNativeRaceVehicleState(0);
+        let palVelocity: NativeRaceVector = [0, 0, 0, 0];
+
+        for (let tick = 0; tick < 160; tick += 1) {
+          const throttle = tick < 90 ? 1 : tick < 125 ? -1 : 0;
+          const steering = tick < 20 ? 0 : tick < 55 ? 1 : tick < 90 ? -1 : 0;
+          const commands = (throttle > 0 ? 1 : throttle < 0 ? (palState.nativeSpeed > 0 ? 2 : 5) : 0)
+            | (steering > 0 ? 0x2000 : steering < 0 ? 0x8000 : 0);
+          const yawRadians = Math.fround(
+            Math.fround((palState.yaw << 16 >> 16) * authority.yawScale) / 32768,
+          );
+          const matrix = nativeRaceYawMatrix(yawRadians, authority.math);
+          const inverse = inverseNativeRaceMatrix(matrix);
+          const localVelocity = transformNativeRaceIntegerVector(inverse, palVelocity);
+          const drag = nativeRaceDrag(localVelocity[2], localVelocity[0], equipment.mass, 0, 0, 0);
+          const pal = palScalarMotionStep(
+            machine,
+            palState,
+            equipment,
+            matrix,
+            drag.forward,
+            drag.side,
+            commands,
+            89,
+          );
+          const browser = motion.step({
+            throttle,
+            steering,
+            surfaceKind: "paved-road",
+            contact: { driveContact: true, accelerationY: 89, allowsYaw: true },
+          });
+          const label = `${equipmentCase.label} tick ${tick}`;
+          expect(browser.nativeVehicle, `${label} vehicle state`).toEqual(pal.state);
+          expect(browser.nativeVelocity, `${label} world velocity`).toEqual(pal.worldVelocity);
+          palState = pal.state;
+          palVelocity = pal.worldVelocity;
+        }
       }
     } finally {
       opened.close();

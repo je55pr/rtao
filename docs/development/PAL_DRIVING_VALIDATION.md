@@ -49,12 +49,14 @@ Native integer/state fields are exact by default. Tolerances are explicit
 arguments to the comparison helper; do not widen them merely to make a changed
 browser implementation pass.
 
-The free-roam motion-core sequence additionally runs 120 updates of
-throttle/coast plus both steering directions through `NativeDrivingMotion` and
-the loaded executable routine. Vehicle state and transformed world velocity
-must match exactly on every update. This locks the recovered gearbox, drive
-force, traction, steering accumulator/curvature, yaw/drift and fixed-point
-velocity transform behind the production runtime boundary.
+The free-roam motion-core gate additionally runs eight 160-update cases through
+`NativeDrivingMotion` and the loaded executable routine: selector-zero baseline,
+Tyre, Engine, Chassis, Transmission, Steering and Brake independently, plus one
+combined loadout. Each case includes acceleration, both steering directions and
+a brake/reverse-command phase. Vehicle state and transformed world velocity
+must match exactly on every update. This locks the recovered equipment records,
+gearbox, drive force, traction, brake hold curve, steering accumulator/curvature,
+yaw/drift and fixed-point velocity transform behind the production runtime boundary.
 
 ## Local camera trace
 
@@ -100,10 +102,12 @@ rather than silently changing feel.
 Free-roam now delegates its ordinary longitudinal/steering motion core to
 `NativeDrivingMotion` at the PAL 50 Hz fixed update. The previous browser
 surface acceleration/max-speed table, `turnRate`/`turnScale` steering curve
-and temporary `PartPerformance` motion multipliers no longer participate.
-Native equipment selectors are loaded through the executable-backed equipment
-records and consumed by the same recovered scalar vehicle arithmetic used by
-the ordinary-race path.
+and temporary `PartPerformance` motion bridge have been removed from the live
+driving API. Native selectors 1..6 are loaded through the executable-backed
+Tyre, Engine, Chassis, Transmission, Steering and Brake records and consumed by
+the same recovered scalar vehicle arithmetic used by the ordinary-race path.
+Categories 7..14 remain outside this handling bridge while issue #30's equip
+side effects are unresolved; they are not replaced by browser multipliers.
 
 This does **not** mean outdoor physics is fully native. Free-roam still owns the
 existing footprint collision resolver and presentation ground attitude rather

@@ -1361,7 +1361,6 @@ async function toggleDriving(): Promise<void> {
     semanticInput,
     readNativeDrivingMotionAuthority(activeExecutableBytes),
   );
-  drivingGame.setPartPerformance(aggregatePartPerformance(equippedParts));
   applyNativeDrivingEquipment(drivingGame, playerEquipmentState);
   advertisingDistanceTracker.reset();
   interactionContactTracker.clear();
@@ -3618,7 +3617,6 @@ function selectedNativeFittingPartIndex(category: NativeFittingCategory, selecto
 
 function applyEquippedParts(): void {
   const appearance = aggregatePartsAppearance(equippedParts);
-  const performance = aggregatePartPerformance(equippedParts);
   const nativeTyreSelector = playerEquipmentState?.selectedItem(0, 1) ?? 0;
   qFactoryInteriorView?.setPlayerPartsAppearance(appearance);
   qFactoryInteriorView?.setPlayerNativeTyreAppearance(nativeTyreSelector);
@@ -3626,7 +3624,6 @@ function applyEquippedParts(): void {
   shopInteriorPreviewView?.setPlayerNativeTyreAppearance(nativeTyreSelector);
   playerCar?.setPartsAppearance(appearance);
   playerCar?.setNativeTyreAppearance(nativeTyreSelector);
-  drivingGame?.setPartPerformance(performance);
   if (drivingGame) applyNativeDrivingEquipment(drivingGame, playerEquipmentState);
 }
 

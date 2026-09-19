@@ -5,7 +5,6 @@ import {
   type NativeDrivingMotionAuthority,
 } from "./nativeDrivingMotion";
 import { nativeTyreContactThreshold } from "./nativeTyrePerformance";
-import type { PartPerformance } from "./parts";
 import type { DrivingSurfaceKind, DrivingWorld, Vec3 } from "./worldCollision";
 import { BrowserSemanticInput, type SemanticActionEvent, type SemanticInputScope } from "../input/semanticInput";
 import type { WorldView } from "./worldView";
@@ -70,11 +69,6 @@ export class ArcadeCarController {
   }
 
   get state(): CarState { return this.mutable; }
-
-  setPartPerformance(_performance: PartPerformance): void {
-    // The development PartPerformance multipliers are intentionally excluded
-    // from recovered motion. Native selectors below are the movement authority.
-  }
 
   setNativeTyreSelector(selector: number): void {
     this.motion.setSelector(1, selector);
@@ -313,8 +307,6 @@ export class BrowserDrivingGame {
   }
 
   setInputOverride(input: DriveInput | undefined): void { this.inputOverride = input; }
-
-  setPartPerformance(performance: PartPerformance): void { this.controller.setPartPerformance(performance); }
 
   setNativeTyreSelector(selector: number): void { this.controller.setNativeTyreSelector(selector); }
 

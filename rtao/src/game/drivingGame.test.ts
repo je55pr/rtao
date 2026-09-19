@@ -118,24 +118,6 @@ describe("recovered driving integration", () => {
     expect(boosted.state.distanceTravelled).toBeGreaterThan(normal.state.distanceTravelled);
   });
 
-  test("temporary PartPerformance tuning no longer changes recovered motion", () => {
-    const baseline = controller(flatWorld());
-    const tuned = controller(flatWorld());
-    tuned.setPartPerformance({
-      acceleration: 9,
-      topSpeed: 9,
-      steering: 9,
-      braking: 9,
-      pavedGrip: 9,
-      offroadGrip: 9,
-    });
-    for (let frame = 0; frame < 90; frame += 1) {
-      const input = { throttle: 1, steering: 1, boost: false };
-      baseline.update(nativeDrivingFixedStepSeconds, input);
-      tuned.update(nativeDrivingFixedStepSeconds, input);
-    }
-    expect(tuned.state).toEqual(baseline.state);
-  });
 });
 
 function auxiliaryBarrierCollision(groundY: number, extraY: number): CompiledFieldCollision {
