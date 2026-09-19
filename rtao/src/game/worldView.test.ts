@@ -53,6 +53,8 @@ describe("authentic field render queues", () => {
       transparent: false,
       depthWrite: true,
       forceSinglePass: false,
+      alphaTest: 1 / 255,
+      alphaToCoverage: true,
     });
   });
 
@@ -61,6 +63,8 @@ describe("authentic field render queues", () => {
       transparent: true,
       depthWrite: false,
       forceSinglePass: true,
+      alphaTest: 0,
+      alphaToCoverage: false,
     });
   });
 });

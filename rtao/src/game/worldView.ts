@@ -1241,13 +1241,18 @@ export function fieldMaterialRenderPolicy(renderPath: FieldRenderPath, hasTransp
   readonly transparent: boolean;
   readonly depthWrite: boolean;
   readonly forceSinglePass: boolean;
+  readonly alphaTest: number;
+  readonly alphaToCoverage: boolean;
 } {
   const authentic = renderPath !== "approximate";
   const authenticRgb = renderPath === "authentic-rgb";
+  const authenticDepthCoverage = renderPath === "authentic-depth" && hasTransparency;
   return {
     transparent: authenticRgb || (!authentic && hasTransparency),
     depthWrite: !authenticRgb,
     forceSinglePass: authenticRgb,
+    alphaTest: authenticDepthCoverage ? 1 / 255 : (!authentic && hasTransparency ? 1 / 255 : 0),
+    alphaToCoverage: authenticDepthCoverage,
   };
 }
 
@@ -1258,7 +1263,6 @@ function createFieldMaterial(batch: CompiledFieldBatch, textures: THREE.Texture[
   // Ordinary MSCALF 8 batches preserve HG2's authored memory-20 vs memory-21
   // selector. Billboards execute MSCALF 6 and remain outside this profile.
   const atmosphereDistances = new THREE.Vector4(290, 544, 800, batch.billboard ? 0 : 1);
-  const authentic = renderPath !== "approximate";
   const renderPolicy = fieldMaterialRenderPolicy(renderPath, batch.hasTransparency);
   const material = new THREE.MeshBasicMaterial({
     map: batch.textureIndex >= 0 ? textures[batch.textureIndex] : null,
@@ -1270,7 +1274,8 @@ function createFieldMaterial(batch: CompiledFieldBatch, textures: THREE.Texture[
     // the fade-only RGB pass blends partial coverage. Marking both passes
     // transparent made tree fringes blend against sky and defeated early-Z.
     transparent: renderPolicy.transparent,
-    alphaTest: authentic ? 0 : (batch.hasTransparency ? 1 / 255 : 0),
+    alphaTest: renderPolicy.alphaTest,
+    alphaToCoverage: renderPolicy.alphaToCoverage,
     depthWrite: renderPolicy.depthWrite,
   });
   // Three.js otherwise renders transparent DoubleSide materials once for
@@ -1356,9 +1361,16 @@ function createFieldMaterial(batch: CompiledFieldBatch, textures: THREE.Texture[
         vec3 rtaOutgoingEncoded = rtaLinearToSrgb(outgoingLight);
         vec3 rtaFoggedEncoded = mix(rtaAtmosphereEncoded, rtaOutgoingEncoded, rtaFogSource);
         outgoingLight = rtaSrgbToLinear(rtaFoggedEncoded);
-        float rtaFinalAlpha = clamp(diffuseColor.a * rtaAlphaSource, 0.0, 1.0);
+        float rtaTextureAlpha = diffuseColor.a;
+        float rtaFinalAlpha = clamp(rtaTextureAlpha * rtaAlphaSource, 0.0, 1.0);
         const float rtaGsAlphaReference = 127.0 / 128.0;
-        ${renderPath === "authentic-depth" ? `if (rtaFinalAlpha < rtaGsAlphaReference) discard;` : `if (rtaFinalAlpha >= rtaGsAlphaReference || rtaFinalAlpha <= 0.0) discard;`}
+        ${renderPath === "authentic-depth" ? `// Browser coverage policy: texture alpha participates in MSAA coverage/depth
+        // via alpha-to-coverage above; only the recovered distance fade moves
+        // fragments out of the depth-writing pass. This avoids tree-on-tree
+        // punch-through after compiled field primitives have been regrouped.
+        if (rtaAlphaSource < rtaGsAlphaReference) discard;` : `// RGB_ONLY fallback is reserved for the recovered distance fade.
+        // Ordinary texture coverage is handled by the depth-writing MSAA pass.
+        if (rtaAlphaSource >= rtaGsAlphaReference || rtaFinalAlpha <= 0.0) discard;`}
         diffuseColor.a = rtaFinalAlpha;`}
         #include <opaque_fragment>`,
       );
