@@ -4,7 +4,7 @@ import { ArcadeCarController } from "./drivingGame";
 import { nativeDrivingFixedStepSeconds } from "./nativeDrivingMotion";
 import { syntheticNativeDrivingMotionAuthority } from "./nativeDrivingMotion.testSupport";
 import { allWorldFieldNumbers } from "./worldTopology";
-import { DrivingWorld, flatFieldCollision, type DrivingSurfaceKind, type Vec3 } from "./worldCollision";
+import { DrivingWorld, flatFieldCollision, type DrivingSurfaceKind, type ResolvedFootprint, type Vec3 } from "./worldCollision";
 
 function flatWorld(): DrivingWorld {
   const world = new DrivingWorld();
@@ -20,6 +20,30 @@ class ForcedSurfaceWorld extends DrivingWorld {
 
   override drivingSurface(_originFieldNumber: number, _position: Vec3, _referenceY?: number): DrivingSurfaceKind {
     return this.forcedSurface;
+  }
+}
+
+class FloodedEdgeWorld extends DrivingWorld {
+  private flooded = false;
+
+  constructor() {
+    super();
+    for (const field of allWorldFieldNumbers()) this.addCompiledField(field, flatFieldCollision());
+  }
+
+  override resolveFootprint(
+    originFieldNumber: number,
+    candidate: Vec3,
+    yaw: number,
+    referenceY: number,
+    contactThreshold = 0.5,
+  ): ResolvedFootprint | undefined {
+    if (!this.flooded && candidate.z > 556.1) {
+      this.flooded = true;
+      return undefined;
+    }
+    if (this.flooded && candidate.z > 555.4) return undefined;
+    return super.resolveFootprint(originFieldNumber, candidate, yaw, referenceY, contactThreshold);
   }
 }
 
@@ -79,6 +103,17 @@ describe("recovered driving integration", () => {
     expect(car.state.fieldNumber).not.toBe(223);
     expect(car.state.position.x).toBeGreaterThanOrEqual(0);
     expect(car.state.position.x).toBeLessThanOrEqual(1600);
+  });
+
+  test("backs out of an invalid shoreline footprint instead of permanently freezing", () => {
+    const car = controller(new FloodedEdgeWorld());
+    for (let frame = 0; frame < 80; frame += 1) car.update(nativeDrivingFixedStepSeconds, drive);
+    expect(car.state.position.z).toBeLessThanOrEqual(555.4);
+    const shorelineZ = car.state.position.z;
+    for (let frame = 0; frame < 80; frame += 1) {
+      car.update(nativeDrivingFixedStepSeconds, { throttle: -1, steering: 0, boost: false });
+    }
+    expect(car.state.position.z).toBeLessThan(shorelineZ);
   });
 
   test("uses Big Tyre's recovered 1.35 contact gate in free-roam movement", () => {

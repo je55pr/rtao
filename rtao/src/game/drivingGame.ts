@@ -13,8 +13,10 @@ import {
 } from "./nativeChaseCamera";
 import {
   advanceBrowserChaseCamera,
+  rebaseBrowserChaseCamera,
   type BrowserChaseCameraState,
 } from "./browserChaseCamera";
+import { relativeRenderTranslation } from "./worldTopology";
 import {
   applyBrowserChaseObstructionSafety,
   browserOrdinaryChasePresetIndex,
@@ -219,7 +221,7 @@ export class ArcadeCarController {
     const moveZ = motion.deltaZ * developerTravelScale;
     // Wheel animation is downstream of the recovered frame boundary. Retain a
     // presentation-only projection of recovered steering/speed until recovered.
-    const steeringAngle = motion.steeringFraction * 0.48;
+    const steeringAngle = -motion.steeringFraction * 0.48;
     let wheelSpin = old.wheelSpin - speed * dt / 0.355;
     if (Math.abs(wheelSpin) > Math.PI * 2) wheelSpin %= Math.PI * 2;
     const candidate = { x: old.position.x + moveX, y: old.position.y, z: old.position.z + moveZ };
@@ -238,10 +240,28 @@ export class ArcadeCarController {
     if (!resolved) {
       speed = 0;
       // Full PAL outdoor contact/obstacle response is not recovered. When the
-      // existing footprint bridge rejects all movement, stop native translation
-      // rather than inventing a bounce or impulse.
+      // footprint bridge rejects movement, keep the native no-bounce fallback,
+      // but first recover from a shoreline/edge state whose current footprint
+      // has itself become invalid. This prevents permanent lock-up without
+      // inventing Water Ski propulsion or a synthetic collision impulse.
+      resolved = resolveCandidate(old.position);
+      if (!resolved) {
+        const movementLength = Math.hypot(moveX, moveZ);
+        if (movementLength > 1e-6) {
+          const unitX = moveX / movementLength;
+          const unitZ = moveZ / movementLength;
+          for (const retreatDistance of [0.25, 0.5, 1, 2]) {
+            resolved = resolveCandidate({
+              x: old.position.x - unitX * retreatDistance,
+              y: old.position.y,
+              z: old.position.z - unitZ * retreatDistance,
+            });
+            if (resolved) break;
+          }
+        }
+      }
       this.motion.haltTranslation();
-      resolved = { position: old.position, y: old.position.y, surfaceFlags: old.surfaceFlags };
+      resolved ??= { position: old.position, y: old.position.y, surfaceFlags: old.surfaceFlags };
     }
 
     const resolvedFieldNumber = "fieldNumber" in resolved && typeof resolved.fieldNumber === "number"
@@ -408,8 +428,21 @@ export class BrowserDrivingGame {
     this.accumulator += Math.min(0.1, (time - this.lastTime) / 1000);
     this.lastTime = time;
     while (this.accumulator >= nativeDrivingFixedStepSeconds) {
+      const previousState = this.controller.state;
       this.controller.update(nativeDrivingFixedStepSeconds, this.driveInput());
-      this.advanceCamera(this.controller.state, false);
+      const nextState = this.controller.state;
+      if (previousState.location.kind === "standard-world"
+        && nextState.location.kind === "standard-world"
+        && previousState.fieldNumber !== nextState.fieldNumber) {
+        const offset = relativeRenderTranslation(previousState.fieldNumber, nextState.fieldNumber);
+        this.browserChaseCameraState = rebaseBrowserChaseCamera(
+          this.browserChaseCameraState,
+          offset.x,
+          offset.y,
+        );
+        this.chaseCameraState = resetNativeChaseLag(this.chaseCameraState);
+      }
+      this.advanceCamera(nextState, false);
       this.accumulator -= nativeDrivingFixedStepSeconds;
     }
     this.applyState(this.controller.state);

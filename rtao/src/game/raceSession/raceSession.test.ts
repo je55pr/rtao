@@ -187,6 +187,22 @@ function session(carCount: number, elapsedUpdates = 200): OrdinaryRaceSession {
     expect(state.surfaces).toEqual([0, 0, 0, 0, 0, 0, 0]);
   });
 
+  test("uses symmetric drift for the human player while leaving AI on retail drift", () => {
+    const seen = new Map<number, NativeRaceFrameInput["driftPolicy"]>();
+    const captureAdvance = ((input: NativeRaceFrameInput) => {
+      seen.set(input.state.positionIndex, input.driftPolicy);
+      return frameAdvance(input, frameData, query);
+    }) as typeof advanceNativeRaceFrame;
+    const race = new OrdinaryRaceSession(config(2), { advanceFrame: captureAdvance });
+    race.step({
+      sceneTime: 0,
+      shortFinalPhase: false,
+      commandSource: () => ({ commands: 0, navigationOutput: 1, navigationDistance: 1 }),
+    });
+    expect(seen.get(0)).toBe("symmetric");
+    expect(seen.get(1)).toBe("retail");
+  });
+
   test("applies the recovered ordinary-AI yaw write before the frame consumer", () => {
     const race = session(2);
     race.step({

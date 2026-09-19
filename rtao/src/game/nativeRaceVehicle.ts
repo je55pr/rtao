@@ -2,7 +2,7 @@ import { Elf32AddressSpace } from '../formats/elf32';
 import type { RaceActivityDescriptor } from '../formats/raceCatalogue';
 import { advanceNativeGear, advanceNativeSteering } from './nativeRaceControls';
 import { advanceNativeRaceDriveForce } from './nativeRaceDriveForce';
-import { advanceNativeRaceDrift, nativeRaceYawStep, nativeTractionSpeed } from './nativeRaceTraction';
+import { advanceNativeRaceDrift, nativeRaceYawStep, nativeTractionSpeed, type NativeRaceDriftPolicy } from './nativeRaceTraction';
 import { transformNativeRaceIntegerVector, type NativeRaceMatrix } from './nativeRaceMath';
 
 export interface NativeRaceEquipment {
@@ -102,7 +102,8 @@ export function nativeRaceContactGripWord(equipment: NativeRaceEquipment, surfac
  * pre-update matrix. Audio/skid visuals and VU transforms are outside this API.
  */
 export function advanceNativeRaceVehicle(state: NativeRaceVehicleState, equipment: NativeRaceEquipment,
-  contact: NativeRaceContactInput, commands: number, sceneFlags: number, highShiftSchedule = true): {
+  contact: NativeRaceContactInput, commands: number, sceneFlags: number, highShiftSchedule = true,
+  driftPolicy: NativeRaceDriftPolicy = "retail"): {
     state: NativeRaceVehicleState; localForwardSpeed: number; localSideSpeed: number; slipMagnitude: number;
   } {
   const gripWord = nativeRaceContactGripWord(equipment, contact.surfaceIndex);
@@ -118,7 +119,7 @@ export function advanceNativeRaceVehicle(state: NativeRaceVehicleState, equipmen
     Math.trunc(gripWord * contact.contactAccelerationY / 256), equipment.mass, brakeForce);
   const yaw = nativeRaceYawStep({ ...state, nativeSpeed, curvature: steering.curvature, contactAllowsYaw: contact.contactAllowsYaw });
   const drift = advanceNativeRaceDrift({ ...state, ...yaw, nativeSpeed, wheelSpeed: force.wheelSpeed,
-    curvature: steering.curvature, grip, brakeForce, runtimeFlags: force.runtimeFlags });
+    curvature: steering.curvature, grip, brakeForce, runtimeFlags: force.runtimeFlags }, driftPolicy);
   return { state: { ...state, ...drift, gear, brakeHold, engineSpeed: force.engineSpeed, fuel: force.fuel,
     wheelSpeed: force.wheelSpeed, nativeSpeed, steeringAccumulator: steering.accumulator,
     steeringSpeedMemory: steering.speedMemory, curvature: steering.curvature },
@@ -130,8 +131,8 @@ export function advanceNativeRaceVehicle(state: NativeRaceVehicleState, equipmen
  * gravity, drag, contact, obstacle and collision-response sequence. */
 export function advanceNativeRaceVehicleVelocity(state: NativeRaceVehicleState, equipment: NativeRaceEquipment,
   contact: NativeRaceContactInput, commands: number, sceneFlags: number, previousMatrix: NativeRaceMatrix,
-  highShiftSchedule = true) {
-  const result = advanceNativeRaceVehicle(state,equipment,contact,commands,sceneFlags,highShiftSchedule);
+  highShiftSchedule = true, driftPolicy: NativeRaceDriftPolicy = "retail") {
+  const result = advanceNativeRaceVehicle(state,equipment,contact,commands,sceneFlags,highShiftSchedule,driftPolicy);
   return {...result,worldVelocity:transformNativeRaceIntegerVector(previousMatrix,[result.localSideSpeed,0,result.localForwardSpeed,0])};
 }
 

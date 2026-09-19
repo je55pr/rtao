@@ -1515,9 +1515,10 @@ function peachRaceCommandMask(): number {
   const steering = raceInput.axis("driveSteering");
   if (throttle > 0) commands |= 1;
   if (throttle < 0) commands |= 2;
-  // Browser semantic steering is reflected relative to PAL course yaw.
-  if (steering < 0) commands |= 0x2000;
-  if (steering > 0) commands |= 0x8000;
+  // Preserve PAL physical command semantics. Race presentation already
+  // reflects native X/yaw into browser coordinates.
+  if (steering < 0) commands |= 0x8000;
+  if (steering > 0) commands |= 0x2000;
   return commands;
 }
 
@@ -1939,9 +1940,18 @@ function pauseMenuAvailable(): boolean {
   });
 }
 
+function currentWarpRegistrationState(): Pick<DialogueRuntimeState, "hasWarpRegistration"> | undefined {
+  if (!playerDialogueState) return undefined;
+  if (!import.meta.env.DEV) return playerDialogueState;
+  // Local Vite convenience only: expose every authored city Warp destination
+  // without mutating recovered progression or the player's persisted save.
+  return { hasWarpRegistration: (areaIndex: number) => Number.isInteger(areaIndex) && areaIndex >= 1 && areaIndex <= 9 };
+}
+
 function refreshPauseWarpState(): void {
-  pauseWarpState = playerDialogueState && overworldCatalogue
-    ? createWarpMenuState(playerDialogueState, overworldCatalogue.authoredAreas)
+  const registrationState = currentWarpRegistrationState();
+  pauseWarpState = registrationState && overworldCatalogue
+    ? createWarpMenuState(registrationState, overworldCatalogue.authoredAreas)
     : { destinations: [], selectedIndex: -1 };
   pauseWarp.disabled = !isDriving || pauseWarpState.destinations.length === 0;
 }
@@ -2913,10 +2923,11 @@ function chooseShopInteriorDialogue(index: number): void {
 }
 
 async function warpToRegisteredCity(areaIndex: number): Promise<void> {
-  if (!playerDialogueState || !overworldCatalogue) throw new Error("Recovered Warp state is unavailable.");
+  const registrationState = currentWarpRegistrationState();
+  if (!playerDialogueState || !registrationState || !overworldCatalogue) throw new Error("Recovered Warp state is unavailable.");
   if (!drivingGame || !isDriving) throw new Error("Warp travel requires an active outdoor driving session.");
 
-  await runRegisteredCityWarp(areaIndex, playerDialogueState, overworldCatalogue.authoredAreas, async (destination) => {
+  await runRegisteredCityWarp(areaIndex, registrationState, overworldCatalogue.authoredAreas, async (destination) => {
     const { intent } = destination;
     if (intent.kind === "special-outdoor") {
       if (!activeExecutableBytes) throw new Error("The PAL executable is unavailable for the special-outdoor Warp entry.");

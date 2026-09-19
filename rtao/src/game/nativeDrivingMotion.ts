@@ -72,7 +72,7 @@ export class NativeDrivingMotion {
   ) {
     validateAuthority(authority);
     this.equipment = authority.equipment(this.selectors);
-    this.vehicle = createNativeRaceVehicleState(nativeYawFromRadians(yaw, authority.yawScale));
+    this.vehicle = createNativeRaceVehicleState(nativeYawFromBrowserRadians(yaw, authority.yawScale));
   }
 
   get nativeVehicle(): NativeRaceVehicleState {
@@ -91,7 +91,7 @@ export class NativeDrivingMotion {
   }
 
   reset(yaw: number): void {
-    this.vehicle = createNativeRaceVehicleState(nativeYawFromRadians(yaw, this.authority.yawScale));
+    this.vehicle = createNativeRaceVehicleState(nativeYawFromBrowserRadians(yaw, this.authority.yawScale));
     this.velocity = [0, 0, 0, 0];
   }
 
@@ -132,11 +132,15 @@ export class NativeDrivingMotion {
       4,
       matrix,
       true,
+      "symmetric",
     );
     this.vehicle = drive.state;
     this.velocity = drive.worldVelocity;
     const tickScale = 16 / 25 / this.authority.positionDivisor;
-    const deltaX = nativeVelocityStep(this.velocity[0]) / this.authority.positionDivisor;
+    // Field geometry/collision are rendered with X reflected from PAL
+    // (`renderX = 1600 - nativeX`). Keep the native vehicle state untouched and
+    // reflect only the host-space projection of its motion.
+    const deltaX = -nativeVelocityStep(this.velocity[0]) / this.authority.positionDivisor;
     const deltaZ = nativeVelocityStep(this.velocity[2]) / this.authority.positionDivisor;
     const speed = drive.localForwardSpeed * tickScale / nativeDrivingFixedStepSeconds;
     return {
@@ -144,7 +148,7 @@ export class NativeDrivingMotion {
       deltaX,
       deltaZ,
       speed,
-      yaw: nativeYawRadians(this.vehicle.yaw, this.authority.yawScale),
+      yaw: browserYawRadians(this.vehicle.yaw, this.authority.yawScale),
       steeringFraction: this.vehicle.steeringAccumulator / 32,
       nativeVelocity: this.velocity,
       nativeVehicle: this.vehicle,
@@ -163,11 +167,11 @@ function nativeDrivingCommands(input: NativeDrivingMotionInput, vehicle: NativeR
     // pedal scaling inside native force arithmetic.
     commands |= vehicle.nativeSpeed > 0 ? 2 : 5;
   }
-  // Browser semantic steering is -1 left / +1 right. Browser/Three.js yaw
-  // is reflected relative to PAL course yaw, so the host bridge swaps the
-  // native steering bits without changing their recovered meanings.
-  if (input.steering < 0) commands |= 0x2000;
-  else if (input.steering > 0) commands |= 0x8000;
+  // Preserve PAL physical command semantics: 0x8000 is left, 0x2000 is right.
+  // Browser handedness is handled at the coordinate projection boundary, not
+  // by feeding the native control routine the opposite steering direction.
+  if (input.steering < 0) commands |= 0x8000;
+  else if (input.steering > 0) commands |= 0x2000;
   return commands;
 }
 
@@ -195,9 +199,14 @@ function nativeYawRadians(yaw: number, yawScale: number): number {
   return Math.fround(Math.fround((yaw << 16 >> 16) * yawScale) / 32768);
 }
 
-function nativeYawFromRadians(radians: number, yawScale: number): number {
+function browserYawRadians(nativeYaw: number, yawScale: number): number {
+  return -nativeYawRadians(nativeYaw, yawScale);
+}
+
+function nativeYawFromBrowserRadians(radians: number, yawScale: number): number {
   if (!Number.isFinite(radians)) throw new RangeError("Native driving yaw must be finite.");
-  const wrapped = Math.atan2(Math.sin(radians), Math.cos(radians));
+  const reflected = -radians;
+  const wrapped = Math.atan2(Math.sin(reflected), Math.cos(reflected));
   return Math.round(wrapped * 32768 / yawScale) & 0xffff;
 }
 

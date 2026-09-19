@@ -295,6 +295,7 @@ export class OrdinaryRaceSession {
         commands: command.commands,
         highShiftSchedule: true,
         obstaclePoints: car.obstaclePoints,
+        driftPolicy: car.entrant.controlSource === "human-input" ? "symmetric" : "retail",
       }, this.frameData, this.query);
       this.sceneFlags = frame.sceneFlags;
       car.state = frame.state;

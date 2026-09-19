@@ -27,6 +27,8 @@ export function nativeRaceYawStep(input: {
   };
 }
 
+export type NativeRaceDriftPolicy = "retail" | "symmetric";
+
 export interface NativeRaceDriftInput {
   readonly yaw: number;
   readonly yawStep: number;
@@ -41,14 +43,21 @@ export interface NativeRaceDriftInput {
   readonly runtimeFlags: number;
 }
 
-/** Native drift feedback 0x0021AF38; preserves its asymmetric integer branches. */
-export function advanceNativeRaceDrift(input: NativeRaceDriftInput): { yaw: number; slipAngle: number; driftRate: number; runtimeFlags: number } {
+/** Native drift feedback 0x0021AF38. Retail remains the default; playable RTAO can opt into a mirrored signed ramp. */
+export function advanceNativeRaceDrift(
+  input: NativeRaceDriftInput,
+  policy: NativeRaceDriftPolicy = "retail",
+): { yaw: number; slipAngle: number; driftRate: number; runtimeFlags: number } {
   let driftRate = input.driftRate, slipAngle = input.slipAngle, yaw = input.yaw, runtimeFlags = input.runtimeFlags;
   if (((slipAngle + 4095) & 65535) < 8191) {
     if (input.grip < 0 || Math.abs(input.lateralDemand) <= input.grip) driftRate = 0;
     else if (input.lateralDemand < 0) {
       const target = Math.max(-512, div((input.lateralDemand - input.grip) | 0, 3));
-      driftRate = target - driftRate >= 9 ? i16(driftRate - 8) : target;
+      // PAL's retail branch compares `target - current >= 9`, which makes
+      // negative targets jump almost immediately while positive targets ramp.
+      // RTAO's playable symmetric policy mirrors the positive-side ramp.
+      const remaining = policy === "symmetric" ? driftRate - target : target - driftRate;
+      driftRate = remaining >= 9 ? i16(driftRate - 8) : target;
     } else {
       const target = Math.min(512, div((input.lateralDemand + input.grip) | 0, 3));
       driftRate = target - driftRate >= 9 ? i16(driftRate + 8) : target;

@@ -31,6 +31,19 @@ export const currentBrowserChasePolicy: BrowserChasePolicy = {
   targetBlend: 0.17,
 };
 
+export function rebaseBrowserChaseCamera(
+  state: BrowserChaseCameraState,
+  offsetX: number,
+  offsetZ: number,
+): BrowserChaseCameraState {
+  if (!state.ready) return state;
+  return {
+    position: [state.position[0] - offsetX, state.position[1], state.position[2] - offsetZ],
+    target: [state.target[0] - offsetX, state.target[1], state.target[2] - offsetZ],
+    ready: true,
+  };
+}
+
 export function advanceBrowserChaseCamera(
   state: BrowserChaseCameraState,
   vehicle: BrowserChaseVehiclePose,

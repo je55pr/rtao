@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { advanceBrowserChaseCamera, type BrowserChaseCameraState } from "./browserChaseCamera";
+import { advanceBrowserChaseCamera, rebaseBrowserChaseCamera, type BrowserChaseCameraState } from "./browserChaseCamera";
 
 const empty: BrowserChaseCameraState = { position: [0, 0, 0], target: [0, 0, 0], ready: false };
 
@@ -12,6 +12,14 @@ test("browser chase camera preserves the current snap geometry", () => {
   expect(next.target[1]).toBeCloseTo(2.72, 12);
   expect(next.target[2]).toBe(20);
   expect(next.ready).toBe(true);
+});
+
+test("browser chase camera rebases across an FLD coordinate-frame change without flying across the world", () => {
+  expect(rebaseBrowserChaseCamera(
+    { position: [1594, 6, 800], target: [1601, 2, 800], ready: true },
+    1600,
+    0,
+  )).toEqual({ position: [-6, 6, 800], target: [1, 2, 800], ready: true });
 });
 
 test("browser chase camera preserves the current per-frame smoothing coefficients", () => {

@@ -4,6 +4,7 @@ import {advanceNativeRaceContact,transformNativeRaceIntegerVector,nativeRaceNorm
   readNativeRaceMathData,type NativeRaceMathData,type NativeRaceMatrix,type NativeRaceVector} from './nativeRaceMath';
 import {advanceNativeRaceVehicleVelocity,integrateNativeRacePosition,nativeRaceDrag,nativeRacePositionCoordinates,
   type NativeRaceVehicleState,type NativeRaceEquipment} from './nativeRaceVehicle';
+import type {NativeRaceDriftPolicy} from './nativeRaceTraction';
 import {queryNativeRaceObstaclePoints,readNativeRaceObstacleData,type NativeRaceObstacleData} from './nativeRaceObstacle';
 import {respondNativeRaceCollision} from './nativeRaceCollisionResponse';
 
@@ -54,6 +55,8 @@ export interface NativeRaceFrameInput {
   /** GP-selected callback, distinct from the car's +0x1FC schedule flag. */
   readonly highShiftSchedule:boolean;
   readonly obstaclePoints:readonly NativeRaceVector[];
+  /** Browser gameplay may opt out of PAL's one-sided signed drift ramp. */
+  readonly driftPolicy?:NativeRaceDriftPolicy;
 }
 const f=Math.fround;
 
@@ -133,7 +136,7 @@ export function advanceNativeRaceFrame(input:NativeRaceFrameInput,data:NativeRac
     localForwardSpeed:drag.forward,localSideSpeed:drag.side,surfaceIndex:state.surfaces[0]!&7,
     driveContact:!!(state.contact.support[1]||state.contact.support[2]),contactAccelerationY:localDelta[1],
     contactAllowsYaw:!!(state.contact.support[0]||state.contact.support[1]||(state.contact.specialState&&(input.equipmentFlags&0x100))),
-  },input.commands,input.sceneFlags,state.matrix,input.highShiftSchedule);
+  },input.commands,input.sceneFlags,state.matrix,input.highShiftSchedule,input.driftPolicy??"retail");
   const position=integrateNativeRacePosition(state.contact.position,[drive.worldVelocity[0],drive.worldVelocity[1],drive.worldVelocity[2]]);
   const verticalProduct=Math.imul(verticalControl,drag.forward);
   const verticalImpulse=state.contact.specialState>0?Math.trunc(verticalProduct/256):Math.trunc(((verticalProduct+drag.forward)|0)/2048);
