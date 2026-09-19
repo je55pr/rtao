@@ -20,7 +20,7 @@ A native/gameplay behavior change is done when:
 
 1. **Evidence identified** — executable addresses, original data structures, traces, captures, or other PAL observations supporting the behavior are recorded.
 2. **Boundary stated** — unknown or unverified behavior remains gated rather than filled with a plausible approximation.
-3. **Implementation added** — active TypeScript behavior lives under `rtao/`; C# remains reference/archaeology unless explicitly targeted.
+3. **Implementation added** — active TypeScript behavior lives under `rtao/`, the sole maintained implementation. Historical C#/MonoGame records are context only; reusable diagnostics belong under `tools/`.
 4. **Deterministic regression added** — a unit/oracle/capture test covers the recovered behavior where practical.
 5. **CI-safe gate passes** — `cd rtao && npm run check` passes without requiring copyrighted original inputs.
 6. **PAL validation passes when required** — `npm run test:pal` (with the required local environment variables) or an equivalent documented PAL oracle run succeeds. If the environment was unavailable, the PR must say so explicitly and must not claim parity was validated.
