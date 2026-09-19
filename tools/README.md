@@ -25,6 +25,18 @@ Useful entry points include:
 - `sandbox_fixture.py` — low-memory derived outdoor fixture and capture workflow;
 - `car_visual_capture.py` — deterministic close-car visual captures;
 - `shop_census.py`, `shop_readiness.py`, `shop_room_capture.py`, `shop_regression.py` — fixed-interior archaeology and regression helpers;
-- `mips_probe.py`, `disasm_elf_context.py` — executable/disassembly helpers.
+- `mips_probe.py`, `disasm_elf_context.py` — executable/R5900 disassembly helpers;
+- `vu_micro_probe.py` — partial VU microinstruction diagnostics with explicit raw output for unknown forms.
+
+### VU microinstruction probe
+
+`vu_micro_probe.py` reads raw little-endian VU micro memory as 8-byte instruction pairs (lower word, then upper word). `--start` and `--count` are instruction indices/counts, not byte offsets.
+
+```bash
+py -3.12 tools/vu_micro_probe.py path/to/vu1-micro.bin --start 0x20 --count 16
+py -3.12 tools/vu_micro_probe.py --self-test
+```
+
+The decoder intentionally covers only the instruction forms retained from the useful historical diagnostic path. Unsupported encodings print as `.upper 0xXXXXXXXX` or `.lower 0xXXXXXXXX`; when the upper I flag is set, the lower word is shown as the immediate float instead of being decoded as an instruction.
 
 One-off sandbox scripts from the pre-repository workflow are retained under `docs/archive/one-off-tools/` and should not be treated as supported utilities.
