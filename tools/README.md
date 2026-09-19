@@ -27,6 +27,7 @@ Useful entry points include:
 - `shop_census.py`, `shop_readiness.py`, `shop_room_capture.py`, `shop_regression.py` — fixed-interior archaeology and regression helpers;
 - `mips_probe.py`, `disasm_elf_context.py` — executable/R5900 disassembly helpers;
 - `elf_archaeology.py` — target-address, structure-offset, and static GIF A+D executable scanners;
+- `vu_mpg_extract.py` — PAL ELF VIF MPG locator and VU1 micro-memory reconstruction;
 - `vu_micro_probe.py` — partial VU microinstruction diagnostics with explicit raw output for unknown forms.
 
 ### R5900 executable probe
@@ -39,6 +40,26 @@ py -3.12 tools/mips_probe.py --self-test
 ```
 
 The self-test uses fixed instruction words for COP0/COP1, accumulator/min/max/rsqrt, corrected MMI sub-opcodes, LQ/SQ, likely branches and raw fallbacks. The EE decode was cross-checked against PS2Tek's instruction-decoding tables and PCSX2's opcode/disassembly tables rather than treating the retired C# helper as encoding authority. Keep new coverage similarly evidence-backed and narrow.
+
+### VU1 MPG extraction
+
+`vu_mpg_extract.py` works directly on a user-supplied little-endian ELF32 executable; it does not read or ship game data and has no dependency on `reference/csharp`. The finder scans file-backed PT_LOAD ranges for aligned VIF MPG command words:
+
+```bash
+py -3.12 tools/vu_mpg_extract.py --self-test
+py -3.12 tools/vu_mpg_extract.py find path/to/SLES_513.56
+```
+
+Finder output reports the raw word, effective instruction count, VU1 destination range, IRQ state, and any invalid VU1 address/range. Because arbitrary executable or payload data can resemble a VIFcode word, treat finder hits as candidates and prefer starts that form a coherent contiguous stream.
+
+Reconstruct an HG2 upload stream from a candidate virtual address, then feed the 16 KiB result to the maintained disassembler:
+
+```bash
+py -3.12 tools/vu_mpg_extract.py extract path/to/SLES_513.56 0x00123456 path/to/vu1-micro.bin
+py -3.12 tools/vu_micro_probe.py path/to/vu1-micro.bin --start 0 --count 32
+```
+
+MPG NUM=0 is decoded as 256 microinstructions. VU1 addresses are limited to 2048 8-byte instructions; reserved destination bits or a write crossing instruction 0x7FF are rejected. Between contiguous HG2 MPG packets, only all-zero VIF NOP words needed to reach the next 16-byte qword boundary are skipped. Unwritten VU1 memory remains zero-filled.
 
 ### VU microinstruction probe
 
