@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import type { ChoroCoinPlacement } from "../formats/choroCoins";
-import { dynamicObjectPhaseSeed, fieldMaterialRenderPolicy, horizontalBoundsWithinDistance, nativeFourthColumnToRenderColumn, visibleChoroCoinPlacements } from "./worldView";
+import { bleedTransparentTextureRgb, dynamicObjectPhaseSeed, fieldMaterialRenderPolicy, horizontalBoundsWithinDistance, nativeFourthColumnToRenderColumn, visibleChoroCoinPlacements } from "./worldView";
 
 describe("native field-object fourth-column reflection", () => {
   it("preserves homogeneous w while reflecting native field X", () => {
@@ -13,6 +13,37 @@ describe("native field-object fourth-column reflection", () => {
     const peachMesh0 = nativeFourthColumnToRenderColumn([1053.5, 1014.0, 1054.9000244, 1015.5999756]);
     expect(peachMesh0[0]).toBeCloseTo(1600 * 1015.5999756 - 1053.5);
     expect(peachMesh0.slice(1)).toEqual([1014.0, 1054.9000244, 1015.5999756]);
+  });
+});
+
+describe("field texture alpha-edge colour bleed", () => {
+  it("replaces hidden transparent RGB without changing PAL alpha", () => {
+    const source = new Uint8Array([
+      10, 200, 20, 255,
+      240, 250, 255, 0,
+      250, 250, 250, 0,
+    ]);
+    expect([...bleedTransparentTextureRgb(source, 3, 1)]).toEqual([
+      10, 200, 20, 255,
+      10, 200, 20, 0,
+      10, 200, 20, 0,
+    ]);
+    expect([...source]).toEqual([
+      10, 200, 20, 255,
+      240, 250, 255, 0,
+      250, 250, 250, 0,
+    ]);
+  });
+
+  it("treats authored partial-alpha colour as visible source data", () => {
+    const source = new Uint8Array([
+      80, 60, 40, 64,
+      255, 255, 255, 0,
+    ]);
+    expect([...bleedTransparentTextureRgb(source, 2, 1)]).toEqual([
+      80, 60, 40, 64,
+      80, 60, 40, 0,
+    ]);
   });
 });
 

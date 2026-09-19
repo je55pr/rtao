@@ -77,9 +77,51 @@ const crownSway = { swayHz: 1.45, swayAmplitude: 0.045, crossHz: 1.07, crossAmpl
 
 type AnimatedFieldObjectKind = Extract<FieldObjectKind, "turbine-rotor" | "palm-crown">;
 
+export function bleedTransparentTextureRgb(rgba: Uint8Array, width: number, height: number): Uint8Array {
+  const output = new Uint8Array(rgba);
+  const pixelCount = width * height;
+  const filled = new Uint8Array(pixelCount);
+  const queue = new Int32Array(pixelCount);
+  let head = 0;
+  let tail = 0;
+
+  for (let pixel = 0; pixel < pixelCount; pixel += 1) {
+    if (rgba[pixel * 4 + 3]! > 0) {
+      filled[pixel] = 1;
+      queue[tail++] = pixel;
+    }
+  }
+
+  while (head < tail) {
+    const pixel = queue[head++]!;
+    const x = pixel % width;
+    const y = Math.floor(pixel / width);
+    const sourceOffset = pixel * 4;
+    const neighbours = [
+      x > 0 ? pixel - 1 : -1,
+      x + 1 < width ? pixel + 1 : -1,
+      y > 0 ? pixel - width : -1,
+      y + 1 < height ? pixel + width : -1,
+    ];
+    for (const neighbour of neighbours) {
+      if (neighbour < 0 || filled[neighbour] !== 0) continue;
+      const targetOffset = neighbour * 4;
+      output[targetOffset] = output[sourceOffset]!;
+      output[targetOffset + 1] = output[sourceOffset + 1]!;
+      output[targetOffset + 2] = output[sourceOffset + 2]!;
+      // Preserve the decoded PAL alpha byte exactly. Only hidden RGB changes.
+      filled[neighbour] = 1;
+      queue[tail++] = neighbour;
+    }
+  }
+
+  return output;
+}
+
 function createOutdoorSceneResources(name: string, compiled: CompiledFieldMesh): SectorRenderResources {
   const textures = compiled.textures.map((source) => {
-    const texture = new THREE.DataTexture(source.rgba, source.width, source.height, THREE.RGBAFormat, THREE.UnsignedByteType);
+    const rgba = source.hasTransparency ? bleedTransparentTextureRgb(source.rgba, source.width, source.height) : source.rgba;
+    const texture = new THREE.DataTexture(rgba, source.width, source.height, THREE.RGBAFormat, THREE.UnsignedByteType);
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.wrapS = source.wrapS === 0 ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
     texture.wrapT = source.wrapT === 0 ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
