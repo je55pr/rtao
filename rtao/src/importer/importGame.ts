@@ -44,6 +44,27 @@ const explicitlyRequired = [
   "SOUND/CQ_MAIN.TVB",
   "SOUND/ACTION.TSQ",
   "SOUND/ACTION.TVB",
+  "SOUND/BGM.TVB",
+  "SOUND/ROOM_1.TSQ",
+  "SOUND/BGM_01.TSQ",
+  "SOUND/BGM_02.TSQ",
+  "SOUND/BGM_03.TSQ",
+  "SOUND/BGM_04.TSQ",
+  "SOUND/BGM_05.TSQ",
+  "SOUND/BGM_06.TSQ",
+  "SOUND/BGM_07.TSQ",
+  "SOUND/BGM_08.TSQ",
+  "SOUND/BGM_09.TSQ",
+  "SOUND/BGM_10.TSQ",
+  "SOUND/BGM_11.TSQ",
+  "SOUND/BGM_12.TSQ",
+] as const;
+
+const deferredNativeRadioFiles = [
+  "SOUND/1CH_L.VAG",
+  "SOUND/1CH_R.VAG",
+  "SOUND/3CH_L.VAG",
+  "SOUND/3CH_R.VAG",
 ] as const;
 
 export async function importGame(
@@ -325,6 +346,7 @@ async function selectRuntimeFiles(
   await add("SYSTEM.CNF", true);
   await add(executable, true);
   for (const path of explicitlyRequired) await add(path, true);
+  if (!devFieldSet) for (const path of deferredNativeRadioFiles) await add(path, true);
   for (const path of await listMatching(disc, "FLD", /^\d{3}\.BIN$/i)) {
     if (devFieldSet) {
       const match = /(\d{3})\.BIN$/i.exec(path);

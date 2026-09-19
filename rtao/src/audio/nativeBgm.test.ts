@@ -7,6 +7,7 @@ import {
   palMusicFadeAudioUpdates,
   palOrdinaryRaceMusicStartUpdate,
   resolveCommonSceneBgm,
+  resolveFixedRoomBgm,
   resolveNativeBgmScene,
   resolveQFactoryBgm,
   resolveRoomBgm,
@@ -47,9 +48,24 @@ describe("PAL native BGM selection", () => {
     expect(() => resolveRoomBgm(5)).toThrow(RangeError);
   });
 
+  it("maps fixed-room numeric context without deriving music from room names", () => {
+    expect(resolveFixedRoomBgm(1, 0)).toEqual({ tsqFile: "ROOM_1.TSQ", sequenceIndex: 1 });
+    expect(resolveFixedRoomBgm(9, 0)).toEqual({ tsqFile: "ROOM_1.TSQ", sequenceIndex: 1 });
+    expect(resolveFixedRoomBgm(1, 1)).toEqual({ tsqFile: "ROOM_1.TSQ", sequenceIndex: 3 });
+    expect(resolveFixedRoomBgm(9, 7)).toEqual({ tsqFile: "ROOM_1.TSQ", sequenceIndex: 3 });
+    expect(resolveFixedRoomBgm(4, 1)).toEqual({ tsqFile: "ROOM_1.TSQ", sequenceIndex: 2 });
+    expect(resolveFixedRoomBgm(8, 9)).toEqual({ tsqFile: "ROOM_1.TSQ", sequenceIndex: 4 });
+    expect(() => resolveFixedRoomBgm(-1, 0)).toThrow(RangeError);
+    expect(() => resolveFixedRoomBgm(1, 256)).toThrow(RangeError);
+  });
+
   it("does not turn ordinary free-roam location identity into an activity BGM selector", () => {
     expect(resolveNativeBgmScene({ kind: "ordinary-free-roam" })).toBeUndefined();
     expect(resolveNativeBgmScene({ kind: "q-factory" })).toEqual({ tsqFile: "ROOM_1.TSQ", sequenceIndex: 1 });
+    expect(resolveNativeBgmScene({ kind: "fixed-interior", areaIndex: 6, localIndex: 2 })).toEqual({
+      tsqFile: "ROOM_1.TSQ",
+      sequenceIndex: 3,
+    });
     expect(resolveNativeBgmScene({ kind: "ordinary-race", sceneSelector: 3 })).toEqual({
       tsqFile: "BGM_08.TSQ",
       sequenceIndex: 1,

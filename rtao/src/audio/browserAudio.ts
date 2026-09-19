@@ -35,6 +35,7 @@ export interface AudioBufferSourceFacade extends AudioNodeFacade {
 export interface AudioContextFacade {
   readonly destination: AudioEndpointFacade;
   readonly state: BrowserAudioContextState;
+  readonly currentTime: number;
   createGain(): GainNodeFacade;
   createBuffer(numberOfChannels: number, length: number, sampleRate: number): AudioBufferFacade;
   createBufferSource(): AudioBufferSourceFacade;
@@ -59,6 +60,13 @@ export interface AudioPlaybackOptions {
 export interface AudioLoopOptions extends AudioPlaybackOptions {
   readonly bus?: AudioBus;
   readonly loop?: PcmLoop;
+}
+
+export interface AudioMusicVoiceOptions extends AudioPlaybackOptions {
+  readonly loop?: PcmLoop;
+  readonly offsetFrame?: number;
+  /** Absolute AudioContext time used for gapless native stream chunk scheduling. */
+  readonly startAtSeconds?: number;
 }
 
 export interface AudioPlaybackHandle {
@@ -92,7 +100,10 @@ interface PlaybackState {
 interface PendingLoop {
   readonly state: PlaybackState;
   readonly clip: PcmClip;
-  readonly options: AudioLoopOptions;
+  readonly bus: AudioBus;
+  readonly loop?: PcmLoop;
+  readonly offsetFrame?: number;
+  readonly startAtSeconds?: number;
 }
 
 function assertGain(value: number, label: string): void {
@@ -179,21 +190,27 @@ export class BrowserAudioRuntime {
 
   /** Loop requests survive autoplay lock and start after a later successful unlock. */
   playLoop(clip: PcmClip, options: AudioLoopOptions = {}): AudioPlaybackHandle {
-    this.assertOpen();
-    assertPcmClip(clip);
-    assertPlaybackOptions(options);
-    if (options.loop) assertPcmLoop(options.loop, clip);
-    const { state, handle } = this.createHandle(options);
-    const pending = { state, clip, options };
-    if (this.context?.state === "running" && this.graph) {
-      this.startPlayback(state, clip, this.graph[options.bus ?? "music"], options.loop ?? {
-        startFrame: 0,
-        endFrame: clip.frameCount,
-      });
-    } else {
-      this.pendingLoops.set(state, pending);
+    return this.queuePlayback(clip, options, options.bus ?? "music", options.loop ?? {
+      startFrame: 0,
+      endFrame: clip.frameCount,
+    });
+  }
+
+  /**
+   * Music voices are queued through autoplay lock like loops, but may be finite.
+   * This is used by native sequencers where sample lifetime is owned by the
+   * recovered bytecode rather than by a fabricated whole-clip loop.
+   */
+  playMusicVoice(clip: PcmClip, options: AudioMusicVoiceOptions = {}): AudioPlaybackHandle {
+    if (options.startAtSeconds !== undefined && (!Number.isFinite(options.startAtSeconds) || options.startAtSeconds < 0)) {
+      throw new RangeError(`Music voice start time must be finite and non-negative; got ${options.startAtSeconds}.`);
     }
-    return handle;
+    return this.queuePlayback(clip, options, "music", options.loop, options.offsetFrame, options.startAtSeconds);
+  }
+
+  /** Current Web Audio clock while unlocked; stream schedulers use this without owning the context. */
+  audioTimeSeconds(): number | undefined {
+    return this.context?.state === "running" ? this.context.currentTime : undefined;
   }
 
   /** One-shots are deliberately not queued while locked, avoiding a delayed burst after unlock. */
@@ -221,6 +238,38 @@ export class BrowserAudioRuntime {
     this.graph = undefined;
     this.context = undefined;
     if (context && context.state !== "closed") await context.close();
+  }
+
+  private queuePlayback(
+    clip: PcmClip,
+    options: AudioPlaybackOptions,
+    bus: AudioBus,
+    loop?: PcmLoop,
+    offsetFrame?: number,
+    startAtSeconds?: number,
+  ): AudioPlaybackHandle {
+    this.assertOpen();
+    assertPcmClip(clip);
+    assertPlaybackOptions(options);
+    if (loop) assertPcmLoop(loop, clip);
+    if (offsetFrame !== undefined && (!Number.isSafeInteger(offsetFrame) || offsetFrame < 0 || offsetFrame >= clip.frameCount)) {
+      throw new RangeError(`Playback offset frame ${offsetFrame} is outside clip frame range 0..${clip.frameCount - 1}.`);
+    }
+    const { state, handle } = this.createHandle(options);
+    const pending = {
+      state,
+      clip,
+      bus,
+      ...(loop ? { loop } : {}),
+      ...(offsetFrame !== undefined ? { offsetFrame } : {}),
+      ...(startAtSeconds !== undefined ? { startAtSeconds } : {}),
+    };
+    if (this.context?.state === "running" && this.graph) {
+      this.startPlayback(state, clip, this.graph[bus], loop, offsetFrame, startAtSeconds);
+    } else {
+      this.pendingLoops.set(state, pending);
+    }
+    return handle;
   }
 
   private async unlockInternal(): Promise<boolean> {
@@ -260,8 +309,10 @@ export class BrowserAudioRuntime {
       this.startPlayback(
         state,
         pending.clip,
-        this.graph[pending.options.bus ?? "music"],
-        pending.options.loop ?? { startFrame: 0, endFrame: pending.clip.frameCount },
+        this.graph[pending.bus],
+        pending.loop,
+        pending.offsetFrame,
+        pending.startAtSeconds,
       );
     }
   }
@@ -271,6 +322,8 @@ export class BrowserAudioRuntime {
     clip: PcmClip,
     bus: GainNodeFacade,
     loop?: PcmLoop,
+    offsetFrame = 0,
+    startAtSeconds?: number,
   ): void {
     if (state.stopped) return;
     const context = this.context;
@@ -296,7 +349,7 @@ export class BrowserAudioRuntime {
     };
     this.activeSources.add(state);
     try {
-      source.start(0);
+      source.start(startAtSeconds ?? 0, offsetFrame / clip.sampleRate);
     } catch (error) {
       state.stopped = true;
       this.finishState(state);

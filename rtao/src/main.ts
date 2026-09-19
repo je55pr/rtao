@@ -1,6 +1,9 @@
 import "./styles.css";
 import { BrowserAudioRuntime, installBrowserAudioUnlock } from "./audio/browserAudio";
+import { ordinaryRaceBgmSetup, resolveFixedRoomBgm, resolveQFactoryBgm, type NativeBgmProgram } from "./audio/nativeBgm";
+import { NativeBgmRuntime } from "./audio/nativeBgmRuntime";
 import { NativeEngineAudioRuntime } from "./audio/nativeEngineAudio";
+import { NativeRadioRuntime, nativeRadioTickMilliseconds } from "./audio/nativeRadioRuntime";
 import { NativeSfxRuntime, type NativeSfxEvent } from "./audio/nativeSfx";
 import { installAppShell } from "./app/appShell";
 import { diagnosticsReportText, FrameRateSampler, liveDiagnosticsRows } from "./app/debugDiagnostics";
@@ -259,6 +262,11 @@ let activeDirectory: FileSystemDirectoryHandle | undefined;
 let activeManifest: ImportManifest | undefined;
 let nativeSfxRuntime: NativeSfxRuntime | undefined;
 let nativeEngineAudioRuntime: NativeEngineAudioRuntime | undefined;
+let nativeBgmRuntime: NativeBgmRuntime | undefined;
+let nativeRadioRuntime: NativeRadioRuntime | undefined;
+let nativeRadioEpochMs = performance.now();
+let peachRaceBgmStartUpdate: number | undefined;
+let peachRaceBgmStarted = false;
 const loadedWorldFieldNumbers = new Set<number>();
 const loadingWorldFields = new Map<number, Promise<void>>();
 const loadedSpecialOutdoorAreaCodes = new Set<number>();
@@ -561,7 +569,7 @@ requiredElement<HTMLButtonElement>("factory-return").addEventListener("click", (
 });
 requiredElement<HTMLButtonElement>("factory-numeric-decrement").addEventListener("click", () => moveShopNumericChoice(-1));
 requiredElement<HTMLButtonElement>("factory-numeric-increment").addEventListener("click", () => moveShopNumericChoice(1));
-requiredElement<HTMLButtonElement>("factory-leave").addEventListener("click", endActiveInterior);
+requiredElement<HTMLButtonElement>("factory-leave").addEventListener("click", () => endActiveInterior());
 requiredElement<HTMLButtonElement>("parts-apply").addEventListener("click", () => finishChangeParts(true));
 requiredElement<HTMLButtonElement>("parts-cancel").addEventListener("click", () => finishChangeParts(false));
 requiredElement<HTMLButtonElement>("shop-close").addEventListener("click", () => {
@@ -590,7 +598,12 @@ requiredElement<HTMLButtonElement>("remove-install").addEventListener("click", a
   activeDirectory = undefined;
   activeManifest = undefined;
   nativeSfxRuntime = undefined;
+  nativeEngineAudioRuntime?.stop();
   nativeEngineAudioRuntime = undefined;
+  nativeBgmRuntime?.dispose();
+  nativeBgmRuntime = undefined;
+  nativeRadioRuntime?.dispose();
+  nativeRadioRuntime = undefined;
   playerDialogueState = undefined;
   playerEquipmentState = undefined;
   playerCommerceState = undefined;
@@ -641,6 +654,159 @@ async function loadNativeEngineAudio(directory: FileSystemDirectoryHandle): Prom
   }
 }
 
+async function loadNativeBgm(directory: FileSystemDirectoryHandle): Promise<void> {
+  const tsqNames = [
+    "ROOM_1.TSQ",
+    "BGM_01.TSQ", "BGM_02.TSQ", "BGM_03.TSQ", "BGM_04.TSQ",
+    "BGM_05.TSQ", "BGM_06.TSQ", "BGM_07.TSQ", "BGM_08.TSQ",
+    "BGM_09.TSQ", "BGM_10.TSQ", "BGM_11.TSQ", "BGM_12.TSQ",
+  ] as const;
+  try {
+    nativeBgmRuntime?.dispose();
+    const [bgmTvb, ...tsqBytes] = await Promise.all([
+      readBytes(directory, "game/SOUND/BGM.TVB"),
+      ...tsqNames.map((name) => readBytes(directory, `game/SOUND/${name}`)),
+    ]);
+    nativeBgmRuntime = new NativeBgmRuntime(
+      audioRuntime,
+      {
+        bgmTvb,
+        tsqFiles: Object.fromEntries(tsqNames.map((name, index) => [name, tsqBytes[index]!])),
+      },
+      {
+        isAudioReady: () => audioRuntime.snapshot().state === "running",
+        onError: (error) => console.warn("Native BGM stopped after a sequencer/audio error.", error),
+      },
+    );
+    console.info("Native BGM: loaded ROOM_1 and BGM_01..12 TSQ programs with the recovered SNDMOD voice host.");
+  } catch (error) {
+    nativeBgmRuntime?.dispose();
+    nativeBgmRuntime = undefined;
+    console.warn("Native BGM is unavailable; gameplay will continue without sequenced music.", error);
+  }
+}
+
+async function loadNativeFreeRoamRadio(directory: FileSystemDirectoryHandle): Promise<void> {
+  try {
+    nativeRadioRuntime?.dispose();
+    const [oneLeft, oneRight, threeLeft, threeRight] = await Promise.all([
+      readBytes(directory, "game/SOUND/1CH_L.VAG"),
+      readBytes(directory, "game/SOUND/1CH_R.VAG"),
+      readBytes(directory, "game/SOUND/3CH_L.VAG"),
+      readBytes(directory, "game/SOUND/3CH_R.VAG"),
+    ]);
+    nativeRadioRuntime = new NativeRadioRuntime(
+      audioRuntime,
+      {
+        tune0: { left: oneLeft, right: oneRight },
+        tune1: { left: threeLeft, right: threeRight },
+      },
+      {
+        isAudioReady: () => audioRuntime.snapshot().state === "running",
+        initialTick: Math.max(0, Math.floor((performance.now() - nativeRadioEpochMs) / nativeRadioTickMilliseconds)),
+        onError: (error) => console.warn("Native free-roam radio stream stopped after an audio error.", error),
+      },
+    );
+    console.info("Native free-roam radio: loaded recovered ordinary 1CH/3CH stream pairs; default state 2 selects synchronized 3CH.");
+  } catch (error) {
+    nativeRadioRuntime?.dispose();
+    nativeRadioRuntime = undefined;
+    console.warn("Native free-roam radio is unavailable; outdoor gameplay will continue silently.", error);
+  }
+}
+
+function stopNativeBgmPlayback(): void {
+  try {
+    nativeBgmRuntime?.dispatch({ kind: "hard-stop" });
+  } catch (error) {
+    nativeBgmRuntime?.dispose();
+    nativeBgmRuntime = undefined;
+    console.warn("Native BGM cleanup failed; gameplay will continue.", error);
+  }
+}
+
+function startNativeBgmProgram(program: NativeBgmProgram): void {
+  const runtime = nativeBgmRuntime;
+  if (!runtime) return;
+  try {
+    runtime.dispatch({ kind: "hard-stop" });
+    runtime.dispatch({ kind: "select", program });
+    runtime.dispatch({ kind: "start" });
+  } catch (error) {
+    runtime.dispose();
+    nativeBgmRuntime = undefined;
+    console.warn(`Native BGM program ${program.tsqFile}:${program.sequenceIndex} failed; gameplay will continue silently.`, error);
+  }
+}
+
+function stopNativeFreeRoamMusic(): void {
+  try {
+    nativeRadioRuntime?.stopOutdoor();
+  } catch (error) {
+    nativeRadioRuntime?.dispose();
+    nativeRadioRuntime = undefined;
+    console.warn("Native free-roam radio cleanup failed; gameplay will continue.", error);
+  }
+}
+
+function startNativeFreeRoamMusic(): void {
+  stopNativeBgmPlayback();
+  const runtime = nativeRadioRuntime;
+  if (!runtime) return;
+  try {
+    runtime.startOutdoor();
+  } catch (error) {
+    runtime.dispose();
+    nativeRadioRuntime = undefined;
+    console.warn("Native free-roam radio playback failed; outdoor gameplay will continue silently.", error);
+  }
+}
+
+function startNativeFixedRoomMusic(interaction: FixedInteractionDefinition): void {
+  stopNativeFreeRoamMusic();
+  startNativeBgmProgram(resolveFixedRoomBgm(interaction.areaIndex, interaction.localIndex));
+}
+
+function prepareNativeRaceMusic(sceneSelector: number, transitionFromRoom = false): void {
+  stopNativeFreeRoamMusic();
+  const runtime = nativeBgmRuntime;
+  if (!runtime) {
+    peachRaceBgmStartUpdate = undefined;
+    peachRaceBgmStarted = false;
+    return;
+  }
+  const setup = ordinaryRaceBgmSetup(sceneSelector);
+  try {
+    if (transitionFromRoom) runtime.transitionTo(setup.program, false);
+    else {
+      runtime.dispatch({ kind: "hard-stop" });
+      runtime.dispatch({ kind: "select", program: setup.program });
+    }
+    peachRaceBgmStartUpdate = setup.startUpdate;
+    peachRaceBgmStarted = false;
+  } catch (error) {
+    runtime.dispose();
+    nativeBgmRuntime = undefined;
+    peachRaceBgmStartUpdate = undefined;
+    peachRaceBgmStarted = false;
+    console.warn("Native race BGM setup failed; the race will continue silently.", error);
+  }
+}
+
+function startPreparedNativeRaceMusic(sceneTime: number): void {
+  if (peachRaceBgmStarted || peachRaceBgmStartUpdate === undefined || sceneTime !== peachRaceBgmStartUpdate) return;
+  const runtime = nativeBgmRuntime;
+  peachRaceBgmStarted = true;
+  if (!runtime) return;
+  try {
+    runtime.dispatch({ kind: "start" });
+  } catch (error) {
+    runtime.dispose();
+    nativeBgmRuntime = undefined;
+    console.warn("Native race BGM start failed; the race will continue silently.", error);
+  }
+}
+
 function syncNativeEngineAudio(engineSpeed: number, layerSelector: 0 | 1, active: boolean): void {
   const runtime = nativeEngineAudioRuntime;
   if (!runtime) return;
@@ -670,6 +836,7 @@ function stopNativeEngineAudioPlayback(): void {
 }
 
 async function showInstalled(manifest: ImportManifest): Promise<void> {
+  nativeRadioEpochMs = performance.now();
   stopPeachRace();
   stopDrivingSession();
   stopWorldSimulation();
@@ -728,6 +895,13 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   activeManifest = upgradedManifest;
   await loadNativeSfx(directory);
   await loadNativeEngineAudio(directory);
+  await loadNativeBgm(directory);
+  if (upgradedManifest.files.some((file) => file.path.toUpperCase() === "SOUND/3CH_L.VAG")) {
+    await loadNativeFreeRoamRadio(directory);
+  } else {
+    nativeRadioRuntime?.dispose();
+    nativeRadioRuntime = undefined;
+  }
   equippedParts = await loadDevelopmentParts(directory);
   recoveredProgressStore = await RecoveredProgressStore.restore(directory);
   playerDialogueState = recoveredProgressStore.dialogueState;
@@ -1048,6 +1222,13 @@ async function hydrateCompletedInstall(manifest: ImportManifest): Promise<void> 
   if (activeManifest?.importId !== manifest.importId || activeManifest.installStage !== "bootstrap") return;
   if (!activeDirectory || !worldView || !drivingWorld) return;
   activeManifest = manifest;
+  await loadNativeFreeRoamRadio(activeDirectory);
+  if (isDriving
+    && !qFactorySession && !qFactoryLoading
+    && !shopInteriorPreviewInteraction && !shopInteriorPreviewLoading
+    && !peachRaceCoordinator) {
+    startNativeFreeRoamMusic();
+  }
   updatePeachRaceAvailability();
   const centre = drivingGame?.controller.state.fieldNumber ?? 223;
   const startedAt = performance.now();
@@ -1086,9 +1267,12 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
   const courseLabel = `COURSE/C${courseId.toString().padStart(2, "0")}`;
   if (!compiled || !collision || !source) throw new Error(`${courseLabel} is not present in the completed local race cache.`);
 
+  const transitionFromRoom = preserveTownSession
+    && !!qFactorySession
+    && !!nativeBgmRuntime?.snapshot().running;
   stopPeachRace();
   if (preserveTownSession && drivingGame && isDriving) {
-    endQFactoryInterior();
+    endQFactoryInterior(false);
     endResidentDialogue();
     drivingGame.setPaused(true);
     worldSimulation?.setPaused(true);
@@ -1101,6 +1285,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
   worldLocation.disabled = true;
   driveToggle.disabled = true;
   worldSimulation?.setPaused(true);
+  prepareNativeRaceMusic(activity.sceneId, transitionFromRoom);
 
   const [{ RaceView: RaceViewClass }, { OrdinaryRaceCoordinator: Coordinator, ordinaryRaceEntrantId },
     { createOrdinaryRaceRuntime }, { deserializeCompiledCollision }, { Q62CarModel: CarModel }] = await Promise.all([
@@ -1253,7 +1438,9 @@ function runPeachRaceFrame(timestamp: number): void {
   peachRaceLastTimestamp = timestamp;
   while (peachRaceAccumulatorMs >= 20) {
     const playerCommands = peachRaceCommandMask();
-    const step = peachRaceCoordinator.step({ sceneTime: peachRaceSceneTime++, playerCommands });
+    const sceneTime = peachRaceSceneTime++;
+    startPreparedNativeRaceMusic(sceneTime);
+    const step = peachRaceCoordinator.step({ sceneTime, playerCommands });
     const engineSpeed = peachRaceCoordinator.runtime.session.entrant(0).state.vehicle.engineSpeed;
     syncNativeEngineAudio(engineSpeed, (playerCommands & 1) as 0 | 1, true);
     applyPeachRaceStartUiStates(step.session.countdown?.uiStateIndices ?? []);
@@ -1365,8 +1552,12 @@ function hidePeachRaceResults(): void {
 }
 
 function stopPeachRace(): void {
+  const hadRace = !!peachRaceCoordinator || !!peachRaceView || peachRaceFrame !== 0 || peachRaceBgmStartUpdate !== undefined;
   const resumeTownSession = peachRaceSuspendedTownSession && !!drivingGame && isDriving;
   stopNativeEngineAudioPlayback();
+  if (hadRace) stopNativeBgmPlayback();
+  peachRaceBgmStartUpdate = undefined;
+  peachRaceBgmStarted = false;
   hidePeachRaceResults();
   renderPeachRaceStartSignal(0);
   peachRaceSuspendedTownSession = false;
@@ -1381,7 +1572,10 @@ function stopPeachRace(): void {
   const worldCanvas = viewerHost.querySelector<HTMLElement>(".world-canvas");
   if (worldCanvas) worldCanvas.style.removeProperty("visibility");
   worldSimulation?.setPaused(false);
-  if (resumeTownSession) drivingGame?.setPaused(false);
+  if (resumeTownSession) {
+    drivingGame?.setPaused(false);
+    startNativeFreeRoamMusic();
+  }
   driveToggle.disabled = !drivingWorld;
   worldLocation.disabled = resumeTownSession || !drivingWorld || activeManifest?.installStage === "bootstrap";
   if (resumeTownSession && drivingGame) {
@@ -1431,6 +1625,7 @@ async function toggleDriving(): Promise<void> {
   const spawn = drivingGame.controller.state;
   console.info(`Q62 spawn: FLD/${spawn.fieldNumber.toString().padStart(3, "0")} (${spawn.position.x.toFixed(2)}, ${spawn.position.y.toFixed(2)}, ${spawn.position.z.toFixed(2)}).`);
   isDriving = true;
+  startNativeFreeRoamMusic();
   driveToggle.textContent = "Stop driving";
   driveToggle.disabled = false;
   worldLocation.disabled = true;
@@ -1492,12 +1687,14 @@ function accumulateAdvertisingDistance(state: CarState): void {
 }
 
 function stopDrivingSession(): void {
-  endActiveInterior();
+  endActiveInterior(false);
   endResidentDialogue();
   queueRecoveredProgressSave();
   drivingGame?.stop();
   drivingGame = undefined;
   stopNativeEngineAudioPlayback();
+  stopNativeFreeRoamMusic();
+  stopNativeBgmPlayback();
   interactionContactTracker.clear();
   fujiProbeIndex = -1;
   isDriving = false;
@@ -2473,6 +2670,7 @@ async function startShopInteriorPreview(interaction: FixedInteractionDefinition)
   if (qFactorySession || qFactoryLoading || shopInteriorPreviewInteraction || shopInteriorPreviewLoading) return;
   if (!drivingGame || !activeDirectory || !activeManifest || !activeExecutableBytes || !playerDialogueState) throw new Error("The fixed-interior dependencies are not ready.");
 
+  stopNativeFreeRoamMusic();
   drivingGame.setPaused(true);
   worldSimulation?.setPaused(true);
   shopInteriorPreviewLoading = true;
@@ -2543,6 +2741,7 @@ async function startShopInteriorPreview(interaction: FixedInteractionDefinition)
       { playerCar: playerModel, staffCar: staffModel },
     );
     shopInteriorPreviewInteraction = interaction;
+    startNativeFixedRoomMusic(interaction);
     try {
       const entity = readDialogueEntityAtIndex(activeExecutableBytes, interaction.areaIndex, interaction.localIndex);
       const state = playerDialogueState;
@@ -2577,14 +2776,17 @@ async function startShopInteriorPreview(interaction: FixedInteractionDefinition)
     root.hidden = true;
     drivingGame.setPaused(false);
     worldSimulation?.setPaused(false);
+    stopNativeBgmPlayback();
+    if (isDriving) startNativeFreeRoamMusic();
     throw error;
   } finally {
     if (generation === shopInteriorPreviewLoadGeneration) shopInteriorPreviewLoading = false;
   }
 }
 
-function endShopInteriorPreview(): void {
+function endShopInteriorPreview(resumeOutdoorMusic = true): void {
   if (!shopInteriorPreviewInteraction && !shopInteriorPreviewView && !shopInteriorPreviewLoading) return;
+  stopNativeBgmPlayback();
   shopInteriorPreviewLoadGeneration += 1;
   shopInteriorPreviewLoading = false;
   const name = shopInteriorPreviewInteraction?.name ?? "Interior";
@@ -2618,6 +2820,7 @@ function endShopInteriorPreview(): void {
   delete root.dataset.dialogueSlot;
   drivingGame?.setPaused(false);
   worldSimulation?.setPaused(false);
+  if (resumeOutdoorMusic && isDriving) startNativeFreeRoamMusic();
   sceneFade.flash();
   console.info(`${name} fixed interior closed; outdoor state resumed.`);
 }
@@ -3425,9 +3628,12 @@ function describeAdvertisingReward(result: AdvertisingRedemptionResult): string 
   return `${result.redeemedBlocks.toLocaleString("en-US")} complete distance block${result.redeemedBlocks === 1 ? "" : "s"} redeemed for ${result.cakeAwarded.toLocaleString("en-US")} Cake. ${result.distanceAfter.toLocaleString("en-US")} distance units remain; balance ${result.cakeAfter.toLocaleString("en-US")} Cake.`;
 }
 
-function endActiveInterior(): void {
-  if (shopInteriorPreviewInteraction || shopInteriorPreviewView || shopInteriorPreviewLoading) endShopInteriorPreview();
-  else endQFactoryInterior();
+function endActiveInterior(resumeOutdoorMusic = true): void {
+  if (shopInteriorPreviewInteraction || shopInteriorPreviewView || shopInteriorPreviewLoading) {
+    endShopInteriorPreview(resumeOutdoorMusic);
+  } else {
+    endQFactoryInterior(resumeOutdoorMusic);
+  }
 }
 
 async function startQFactoryInterior(interaction: FixedInteractionDefinition): Promise<void> {
@@ -3439,6 +3645,7 @@ async function startQFactoryInterior(interaction: FixedInteractionDefinition): P
   const available = new Set(activeManifest.files.map((file) => file.path.toUpperCase()));
   if (!available.has(staffPath.toUpperCase())) throw new Error(`The local install does not contain ${staffPath}.`);
 
+  stopNativeFreeRoamMusic();
   drivingGame.setPaused(true);
   worldSimulation?.setPaused(true);
   qFactoryLoading = true;
@@ -3490,6 +3697,7 @@ async function startQFactoryInterior(interaction: FixedInteractionDefinition): P
       : readDialogueEntityAtIndex(activeExecutableBytes, interaction.areaIndex, interaction.localIndex);
     const flow = new DialogueFlowClass(dialogueEntity, playerDialogueState, 0x04);
     qFactorySession = { flow, choiceIndex: defaultChoiceIndex(flow.currentChoices), interaction, raceOptionIndex: 0 };
+    startNativeBgmProgram(resolveQFactoryBgm());
     queueRecoveredProgressSave();
     playNativeSfx("dialogue-open");
     renderQFactoryDialogue();
@@ -3502,6 +3710,8 @@ async function startQFactoryInterior(interaction: FixedInteractionDefinition): P
     root.hidden = true;
     drivingGame.setPaused(false);
     worldSimulation?.setPaused(false);
+    stopNativeBgmPlayback();
+    if (isDriving) startNativeFreeRoamMusic();
     throw error;
   } finally {
     if (generation === qFactoryLoadGeneration) qFactoryLoading = false;
@@ -3919,8 +4129,9 @@ function renderQFactoryDialogue(): void {
   focusFactoryDialogueControl();
 }
 
-function endQFactoryInterior(): void {
+function endQFactoryInterior(resumeOutdoorMusic = true): void {
   if (!qFactorySession && !qFactoryInteriorView && !qFactoryLoading) return;
+  if (resumeOutdoorMusic) stopNativeBgmPlayback();
   qFactoryLoadGeneration += 1;
   qFactoryLoading = false;
   const name = qFactorySession?.interaction.name ?? "Q's Factory";
@@ -3937,6 +4148,7 @@ function endQFactoryInterior(): void {
   delete root.dataset.dialogueSlot;
   drivingGame?.setPaused(false);
   worldSimulation?.setPaused(false);
+  if (resumeOutdoorMusic && isDriving) startNativeFreeRoamMusic();
   sceneFade.flash();
   console.info(`Q's Factory end: ${name}; outdoor player and resident state resumed.`);
 }

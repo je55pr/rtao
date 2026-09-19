@@ -2,7 +2,7 @@ import { BlobSource, type RandomAccessSource } from "../disc/randomAccess";
 import type { GameIdentity } from "../formats/gameIdentity";
 import { appStorageDirectoryName } from "./storageChannel";
 
-export const cacheSchemaVersion = 5;
+export const cacheSchemaVersion = 6;
 const appDirectoryName = appStorageDirectoryName(import.meta.env.VITE_RTA_CHANNEL);
 
 export interface CachedFileRecord {

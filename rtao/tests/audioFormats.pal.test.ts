@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { closeSync, fstatSync, openSync, readSync } from "node:fs";
 import { describe, expect, test } from "vitest";
+import { NativeBgmRuntime, nativeBgmPitchTable, nativeTvbSampleLoop } from "../src/audio/nativeBgmRuntime";
 import { nativeEngineLayers, nativeEnginePitchWord } from "../src/audio/nativeEngineAudio";
 import {
   NativeTsqSequencer,
@@ -166,6 +167,61 @@ describe.skipIf(!binPath)("PAL audio format authority", () => {
       sequencer.advanceTo(10_000);
       expect(sequencer.snapshot().channels.every((channel) =>
         channel.jumpCount === 1 && !channel.ended)).toBe(true);
+    } finally {
+      close();
+    }
+  });
+
+  test("pins the PAL BGM voice-host pitch table, slot-12 loop/ADSR, and audible key-on vector", async () => {
+    const { disc, close } = await openDisc();
+    try {
+      const [sndmod, bgmTvbBytes, bgm01Bytes] = await Promise.all([
+        disc.readFile("SNDMOD.IRX"),
+        disc.readFile("SOUND/BGM.TVB"),
+        disc.readFile("SOUND/BGM_01.TSQ"),
+      ]);
+      const sndmodView = new DataView(sndmod.buffer, sndmod.byteOffset, sndmod.byteLength);
+      const pitchTable = Array.from(
+        { length: nativeBgmPitchTable.length },
+        (_, index) => sndmodView.getUint16(0xa0 + 0x8acc + index * 2, true),
+      );
+      expect(pitchTable).toEqual([...nativeBgmPitchTable]);
+
+      const bgmTvb = readTvb(bgmTvbBytes);
+      const slot12 = bgmTvb.sampleBySlot[12]!;
+      expect(slot12).toMatchObject({ startOffset: 119_344, endOffset: 129_376, frameCount: 627 });
+      expect(bgmTvb.nativeAdsrWords[12]).toBe(0x0d0d1eee);
+      expect(nativeTvbSampleLoop(slot12)).toEqual({ startFrame: 12_768, endFrame: 17_556 });
+
+      const voices: { frameCount: number; playbackRate: number; gain: number }[] = [];
+      const audio = {
+        playMusicVoice(clip: { frameCount: number }, options: { playbackRate?: number; gain?: number } = {}) {
+          voices.push({
+            frameCount: clip.frameCount,
+            playbackRate: options.playbackRate ?? 1,
+            gain: options.gain ?? 1,
+          });
+          return {
+            stopped: false,
+            stop() {},
+            setGain() {},
+            setPlaybackRate() {},
+          };
+        },
+      };
+      const runtime = new NativeBgmRuntime(
+        audio as never,
+        { bgmTvb: bgmTvbBytes, tsqFiles: { "BGM_01.TSQ": bgm01Bytes } },
+        { autoClock: false },
+      );
+      runtime.select({ tsqFile: "BGM_01.TSQ", sequenceIndex: 1 });
+      runtime.start();
+      runtime.advanceNativeTicks(460);
+      expect(voices.some((voice) =>
+        voice.frameCount === 17_556
+        && Math.abs(voice.playbackRate - 0x035a / 0x1000) < 1e-12
+        && voice.gain === 0)).toBe(true);
+      runtime.dispose();
     } finally {
       close();
     }

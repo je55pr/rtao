@@ -26,8 +26,19 @@ export const qFactoryBgmProgram: NativeBgmProgram = { tsqFile: "ROOM_1.TSQ", seq
 
 export type NativeBgmScene =
   | { readonly kind: "ordinary-free-roam" }
+  | { readonly kind: "fixed-interior"; readonly areaIndex: number; readonly localIndex: number }
   | { readonly kind: "q-factory" }
   | { readonly kind: "ordinary-race"; readonly sceneSelector: number };
+
+const fixedRoomSequence3 = new Set([
+  "1:1", "1:2", "1:3",
+  "2:1", "2:2", "2:3",
+  "3:1", "3:2", "3:3",
+  "5:1",
+  "6:1", "6:2", "6:3",
+  "7:1", "7:2",
+  "9:1", "9:2", "9:3", "9:5", "9:7",
+]);
 
 const commonSceneTrack = new Map<number, number>([
   [0, 1],
@@ -89,6 +100,26 @@ export function resolveQFactoryBgm(): NativeBgmProgram {
 }
 
 /**
+ * Exact fixed-room routing recovered from 0x0022C398.
+ *
+ * Sequence 4 is retained only for the native Cloud Hill (8,9) sentinel. The
+ * normal browser interaction finder filters that disabled polygon, so ordinary
+ * play never enters sequence 4 through this resolver.
+ */
+export function resolveFixedRoomBgm(areaIndex: number, localIndex: number): NativeBgmProgram {
+  if (!Number.isSafeInteger(areaIndex) || areaIndex < 0 || areaIndex > 0xff) {
+    throw new RangeError(`Fixed-room area index must be a byte; got ${areaIndex}.`);
+  }
+  if (!Number.isSafeInteger(localIndex) || localIndex < 0 || localIndex > 0xff) {
+    throw new RangeError(`Fixed-room local index must be a byte; got ${localIndex}.`);
+  }
+  if (areaIndex < 10 && localIndex === 0) return resolveRoomBgm(1);
+  if (fixedRoomSequence3.has(`${areaIndex}:${localIndex}`)) return resolveRoomBgm(3);
+  if (areaIndex === 8 && localIndex === 9) return resolveRoomBgm(4);
+  return resolveRoomBgm(2);
+}
+
+/**
  * Scene-level boundary for currently recovered normal gameplay. PAL proves that
  * ordinary free-roam does not use the activity/race selector; returning no
  * program is deliberate until its separate music owner is recovered.
@@ -96,6 +127,7 @@ export function resolveQFactoryBgm(): NativeBgmProgram {
 export function resolveNativeBgmScene(scene: NativeBgmScene): NativeBgmProgram | undefined {
   if (scene.kind === "ordinary-free-roam") return undefined;
   if (scene.kind === "q-factory") return resolveQFactoryBgm();
+  if (scene.kind === "fixed-interior") return resolveFixedRoomBgm(scene.areaIndex, scene.localIndex);
   return resolveCommonSceneBgm(scene.sceneSelector);
 }
 

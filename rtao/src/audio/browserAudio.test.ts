@@ -51,10 +51,14 @@ class FakeBufferSource extends FakeNode implements AudioBufferSourceFacade {
   readonly playbackRate = { value: 1 };
   onended: (() => void) | null = null;
   started = false;
+  startedWhen = 0;
+  startedOffset = 0;
   stopCount = 0;
 
-  start(): void {
+  start(when = 0, offset = 0): void {
     this.started = true;
+    this.startedWhen = when;
+    this.startedOffset = offset;
   }
 
   stop(): void {
@@ -69,6 +73,7 @@ class FakeBufferSource extends FakeNode implements AudioBufferSourceFacade {
 
 class FakeAudioContext implements AudioContextFacade {
   readonly destination: AudioEndpointFacade = {};
+  currentTime = 0;
   readonly gains: FakeGainNode[] = [];
   readonly sources: FakeBufferSource[] = [];
   readonly buffers: FakeAudioBuffer[] = [];
@@ -170,6 +175,32 @@ describe("BrowserAudioRuntime", () => {
     expect(context.sources).toHaveLength(1);
     expect(context.sources[0]!.playbackRate.value).toBe(2.25);
     expect(context.gains[3]!.gain.value).toBe(0.6);
+  });
+
+  it("queues finite music voices through autoplay lock without fabricating a loop", async () => {
+    const context = new FakeAudioContext();
+    const audio = new BrowserAudioRuntime(() => context);
+    const voice = audio.playMusicVoice(clip, { gain: 0.3, playbackRate: 1.25, offsetFrame: 2 });
+
+    expect(audio.snapshot()).toMatchObject({ state: "locked", pendingLoops: 1, activeSources: 0 });
+    expect(await audio.unlock()).toBe(true);
+    expect(context.sources).toHaveLength(1);
+    expect(context.sources[0]).toMatchObject({ started: true, loop: false, startedOffset: 0.002 });
+    expect(context.sources[0]!.playbackRate.value).toBe(1.25);
+    expect(context.gains[3]!.gain.value).toBe(0.3);
+    expect(context.gains[3]!.connections[0]).toBe(context.gains[1]);
+    voice.stop();
+  });
+
+  it("schedules native music chunks on the owned AudioContext clock", async () => {
+    const context = new FakeAudioContext();
+    const audio = new BrowserAudioRuntime(() => context);
+    await audio.unlock();
+    context.currentTime = 12.5;
+    expect(audio.audioTimeSeconds()).toBe(12.5);
+    const voice = audio.playMusicVoice(clip, { startAtSeconds: 13.25 });
+    expect(context.sources[0]).toMatchObject({ started: true, startedWhen: 13.25, startedOffset: 0 });
+    voice.stop();
   });
 
   it("plays one-shot events only after unlock and reuses decoded Web Audio buffers", async () => {
@@ -274,6 +305,7 @@ describe("BrowserAudioRuntime", () => {
     expect(() => audio.playLoop(clip, { loop: { startFrame: 3, endFrame: 2 } })).toThrow(/loop/);
     expect(() => audio.playLoop(clip, { gain: -1 })).toThrow(/gain/);
     expect(() => audio.playLoop(clip, { playbackRate: 0 })).toThrow(/rate/);
+    expect(() => audio.playMusicVoice(clip, { offsetFrame: 4 })).toThrow(/offset/);
     expect(factoryCalls).toBe(0);
   });
 });

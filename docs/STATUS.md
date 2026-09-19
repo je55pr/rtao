@@ -51,6 +51,12 @@ Player-facing Warp now has one bounded recovered progression loop independent of
 
 A fresh PAL browser run on current DEV verified two ordinary destinations without debug teleport or developer boost: Peach Town registered at `SHOP/T00` slot 0, warped back to its FLD/223 Q's Factory edge, then normal driving followed the recovered `223 -> 221 -> 220 -> 113` road chain and FLD/220 minimap road ribbons into Fuji City; Fuji registered at `SHOP/T01.BIN` slot 0, warped back to its FLD/113 Q's Factory edge, left normally, and a page reload restored exactly `Peach Town` then `Fuji City`. Before Fuji registration it was absent from the menu and could not be selected. The focused integration regression locks the same registration/filtering/selector-zero/save-reload boundary.
 
+## Audio boundary
+
+Native audio now covers the current normal route with local PAL assets only: common gameplay one-shots, recovered RPM-driven engine loops, sequenced ROOM_1/BGM_01..12 music, fixed-room numeric routing, Q's Factory sequence 1, ordinary-race scene selection with the native update-250 start, and synchronized ordinary free-roam radio state 2 using the 3CH stereo VAG stream. The radio owner is separate from activity BGM and stays globally synchronized across outdoor stop/start; large streams are decoded in bounded scheduled chunks rather than whole-file PCM buffers. Missing or invalid audio never owns gameplay state and falls back to silence.
+
+The remaining audio boundary is explicit: the genuine 1CH_R malformed-frame anomaly is not repaired, 2CH has no recovered ordinary free-roam selector, hardware wet/reverb DSP and transient-vs-music SPU2 voice stealing are not emulated, and Web Audio does not claim sample-perfect rendering of every intermediate SPU2 ADSR value. Selection, sequencing, pitch/volume arithmetic, loop flags, ADSR state/release timing and scene transport are PAL-backed. See `docs/archaeology/PAL_NATIVE_BGM_RUNTIME_2026-09-19.md` and `PAL_NATIVE_SFX_RUNTIME_2026-09-18.md`.
+
 This does **not** establish general town discovery, licence/quest area gates, transition-action progression or complete world unlock semantics. Those remain issue #107. Warp registration must not be treated as a substitute for that broader progression recovery.
 
 ## Immediate work
