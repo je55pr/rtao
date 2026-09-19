@@ -147,6 +147,8 @@ adapter; it is not the native `gp-0x3e60` obstruction loop. The recovered
 semantic `Change View` action likewise has no browser binding until that binding
 is independently proven.
 
+Cross-mode regression coverage additionally locks the integration seams rather than introducing a third motion model: `nativeDrivingCrossMode.test.ts` drives `NativeDrivingMotion` and the ordinary-race scalar consumer from identical recovered equipment/contact inputs and requires exact vehicle/velocity parity, then verifies that free-roam and reflected race presentation advance the same native chase-camera recurrence. Ordinary race launch paths snapshot one complete saved selector block; direct race entry and Q's Factory therefore no longer diverge on player equipment, while unresolved categories 7..14 remain excluded from scalar handling.
+
 The broader gate remains:
 
 ```text

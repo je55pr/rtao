@@ -69,7 +69,7 @@ import {
   stepNativeNumericChoice,
 } from "./game/interiorFlow";
 import type { QFactoryInteriorView, ShopInteriorRoomView } from "./game/interiorView";
-import { applyNativeDrivingEquipment } from "./game/nativeDrivingEquipment";
+import { applyNativeDrivingEquipment, nativePlayerEquipmentSelectors } from "./game/nativeDrivingEquipment";
 import { nativeTyreGripMultiplier } from "./game/nativeTyrePerformance";
 import {
   browserCompatibilityPaintWord,
@@ -1074,7 +1074,7 @@ function updatePeachRaceAvailability(): void {
   raceToggle.textContent = ready ? "Race Peach Raceway" : "Peach Raceway loading…";
 }
 
-async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors: readonly number[] = Array(15).fill(0), activityId = 0, preserveTownSession = false): Promise<void> {
+async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors: readonly number[] = nativePlayerEquipmentSelectors(playerEquipmentState), activityId = 0, preserveTownSession = false): Promise<void> {
   if (!qFactoryOrdinaryRaceRuntimeSupported(activityId)) throw new Error(`Ordinary activity ${activityId} remains outside the validated browser launch boundary.`);
   if (!activeDirectory || !activeManifest || !activeExecutableBytes) throw new Error("The installed PAL data is not ready.");
   const activity = readRaceCatalogue(activeExecutableBytes).ordinaryRaces[activityId];
@@ -1155,8 +1155,8 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
         primaryPaint: paint.primary,
         secondaryPaint: paint.secondary,
         ...(wheelBytes ? { wheelBytes } : {}),
-        nativeTyreSelector: 0,
-        nativeWheelSelector: 0,
+        nativeTyreSelector: entrant.kind === "opponent" ? 0 : playerEquipmentSelectors[1] ?? 0,
+        nativeWheelSelector: entrant.kind === "opponent" ? 0 : playerEquipmentSelectors[7] ?? 0,
         wheelColor: nativeWheelPaintColor(paintWord),
         wheelColorIndex: nativeWheelPaintIndex(paintWord),
       }));
@@ -3846,7 +3846,7 @@ function launchQFactoryRace(action: DialogueActionToken): void {
     console.warn(`Q's Factory activity ${activityId} is locked or remains outside the validated browser launch boundary.`);
     return;
   }
-  const selectors = playerEquipmentState.selectorEntries()[0] ?? Array(15).fill(0);
+  const selectors = nativePlayerEquipmentSelectors(playerEquipmentState);
   console.info(`Q's Factory launching executable-selected activity ${activityId} (${option!.activity.name}) with recovered Q62 equipment selectors.`);
   void startPeachRace(true, selectors, activityId, true).catch((error) => {
     stopPeachRace();
