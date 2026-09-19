@@ -54,6 +54,20 @@ describe("InputSettings", () => {
     expect(settings.profile.keyboard.interact).toEqual([]);
   });
 
+  it("persists an accepted conflict replacement without mutating a rejected probe", () => {
+    const storage = new MemoryStorage();
+    const settings = new InputSettings(storage);
+
+    expect(settings.rebind("gamepad", "boost", 12)).toMatchObject({ status: "conflict" });
+    expect(settings.gamepadButtons("up")).toEqual([12]);
+    expect(new InputSettings(storage).gamepadButtons("up")).toEqual([12]);
+
+    expect(settings.rebind("gamepad", "boost", 12, "replace")).toMatchObject({ status: "applied" });
+    const restored = new InputSettings(storage);
+    expect(restored.gamepadButtons("boost")).toEqual([12]);
+    expect(restored.gamepadButtons("up")).toEqual([]);
+  });
+
   it("refuses replacements that remove the last confirm-like or back route", () => {
     const keyboard = new InputSettings();
     expect(keyboard.rebind("keyboard", "confirm", "KeyE", "replace").status).toBe("applied");

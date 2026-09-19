@@ -146,6 +146,17 @@ const appShellHtml = `
           <p class="eyebrow">PAUSED</p>
           <h2 id="pause-title">Menu</h2>
 
+          <div class="input-binding-conflict" id="input-binding-conflict" hidden role="alertdialog" aria-modal="true" aria-labelledby="input-binding-conflict-title" aria-describedby="input-binding-conflict-message">
+            <p class="eyebrow">CONTROL CONFLICT</p>
+            <h3 id="input-binding-conflict-title">Replace existing binding?</h3>
+            <p id="input-binding-conflict-message"></p>
+            <p class="input-binding-conflict-hint" id="input-binding-conflict-hint"></p>
+            <div class="pause-actions">
+              <button class="quiet-button" id="input-binding-conflict-keep" type="button">Keep existing</button>
+              <button class="primary-button" id="input-binding-conflict-replace" type="button">Replace binding</button>
+            </div>
+          </div>
+
           <div id="pause-root">
           <section class="pause-section">
             <h3>Travel</h3>

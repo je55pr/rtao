@@ -8,6 +8,7 @@ import { requiredElement } from "./app/dom";
 import { bindAppDom } from "./app/domBindings";
 import { fieldDisplayName, type GameHudState, gameHudView, raceStatusText } from "./app/hudModel";
 import { ImportController } from "./app/importController";
+import { inputBindingConflictCommand, moveInputBindingConflictChoice } from "./app/inputBindingConflict";
 import { canOpenPauseMenu } from "./app/pauseState";
 import { RecoveredProgressStore } from "./app/recoveredProgressStore";
 import { raceResultsView } from "./app/raceResultsModel";
@@ -217,6 +218,11 @@ const openPauseButton = requiredElement<HTMLButtonElement>("open-pause");
 const inputBindingEditor = requiredElement<HTMLElement>("input-binding-editor");
 const inputRestoreDefaults = requiredElement<HTMLButtonElement>("input-restore-defaults");
 const inputBindingStatus = requiredElement<HTMLElement>("input-binding-status");
+const inputBindingConflict = requiredElement<HTMLElement>("input-binding-conflict");
+const inputBindingConflictMessage = requiredElement<HTMLElement>("input-binding-conflict-message");
+const inputBindingConflictHint = requiredElement<HTMLElement>("input-binding-conflict-hint");
+const inputBindingConflictKeep = requiredElement<HTMLButtonElement>("input-binding-conflict-keep");
+const inputBindingConflictReplace = requiredElement<HTMLButtonElement>("input-binding-conflict-replace");
 const sceneFadeElement = requiredElement<HTMLElement>("scene-fade");
 const sceneFade = new SceneFade(
   {
@@ -265,7 +271,12 @@ let debugOverlayVisible = false;
 let debugOverlayFrame = 0;
 const debugFrameRate = new FrameRateSampler();
 let pauseMenuOpen = false;
-let pauseMenuPage: "root" | "warp" = "root";
+let pauseMenuPage: "root" | "warp" | "binding-conflict" = "root";
+let pendingInputBindingConflict: {
+  action: SemanticAction;
+  device: InputBindingDevice;
+  value: string | number;
+} | undefined;
 let pauseWarpState: WarpMenuState = { destinations: [], selectedIndex: -1 };
 let pauseWarpPending = false;
 let pauseReturnFocus: HTMLElement | undefined;
@@ -508,7 +519,8 @@ requiredElement<HTMLButtonElement>("pause-diagnostics").addEventListener("click"
 });
 pauseOverlay.addEventListener("click", (event) => {
   if (event.target !== pauseOverlay || pauseWarpPending) return;
-  if (pauseMenuPage === "warp") showPauseRoot();
+  if (pauseMenuPage === "binding-conflict") finishInputBindingConflict(false);
+  else if (pauseMenuPage === "warp") showPauseRoot();
   else closePauseMenu();
 });
 inputRestoreDefaults.addEventListener("click", () => {
@@ -516,6 +528,8 @@ inputRestoreDefaults.addEventListener("click", () => {
   inputSettings.restoreDefaults();
   inputBindingStatus.textContent = "Default keyboard and gamepad bindings restored.";
 });
+inputBindingConflictKeep.addEventListener("click", () => finishInputBindingConflict(false));
+inputBindingConflictReplace.addEventListener("click", () => finishInputBindingConflict(true));
 inputSettings.subscribe(() => {
   semanticInput.reset();
   renderInputBindings();
@@ -1661,8 +1675,10 @@ function openPauseMenu(): void {
   pauseStopDriving.hidden = !isDriving;
   refreshPauseWarpState();
   pauseMenuPage = "root";
+  pendingInputBindingConflict = undefined;
   pauseRoot.hidden = false;
   pauseWarpMenu.hidden = true;
+  inputBindingConflict.hidden = true;
   pauseTitle.textContent = "Menu";
   pauseOverlay.hidden = false;
   pauseResume.focus();
@@ -1756,12 +1772,16 @@ function renderInputBindings(): void {
     keyboard.type = "button";
     keyboard.className = "quiet-button input-binding-button";
     keyboard.textContent = inputSettings.profile.keyboard[action].map(keyboardBindingLabel).join(" / ") || "Unbound";
+    keyboard.dataset.bindingAction = action;
+    keyboard.dataset.bindingDevice = "keyboard";
     keyboard.setAttribute("aria-label", `Change keyboard binding for ${label}`);
     keyboard.addEventListener("click", () => beginInputBindingCapture(action, "keyboard"));
     const gamepad = document.createElement("button");
     gamepad.type = "button";
     gamepad.className = "quiet-button input-binding-button";
     gamepad.textContent = inputSettings.gamepadButtons(action).map(gamepadButtonLabel).join(" / ") || "Unbound";
+    gamepad.dataset.bindingAction = action;
+    gamepad.dataset.bindingDevice = "gamepad";
     gamepad.setAttribute("aria-label", `Change gamepad binding for ${label}`);
     gamepad.addEventListener("click", () => beginInputBindingCapture(action, "gamepad"));
     row.append(name, keyboard, gamepad);
@@ -1797,22 +1817,73 @@ function applyCapturedBinding(
   }
   if (attempt.status === "conflict") {
     const owners = attempt.conflicts.map((conflict) => inputActionLabel(conflict.action)).join(", ");
-    const label = device === "keyboard"
-      ? keyboardBindingLabel(value as string)
-      : gamepadButtonLabel(value as number);
-    if (!window.confirm(`${label} is already assigned to ${owners}. Replace that binding?`)) {
-      inputBindingStatus.textContent = "Binding unchanged.";
-      return;
-    }
-    const replacement = device === "keyboard"
-      ? inputSettings.rebind("keyboard", action, value as string, "replace")
-      : inputSettings.rebind("gamepad", action, value as number, "replace");
-    if (replacement.status === "unsafe") {
-      inputBindingStatus.textContent = replacement.reason;
-      return;
-    }
+    openInputBindingConflict(action, device, value, owners);
+    return;
   }
   inputBindingStatus.textContent = `${inputActionLabel(action)} binding saved on this browser.`;
+}
+
+function openInputBindingConflict(
+  action: SemanticAction,
+  device: InputBindingDevice,
+  value: string | number,
+  owners: string,
+): void {
+  const label = device === "keyboard"
+    ? keyboardBindingLabel(value as string)
+    : gamepadButtonLabel(value as number);
+  pendingInputBindingConflict = { action, device, value };
+  pauseMenuPage = "binding-conflict";
+  pauseRoot.hidden = true;
+  pauseWarpMenu.hidden = true;
+  inputBindingConflict.hidden = false;
+  pauseTitle.textContent = "Binding conflict";
+  inputBindingConflictMessage.textContent = `${label} is already assigned to ${owners}. Replace it for ${inputActionLabel(action)}?`;
+  inputBindingConflictHint.textContent = `${actionBindingLabel(inputSettings, "left")} / ${actionBindingLabel(inputSettings, "right")} choose · ${confirmBindingHelp()} activate · ${actionBindingLabel(inputSettings, "cancel")} keep existing`;
+  inputBindingConflictKeep.focus();
+}
+
+function finishInputBindingConflict(replace: boolean): void {
+  const pending = pendingInputBindingConflict;
+  if (!pending) return;
+  let status = "Binding unchanged.";
+  if (replace) {
+    const replacement = pending.device === "keyboard"
+      ? inputSettings.rebind("keyboard", pending.action, pending.value as string, "replace")
+      : inputSettings.rebind("gamepad", pending.action, pending.value as number, "replace");
+    status = replacement.status === "unsafe"
+      ? replacement.reason
+      : replacement.status === "applied"
+        ? `${inputActionLabel(pending.action)} binding saved on this browser.`
+        : "Binding changed before confirmation. Try again.";
+  }
+  pendingInputBindingConflict = undefined;
+  inputBindingConflict.hidden = true;
+  pauseMenuPage = "root";
+  pauseRoot.hidden = false;
+  pauseTitle.textContent = "Menu";
+  inputBindingStatus.textContent = status;
+  focusInputBindingButton(pending.action, pending.device);
+}
+
+function focusInputBindingButton(action: SemanticAction, device: InputBindingDevice): void {
+  const buttons = inputBindingEditor.querySelectorAll<HTMLButtonElement>("[data-binding-action][data-binding-device]");
+  [...buttons].find((button) =>
+    button.dataset.bindingAction === action && button.dataset.bindingDevice === device
+  )?.focus();
+}
+
+function moveInputBindingConflictFocus(direction: number): void {
+  const current = document.activeElement === inputBindingConflictReplace ? "replace" : "keep";
+  const next = moveInputBindingConflictChoice(current, direction);
+  if (next !== current) playNativeSfx("menu-navigate");
+  (next === "replace" ? inputBindingConflictReplace : inputBindingConflictKeep).focus();
+}
+
+function activateInputBindingConflictChoice(): void {
+  (document.activeElement === inputBindingConflictReplace
+    ? inputBindingConflictReplace
+    : inputBindingConflictKeep).click();
 }
 
 function confirmBindingHelp(): string {
@@ -1940,9 +2011,11 @@ function closePauseMenu(): void {
   inputBindingStatus.textContent = "";
   pauseMenuOpen = false;
   pauseMenuPage = "root";
+  pendingInputBindingConflict = undefined;
   pauseWarpPending = false;
   pauseRoot.hidden = false;
   pauseWarpMenu.hidden = true;
+  inputBindingConflict.hidden = true;
   pauseTitle.textContent = "Menu";
   pauseWarpFeedback.hidden = true;
   pauseOverlay.hidden = true;
@@ -1993,6 +2066,15 @@ function handleShellInput(event: SemanticActionEvent): void {
     if (!playUiActive) return;
     event.consume();
     setDebugOverlayVisible(!debugOverlayVisible);
+    return;
+  }
+  if (pauseMenuOpen && pauseMenuPage === "binding-conflict") {
+    const command = inputBindingConflictCommand(event.action);
+    event.consume();
+    if (command === "previous") moveInputBindingConflictFocus(-1);
+    else if (command === "next") moveInputBindingConflictFocus(1);
+    else if (command === "activate") activateInputBindingConflictChoice();
+    else if (command === "cancel") finishInputBindingConflict(false);
     return;
   }
   if (pauseMenuOpen && pauseMenuPage === "warp") {

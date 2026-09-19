@@ -368,6 +368,9 @@ h1 em { color: var(--red); font-style: normal; }
 .input-binding-button { min-width: 0; padding: 6px 7px; overflow: hidden; font: 10px/1.2 Consolas, "Courier New", monospace; text-overflow: ellipsis; white-space: nowrap; }
 .input-binding-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
 .input-binding-actions p { flex: 1; margin: 0; color: #57505f; font: 10px/1.25 Consolas, "Courier New", monospace; }
+.input-binding-conflict h3 { margin: 0 0 10px; font-size: 18px; }
+.input-binding-conflict > p:not(.eyebrow) { margin: 0 0 10px; color: #57505f; line-height: 1.45; }
+.input-binding-conflict-hint { font: 10px/1.4 Consolas, "Courier New", monospace; }
 .pause-wide-button { display: block; width: 100%; margin-top: 8px; padding: 8px 10px; }
 .pause-actions { display: flex; gap: 10px; margin-top: 20px; }
 .pause-actions button { flex: 1; padding: 10px 12px; }
