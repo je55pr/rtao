@@ -1,0 +1,51 @@
+{
+  "executableSha256": "2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9",
+  "instructionWords": 1145,
+  "ranges": [
+    {
+      "name": "follow target and fixed-step lag",
+      "start": "0x21eac8",
+      "endExclusive": "0x21ef1c",
+      "instructionWords": 277,
+      "rangeSha256": "bd066b0bc522e950df64cf1a82e3f6f42a47015a1b3c188098c3983e9570e014"
+    },
+    {
+      "name": "collision obstruction correction",
+      "start": "0x21ef20",
+      "endExclusive": "0x21f1d4",
+      "instructionWords": 173,
+      "rangeSha256": "7b6c51b306f66abb76061b61cb5adc4884829ea3e8864ef702952b1e6b361b41"
+    },
+    {
+      "name": "ordinary chase-camera update",
+      "start": "0x21f540",
+      "endExclusive": "0x21fb08",
+      "instructionWords": 370,
+      "rangeSha256": "320c4ffe393dd57aeac03d89ce29bcc83425d94c27196c13762e22ba9bf4b48f"
+    },
+    {
+      "name": "timed recenter state",
+      "start": "0x21fb08",
+      "endExclusive": "0x21fc40",
+      "instructionWords": 78,
+      "rangeSha256": "4fbc2508c49e64167588e114a3c24e261dc5eb83b149cc1436c882182a4d2f12"
+    },
+    {
+      "name": "camera transform builder",
+      "start": "0x220458",
+      "endExclusive": "0x2207e4",
+      "instructionWords": 227,
+      "rangeSha256": "090cecad076555a202459f6bcaaba491ea868a68ecc1432f1d5d74126421d23d"
+    },
+    {
+      "name": "preset copy and lookup",
+      "start": "0x2209c8",
+      "endExclusive": "0x220a18",
+      "instructionWords": 20,
+      "rangeSha256": "cc1b1f9dc1efbc069ef080c0d80c61656b7d38a71e8e9c035a144f107204fa84"
+    }
+  ],
+  "presetTableSha256": "59e2ad8e59af09064de0b4a17d0d841862a26ddd9eb0741298aa74af60a5cf39",
+  "changeViewEntrySha256": "31433439b75ca037a2ac5a4d088daebc4d55e5a68ebecc8c1667d13c8e05a330",
+  "contractSha256": "0f467a4b5e73789507ad486bf77757859b02c70ad7a70313f23f2db3434b9adb"
+}

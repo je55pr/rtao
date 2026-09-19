@@ -1,0 +1,278 @@
+{
+  "schema": 1,
+  "executable": {
+    "name": "SLES_513.56",
+    "sha256": "2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9"
+  },
+  "addresses": {
+    "followHelper": "0x0021eac8",
+    "obstructionCorrection": "0x0021ef20",
+    "ordinaryUpdate": "0x0021f540",
+    "recenterState": "0x0021fb08",
+    "cameraTransformBuilder": "0x00220458",
+    "projectionPairSetter": "0x002207e8",
+    "presetCopy": "0x002209c8",
+    "presetLookup": "0x00220a00",
+    "presetTable": "0x002a2150",
+    "changeViewEntry": "0x002a1278",
+    "changeViewString": "0x002fe328",
+    "selectedSceneCollisionQuerySlot": "gp-0x3e60",
+    "perPlayerLagState": "0x017d41b0 + player*0x10"
+  },
+  "vehicleInputs": {
+    "yaw": {
+      "recordOffset": "0x1d4",
+      "load": "signed halfword",
+      "use": "radians = int16 * pi * 2^-15"
+    },
+    "slip": {
+      "recordOffset": "0x1d6",
+      "load": "halfword",
+      "use": "when copied preset field +0x1c is zero, negated and stored to camera state +0x1a; otherwise +0x1a is cleared"
+    }
+  },
+  "constants": {
+    "pi": {
+      "addresses": [
+        "0x003d5934",
+        "0x003d5958"
+      ],
+      "value": 3.1415927410125732
+    },
+    "lagStepPerInvocation": {
+      "positive": {
+        "addresses": [
+          "0x003d5938",
+          "0x003d5940",
+          "0x003d5948"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "negative": {
+        "addresses": [
+          "0x003d593c",
+          "0x003d5944",
+          "0x003d594c"
+        ],
+        "value": -0.0010000000474974513
+      }
+    }
+  },
+  "presets": [
+    {
+      "index": 0,
+      "address": "0x2a2150",
+      "vector00": [
+        0,
+        2,
+        -7,
+        1
+      ],
+      "field10": 500,
+      "field14": "0x380",
+      "field18": "0x0",
+      "field1c": "0x0"
+    },
+    {
+      "index": 1,
+      "address": "0x2a2170",
+      "vector00": [
+        0,
+        1.5,
+        -0.25,
+        1
+      ],
+      "field10": 500,
+      "field14": "0x0",
+      "field18": "0x0",
+      "field1c": "0x1"
+    },
+    {
+      "index": 2,
+      "address": "0x2a2190",
+      "vector00": [
+        0,
+        1.2000000476837158,
+        -7,
+        1
+      ],
+      "field10": 461,
+      "field14": "0x600",
+      "field18": "0x0",
+      "field1c": "0x0"
+    },
+    {
+      "index": 3,
+      "address": "0x2a21b0",
+      "vector00": [
+        0,
+        1.5,
+        -0.25,
+        1
+      ],
+      "field10": 500,
+      "field14": "0x0",
+      "field18": "0x0",
+      "field1c": "0x1"
+    },
+    {
+      "index": 4,
+      "address": "0x2a21d0",
+      "vector00": [
+        0,
+        2.5,
+        -7,
+        1
+      ],
+      "field10": 500,
+      "field14": "0x580",
+      "field18": "0x0",
+      "field1c": "0x0"
+    },
+    {
+      "index": 5,
+      "address": "0x2a21f0",
+      "vector00": [
+        0,
+        2.200000047683716,
+        0,
+        1
+      ],
+      "field10": 500,
+      "field14": "0x0",
+      "field18": "0x0",
+      "field1c": "0x1"
+    },
+    {
+      "index": 6,
+      "address": "0x2a2210",
+      "vector00": [
+        0,
+        1.600000023841858,
+        -7,
+        1
+      ],
+      "field10": 461,
+      "field14": "0x800",
+      "field18": "0x0",
+      "field1c": "0x0"
+    },
+    {
+      "index": 7,
+      "address": "0x2a2230",
+      "vector00": [
+        0,
+        2,
+        -0.25,
+        1
+      ],
+      "field10": 500,
+      "field14": "0x0",
+      "field18": "0x0",
+      "field1c": "0x1"
+    },
+    {
+      "index": 8,
+      "address": "0x2a2250",
+      "vector00": [
+        0,
+        2,
+        -9.300000190734863,
+        1
+      ],
+      "field10": 500,
+      "field14": "0xd80",
+      "field18": "0x0",
+      "field1c": "0x0"
+    },
+    {
+      "index": 9,
+      "address": "0x2a2270",
+      "vector00": [
+        0,
+        1.2000000476837158,
+        -10.800000190734863,
+        1
+      ],
+      "field10": 461,
+      "field14": "0x880",
+      "field18": "0x0",
+      "field1c": "0x0"
+    }
+  ],
+  "semanticControl": {
+    "label": "Change View",
+    "entryAddress": "0x2a1278",
+    "field08": "0x78",
+    "ordinaryViewBranch": "0x0021f7cc..0x0021f868 branches on copied preset field +0x1c and passes one of the paired preset selectors to 0x002209c8",
+    "boundary": "The executable independently proves the semantic Change View entry and the native preset-toggle branch. The runtime binding mask is indirect, so this evidence does not assign a browser button/key directly."
+  },
+  "fixedStepLag": {
+    "recurrence": "error=target-value; velocity steps toward error by +0.001 or -0.001 per camera invocation, clamps to error to prevent overshoot, then value+=velocity",
+    "numericTrace": [
+      {
+        "tick": 0,
+        "value": 0.0010000000474974513,
+        "velocity": 0.0010000000474974513
+      },
+      {
+        "tick": 1,
+        "value": 0.003000000026077032,
+        "velocity": 0.0020000000949949026
+      },
+      {
+        "tick": 2,
+        "value": 0.004999999888241291,
+        "velocity": 0.001999999862164259
+      }
+    ],
+    "boundary": "The helper has no dt input. Evidence establishes per-invocation recurrence, not an independent wall-clock rate."
+  },
+  "resetAndRecenter": {
+    "reset": "ordinary update with controller +0x08 == 0 clears four per-player lag words at 0x017d41b0 + player*0x10 before returning",
+    "trigger": "controller +0x1c bit 0x400 installs 0x0021fb08 and zeroes controller +0x08",
+    "timedState": "for controller +0x08 < 0x40, camera state +0x16 is -0x8000 when preset field +0x1c is zero; from 0x40 through 0x7f it advances +0x200 per invocation; at >=0x80 context +0x28 bit 0x400 is cleared and the controller callback returns to 0x0021f540",
+    "numericTrace": [
+      {
+        "timer": 0,
+        "angle": -32768,
+        "behavior": "hold reset angle"
+      },
+      {
+        "timer": 63,
+        "angle": -32768,
+        "behavior": "hold reset angle"
+      },
+      {
+        "timer": 64,
+        "angle": -32256,
+        "behavior": "advance by +0x200"
+      },
+      {
+        "timer": 127,
+        "angle": 0,
+        "behavior": "64th +0x200 advance reaches zero"
+      },
+      {
+        "timer": 128,
+        "angle": 0,
+        "behavior": "clear context +0x28 bit 0x400 and restore ordinary callback"
+      }
+    ],
+    "boundary": "No single native boolean equivalent to the browser chase-camera snap flag is proven."
+  },
+  "obstruction": {
+    "querySlot": "gp-0x3e60",
+    "probeOffsets": [
+      "camera output +0x100",
+      "camera output +0x110"
+    ],
+    "correctedHeightOffsets": [
+      "+0x104",
+      "+0x114"
+    ],
+    "correction": "0x0021ef20 changes camera state +0x16 by -0x80 or +0x80, rebuilds via 0x00220458, and repeats while the selected scene collision query reports an invalid probe or raises corrected height, stopping at the signed-angle boundary",
+    "provenance": "gp-0x3e60 is the same selected collision-function slot already retained for PAL vehicle contact archaeology."
+  },
+  "boundary": "Static executable archaeology plus deterministic scalar traces. No production camera behavior is changed, no browser-only safety policy is claimed as native, and field names remain raw where consumers do not prove semantics."
+}

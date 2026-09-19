@@ -58,11 +58,17 @@ must match exactly on every update. This locks the recovered equipment records,
 gearbox, drive force, traction, brake hold curve, steering accumulator/curvature,
 yaw/drift and fixed-point velocity transform behind the production runtime boundary.
 
-## Local camera trace
+## Camera authority and optional output trace
 
-Camera evidence is intentionally not frozen here until a reproducible PAL
-capture is available in the local workspace. Point `RTA_PAL_CAMERA_TRACE` at a
-JSON file with this copyright-safe numeric schema:
+The executable-backed ordinary chase-camera runtime contract is now retained in
+`docs/evidence/camera/2026-09-19/` and interpreted in
+`docs/archaeology/PAL_CHASE_CAMERA_RUNTIME_2026-09-19.md`. It pins preset
+records, vehicle yaw/slip inputs, signed per-invocation lag steps, reset/recenter
+states, the semantic `Change View` path and obstruction correction without
+committing raw executable instruction bytes.
+
+`RTA_PAL_CAMERA_TRACE` remains an optional second gate for measured end-to-end
+camera outputs. Point it at a JSON file with this copyright-safe numeric schema:
 
 ```json
 {
@@ -87,9 +93,10 @@ JSON file with this copyright-safe numeric schema:
 }
 ```
 
-Those numbers are schema examples only, not PAL evidence. A real local trace
-should contain only measured numeric observations and labels, never executable,
-disc, screenshot, texture, audio or other retail payload data.
+Those numbers are schema examples only, not PAL evidence. The retained runtime
+contract is the current camera authority; a future local output trace should
+contain only measured numeric observations and labels, never executable, disc,
+screenshot, texture, audio or other retail payload data.
 
 The camera test feeds each `browserPose` through the same pure
 `advanceBrowserChaseCamera` function used by `WorldView`. It then compares that
@@ -120,10 +127,11 @@ effect but the upstream outdoor command producer is not yet recovered.
 Developer Shift/RB boost remains a browser traversal aid outside native motion
 state and therefore cannot multiply recovered yaw.
 
-The current chase camera is likewise only browser policy until its local PAL
-trace passes. Extracting its arithmetic into `browserChaseCamera.ts` is a
-behavior-preserving seam for validation, not evidence that the existing
-distance, lift or smoothing constants are native.
+The current production chase camera remains browser policy even though the
+native runtime contract is now recovered. `browserChaseCamera.ts` is still a
+behavior-preserving validation seam; its existing distance, lift and smoothing
+constants must not be reclassified as native until implementation work replaces
+them from the retained contract and validates the result.
 
 The broader gate remains:
 
