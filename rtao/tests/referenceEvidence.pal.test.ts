@@ -65,6 +65,54 @@ describe.skipIf(!executablePath)("promoted PAL executable witnesses", () => {
     expect(rawOutdoorRouteTotals(elf)).toEqual({ residents: 81, moving: 77, routePoints: 3208 });
   });
 
+  test("retains fixed-polygon and packed-paint executable routine anchors", () => {
+    const elf = new Elf32AddressSpace(executable());
+
+    expectIInstruction(elf, 0x0025b5b0, { opcode: 0x09, rs: 29, rt: 29, immediate: 0xff80 });
+    expectIInstruction(elf, 0x0025b618, { opcode: 0x0f, rs: 0, rt: 20, immediate: 0x002c });
+    expectIInstruction(elf, 0x0025b61c, { opcode: 0x09, rs: 20, rt: 20, immediate: 0x04b0 });
+    expectIInstruction(elf, 0x0025b638, { opcode: 0x0f, rs: 0, rt: 4, immediate: 0x002c });
+    expectIInstruction(elf, 0x0025b640, { opcode: 0x09, rs: 4, rt: 4, immediate: 0x2710 });
+    expectIInstruction(elf, 0x0025b644, { opcode: 0x20, rs: 20, rt: 3, immediate: 6 });
+    for (const address of [0x0025b728, 0x0025b760, 0x0025b798, 0x0025b7c4]) {
+      expectIInstruction(elf, address, { opcode: 0x11, rs: 0x08, rt: 0x02 });
+      expect(instructionBranchTarget(address, elf.u32(address))).toBe(0x0025b950);
+    }
+    expectIInstruction(elf, 0x0025b848, { opcode: 0x28, rs: 17, rt: 18, immediate: 35 });
+    expectIInstruction(elf, 0x0025b854, { opcode: 0x28, rs: 17, rt: 19, immediate: 33 });
+    expectIInstruction(elf, 0x0025b95c, { opcode: 0x09, rs: 16, rt: 16, immediate: 32 });
+
+    expectIInstruction(elf, 0x00257e98, { opcode: 0x23, rs: 16, rt: 2, immediate: 0 });
+    expectRInstruction(elf, 0x00257ea8, { opcode: 0, rt: 2, rd: 7, shamt: 20, funct: 0x02 });
+    expectRInstruction(elf, 0x00257eac, { opcode: 0, rt: 2, rd: 3, shamt: 4, funct: 0x02 });
+    expectRInstruction(elf, 0x00257eb0, { opcode: 0, rt: 2, rd: 4, shamt: 8, funct: 0x02 });
+    expectRInstruction(elf, 0x00257eb4, { opcode: 0, rt: 2, rd: 5, shamt: 12, funct: 0x02 });
+    expectRInstruction(elf, 0x00257eb8, { opcode: 0, rt: 2, rd: 6, shamt: 16, funct: 0x02 });
+    for (const address of [0x00257ebc, 0x00257ec0, 0x00257ec4, 0x00257ec8, 0x00257ecc, 0x00257ed0]) {
+      expectIInstruction(elf, address, { opcode: 0x0c, immediate: 0x0f });
+    }
+    for (const [address, rt, offset] of [
+      [0x00257ed8, 2, 0], [0x00257ed4, 3, 1], [0x00257ee0, 4, 2],
+      [0x00257ee8, 5, 3], [0x00257ef0, 6, 4], [0x00257ef8, 7, 5],
+    ] as const) {
+      expectIInstruction(elf, address, { opcode: 0x28, rs: 29, rt, immediate: offset });
+    }
+
+    expectIInstruction(elf, 0x00258d74, { opcode: 0x09, rs: 0, rt: 6, immediate: 1 });
+    expectRInstruction(elf, 0x00258d84, { opcode: 0, rt: 5, rd: 2, shamt: 12, funct: 0x02 });
+    expectRInstruction(elf, 0x00258d9c, { opcode: 0, rt: 5, rd: 3, shamt: 4, funct: 0x02 });
+    expectRInstruction(elf, 0x00258da0, { opcode: 0, rt: 5, rd: 2, shamt: 16, funct: 0x02 });
+    expectRInstruction(elf, 0x00258db4, { opcode: 0, rt: 5, rd: 2, shamt: 20, funct: 0x02 });
+    expectRInstruction(elf, 0x00258db8, { opcode: 0, rt: 5, rd: 3, shamt: 8, funct: 0x02 });
+    expectIInstruction(elf, 0x00258d94, { opcode: 0x05, rs: 3, rt: 2 });
+    expect(instructionBranchTarget(0x00258d94, elf.u32(0x00258d94))).toBe(0x00258dc8);
+    expectIInstruction(elf, 0x00258dac, { opcode: 0x15, rs: 3, rt: 2 });
+    expect(instructionBranchTarget(0x00258dac, elf.u32(0x00258dac))).toBe(0x00258dcc);
+    expectRInstruction(elf, 0x00258dbc, { opcode: 0, rs: 2, rt: 3, rd: 2, funct: 0x26 });
+    expectRInstruction(elf, 0x00258dc4, { opcode: 0, rs: 0, rt: 2, rd: 6, funct: 0x2b });
+    expectIInstruction(elf, 0x00258dc8, { opcode: 0x28, rs: 16, rt: 6, immediate: 39 });
+  });
+
   test("retains Peach dialogue pointer witnesses without inferring new semantics", () => {
     const bytes = executable();
     const factory = readDialogueEntityAtIndex(bytes, 1, 0);
@@ -159,6 +207,48 @@ describe.skipIf(!binPath)("promoted PAL SHOP witnesses", () => {
     }
   });
 });
+
+function expectIInstruction(
+  elf: Elf32AddressSpace,
+  address: number,
+  expected: Partial<ReturnType<typeof decodeIInstruction>>,
+): void {
+  expect(decodeIInstruction(elf.u32(address))).toMatchObject(expected);
+}
+
+function expectRInstruction(
+  elf: Elf32AddressSpace,
+  address: number,
+  expected: Partial<ReturnType<typeof decodeRInstruction>>,
+): void {
+  expect(decodeRInstruction(elf.u32(address))).toMatchObject(expected);
+}
+
+function decodeIInstruction(word: number) {
+  return {
+    opcode: (word >>> 26) & 0x3f,
+    rs: (word >>> 21) & 0x1f,
+    rt: (word >>> 16) & 0x1f,
+    immediate: word & 0xffff,
+  };
+}
+
+function decodeRInstruction(word: number) {
+  return {
+    opcode: (word >>> 26) & 0x3f,
+    rs: (word >>> 21) & 0x1f,
+    rt: (word >>> 16) & 0x1f,
+    rd: (word >>> 11) & 0x1f,
+    shamt: (word >>> 6) & 0x1f,
+    funct: word & 0x3f,
+  };
+}
+
+function instructionBranchTarget(address: number, word: number): number {
+  const immediate = word & 0xffff;
+  const signedImmediate = (immediate & 0x8000) !== 0 ? immediate - 0x10000 : immediate;
+  return (address + 4 + (signedImmediate << 2)) >>> 0;
+}
 
 function center(corners: ReadonlyArray<readonly [number, number]>): [number, number] {
   return [

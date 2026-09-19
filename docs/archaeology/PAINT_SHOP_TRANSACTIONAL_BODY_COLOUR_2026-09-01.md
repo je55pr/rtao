@@ -42,6 +42,14 @@ partially mutate colour state.
 The body-colour intensity table already used by the PAL outdoor decoder remains
 `[25,38,51,63,76,89,102,114,127,140,153,165,178,191,204,216]`.
 
+### Retained packed-paint routine anchors
+
+**Decoded semantics.** At `0x00257E98`, PAL code loads one packed 32-bit paint word and extracts six 4-bit channels from shifts `0,4,8,12,16,20`, storing the six nibbles as temporary bytes. That instruction sequence therefore validates the two contiguous low-24-bit triplets used by the maintained RGB444 decoder; it does not consume the top byte as one of those six body-colour channels. At `0x00258D84`, a separate path compares the corresponding nibble pairs `0↔12`, `4↔16`, and `8↔20`. On the branch where this comparison executes, state byte `+0x27` becomes nonzero when any pair differs and zero when all three pairs match.
+
+**Executable-address validation witness.** Both addresses were re-decoded directly from PAL `SLES_513.56` with SHA-256 `2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9`. The six extraction shifts occupy `0x00257EA8..0x00257ED0`, with byte stores through `0x00257EF8`; the three pairwise comparisons occupy `0x00258D84..0x00258DC8`. `rtao/tests/referenceEvidence.pal.test.ts` checks the decoded instruction fields and control-flow targets instead of retaining executable bytes.
+
+**Historical interpretation boundary.** The retired C# reader labelled the two triplets primary and secondary RGB444 paint. That naming remains consistent with the independently recovered Paint editor and purchase logic above, but the two anchors alone do not establish UI labels, cursor order, rendered intensity mapping, or wheel-colour semantics.
+
 ## Web implementation
 
 - Added `paintShop.ts` with exact RGB444 channel packing, native body-price

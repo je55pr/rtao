@@ -23,6 +23,14 @@ This is stronger than text matching. Resident labels and dialogue entity names l
 
 The English dialogue table provides an independent structural cross-check: in all 21 backed areas, the entity count is exactly `fixedInteractionCount + outdoorResidentCount`. Fixed hosts occupy the prefix; roaming residents follow it.
 
+### Retained PAL polygon-consumer routine anchor
+
+**Decoded semantics.** The PAL routine beginning at `0x0025B5B0` walks authored area descriptors, matches the current field code, forms the per-area polygon pointer through `0x002C2710`, reads the descriptor byte at `+6` as the local-record count, and advances each candidate by `0x20` bytes. Four floating-point 2D cross-product tests gate a candidate. A surviving record stores the matched area index to state byte `+0x23` and the local record index to state byte `+0x21` before later interaction-state handling.
+
+**Executable-address validation witness.** This was re-decoded directly from PAL `SLES_513.56` with SHA-256 `2b4a310fc8bb145ccbc5e5ec5d023f0c29903c3e4555d63983d4a976f689eff9`: the descriptor-table construction is at `0x0025B618..0x0025B620`, the `0x002C2710` pointer-table construction and `+6` count load are at `0x0025B638..0x0025B644`, the four rejection branches converge on the next-record path at `0x0025B728/0x0025B760/0x0025B798/0x0025B7C4`, the hit stores are at `0x0025B848/0x0025B854`, and the `0x20` record stride is at `0x0025B95C`. `rtao/tests/referenceEvidence.pal.test.ts` checks these decoded instruction fields without retaining executable bytes.
+
+**Historical interpretation boundary.** The retired C# reader described this as the fixed-interaction polygon consumer. The maintained same-index census independently supports that interpretation by tying polygon record `N` to resident definition, dialogue entity and SHOP slot `N`. The routine itself does not prove that every geometric hit is progression-available, nor does it assign meaning to later state flags beyond the stores decoded above.
+
 ### Peach validation anchors retained from the legacy C# probe
 
 These are now regression witnesses in `rtao/tests/referenceEvidence.pal.test.ts`; the old C# reader is no longer their authority.
