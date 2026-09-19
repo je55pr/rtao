@@ -17,11 +17,20 @@ export interface WorldViewStats {
   readonly primitives: number;
 }
 
+interface SectorDistanceCullEntry {
+  readonly mesh: THREE.Mesh;
+  readonly center: THREE.Vector3;
+  readonly radius: number;
+  readonly path: FieldRenderPath | "all";
+  readonly hasTransparency: boolean;
+}
+
 interface SectorRenderResources {
   readonly group: THREE.Group;
   readonly textures: THREE.Texture[];
   readonly materials: THREE.Material[];
   readonly horizontalBounds: THREE.Box2;
+  readonly distanceCullEntries: SectorDistanceCullEntry[];
   readonly triangles: number;
   readonly primitives: number;
   dynamic?: SectorDynamicResources;
@@ -82,6 +91,7 @@ function createOutdoorSceneResources(name: string, compiled: CompiledFieldMesh):
   });
   const materialMap = new Map<string, THREE.MeshBasicMaterial>();
   const horizontalBounds = new THREE.Box2();
+  const distanceCullEntries: SectorDistanceCullEntry[] = [];
   const group = new THREE.Group();
   group.name = name;
   compiled.batches.forEach((batch, index) => {
@@ -110,6 +120,13 @@ function createOutdoorSceneResources(name: string, compiled: CompiledFieldMesh):
     approximateMesh.userData.rtaRenderPath = batch.billboard ? "all" : "approximate";
     approximateMesh.renderOrder = batch.hasTransparency ? 2 : (!batch.billboard && batch.chunkIndex === 64 ? 0 : 1);
     group.add(approximateMesh);
+    if (geometry.boundingSphere) distanceCullEntries.push({
+      mesh: approximateMesh,
+      center: geometry.boundingSphere.center.clone(),
+      radius: geometry.boundingSphere.radius,
+      path: batch.billboard ? "all" : "approximate",
+      hasTransparency: batch.hasTransparency,
+    });
     if (!batch.billboard) {
       for (const pass of ["authentic-depth", "authentic-rgb"] as const) {
         const materialKey = `${materialBaseKey}|${pass}`;
@@ -124,6 +141,13 @@ function createOutdoorSceneResources(name: string, compiled: CompiledFieldMesh):
         mesh.userData.rtaRenderPath = pass;
         mesh.renderOrder = 1000 + index * 2 + (pass === "authentic-rgb" ? 1 : 0);
         group.add(mesh);
+        if (geometry.boundingSphere) distanceCullEntries.push({
+          mesh,
+          center: geometry.boundingSphere.center.clone(),
+          radius: geometry.boundingSphere.radius,
+          path: pass,
+          hasTransparency: batch.hasTransparency,
+        });
       }
     }
   });
@@ -135,6 +159,7 @@ function createOutdoorSceneResources(name: string, compiled: CompiledFieldMesh):
     textures,
     materials: [...materialMap.values()],
     horizontalBounds,
+    distanceCullEntries,
     triangles: compiled.triangleCount,
     primitives: compiled.primitiveCount,
   };
@@ -205,6 +230,7 @@ export class WorldView {
   private originFieldNumber = 223;
   private frameHandle = 0;
   private readonly animatedDynamicObjects: AnimatedDynamicObject[] = [];
+  private readonly distanceCullForward = new THREE.Vector3();
   private choroCoins: ChoroCoinRenderResources | undefined;
   private lastFrameTimestamp = 0;
   private animationSeconds = 0;
@@ -946,6 +972,9 @@ export class WorldView {
 
   private applyDistanceCulling(camera: THREE.Camera): void {
     const farDistance = visibilityProfile(this.visibilityMode).farDistance;
+    const forward = camera.getWorldDirection(this.distanceCullForward);
+    const alphaReference = 127 / 128;
+
     for (const sector of this.sectors.values()) {
       sector.group.visible = farDistance === null || horizontalBoundsWithinDistance(
         sector.horizontalBounds,
@@ -955,6 +984,38 @@ export class WorldView {
         camera.position.z,
         farDistance,
       );
+      if (!sector.group.visible) continue;
+
+      for (const entry of sector.distanceCullEntries) {
+        const modeVisible = entry.mesh.userData.rtaModeVisible === true;
+        if (!modeVisible || entry.path === "all") {
+          entry.mesh.visible = modeVisible;
+          continue;
+        }
+
+        const distances = (entry.mesh.material as THREE.Material).userData.rtaAtmosphereDistances as THREE.Vector4 | undefined;
+        if (!distances || distances.w < 0.5) {
+          entry.mesh.visible = modeVisible;
+          continue;
+        }
+
+        const dx = sector.group.position.x + entry.center.x - camera.position.x;
+        const dy = sector.group.position.y + entry.center.y - camera.position.y;
+        const dz = sector.group.position.z + entry.center.z - camera.position.z;
+        const depth = dx * forward.x + dy * forward.y + dz * forward.z;
+        const nearestDepth = depth - entry.radius;
+        const farthestDepth = depth + entry.radius;
+        let visible = nearestDepth <= distances.z;
+
+        if (visible && entry.path === "authentic-depth") {
+          const opaqueUntil = distances.z - alphaReference * (distances.z - distances.y);
+          visible = nearestDepth <= opaqueUntil;
+        } else if (visible && entry.path === "authentic-rgb" && !entry.hasTransparency) {
+          const opaqueUntil = distances.z - alphaReference * (distances.z - distances.y);
+          visible = farthestDepth >= opaqueUntil;
+        }
+        entry.mesh.visible = visible;
+      }
     }
   }
 
@@ -975,7 +1036,9 @@ export class WorldView {
           ? path === "authentic-depth" || path === "authentic-rgb"
           : path === "approximate");
         const timeVisible = object.userData.rtaNightOnly !== true || atmosphere.weights.night > 0.0001;
-        object.visible = renderPathVisible && timeVisible;
+        const modeVisible = renderPathVisible && timeVisible;
+        object.userData.rtaModeVisible = modeVisible;
+        object.visible = modeVisible;
       });
     }
 
