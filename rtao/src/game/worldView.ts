@@ -139,7 +139,10 @@ function createOutdoorSceneResources(name: string, compiled: CompiledFieldMesh):
         mesh.name = `${group.name} batch ${index} ${pass}`;
         mesh.userData.rtaNightOnly = batch.nightOnly;
         mesh.userData.rtaRenderPath = pass;
-        mesh.renderOrder = 1000 + index * 2 + (pass === "authentic-rgb" ? 1 : 0);
+        // Opaque/depth keeps authored batch order for coplanar field layers.
+        // RGB_ONLY fallbacks share one transparent order so Three can sort
+        // them back-to-front by camera depth instead of source-batch index.
+        mesh.renderOrder = pass === "authentic-rgb" ? 2000 : 1000 + index * 2;
         group.add(mesh);
         if (geometry.boundingSphere) distanceCullEntries.push({
           mesh,
@@ -1190,7 +1193,21 @@ function createDynamicObjectMaterial(texture: THREE.Texture | undefined): THREE.
   });
 }
 
-type FieldRenderPath = "approximate" | "authentic-depth" | "authentic-rgb";
+export type FieldRenderPath = "approximate" | "authentic-depth" | "authentic-rgb";
+
+export function fieldMaterialRenderPolicy(renderPath: FieldRenderPath, hasTransparency: boolean): {
+  readonly transparent: boolean;
+  readonly depthWrite: boolean;
+  readonly forceSinglePass: boolean;
+} {
+  const authentic = renderPath !== "approximate";
+  const authenticRgb = renderPath === "authentic-rgb";
+  return {
+    transparent: authenticRgb || (!authentic && hasTransparency),
+    depthWrite: !authenticRgb,
+    forceSinglePass: authenticRgb,
+  };
+}
 
 function createFieldMaterial(batch: CompiledFieldBatch, textures: THREE.Texture[], renderPath: FieldRenderPath): THREE.MeshBasicMaterial {
   const timeWeights = new THREE.Vector3(1.1, 0, 0);
@@ -1200,15 +1217,25 @@ function createFieldMaterial(batch: CompiledFieldBatch, textures: THREE.Texture[
   // selector. Billboards execute MSCALF 6 and remain outside this profile.
   const atmosphereDistances = new THREE.Vector4(290, 544, 800, batch.billboard ? 0 : 1);
   const authentic = renderPath !== "approximate";
+  const renderPolicy = fieldMaterialRenderPolicy(renderPath, batch.hasTransparency);
   const material = new THREE.MeshBasicMaterial({
     map: batch.textureIndex >= 0 ? textures[batch.textureIndex] : null,
     vertexColors: true,
     side: THREE.DoubleSide,
     fog: false,
-    transparent: authentic || batch.hasTransparency,
+    // The authentic depth/opaque split must live in Three's opaque queue so
+    // buildings and solid foliage texels populate framebuffer + depth before
+    // the fade-only RGB pass blends partial coverage. Marking both passes
+    // transparent made tree fringes blend against sky and defeated early-Z.
+    transparent: renderPolicy.transparent,
     alphaTest: authentic ? 0 : (batch.hasTransparency ? 1 / 255 : 0),
-    depthWrite: renderPath !== "authentic-rgb",
+    depthWrite: renderPolicy.depthWrite,
   });
+  // Three.js otherwise renders transparent DoubleSide materials once for
+  // back faces and again for front faces. HG2's RGB_ONLY fallback is one GS
+  // submission, and field foliage/cards do not benefit from Three's extra
+  // transparent-side pass, so keep the authentic RGB fallback single-draw.
+  material.forceSinglePass = renderPolicy.forceSinglePass;
   material.userData.rtaTimeWeights = timeWeights;
   material.userData.rtaAtmosphereColor = atmosphereColor;
   material.userData.rtaAtmosphereDistances = atmosphereDistances;

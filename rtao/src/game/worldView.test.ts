@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import type { ChoroCoinPlacement } from "../formats/choroCoins";
-import { dynamicObjectPhaseSeed, horizontalBoundsWithinDistance, nativeFourthColumnToRenderColumn, visibleChoroCoinPlacements } from "./worldView";
+import { dynamicObjectPhaseSeed, fieldMaterialRenderPolicy, horizontalBoundsWithinDistance, nativeFourthColumnToRenderColumn, visibleChoroCoinPlacements } from "./worldView";
 
 describe("native field-object fourth-column reflection", () => {
   it("preserves homogeneous w while reflecting native field X", () => {
@@ -13,6 +13,24 @@ describe("native field-object fourth-column reflection", () => {
     const peachMesh0 = nativeFourthColumnToRenderColumn([1053.5, 1014.0, 1054.9000244, 1015.5999756]);
     expect(peachMesh0[0]).toBeCloseTo(1600 * 1015.5999756 - 1053.5);
     expect(peachMesh0.slice(1)).toEqual([1014.0, 1054.9000244, 1015.5999756]);
+  });
+});
+
+describe("authentic field render queues", () => {
+  it("keeps the passing-alpha pass opaque and depth-writing", () => {
+    expect(fieldMaterialRenderPolicy("authentic-depth", true)).toEqual({
+      transparent: false,
+      depthWrite: true,
+      forceSinglePass: false,
+    });
+  });
+
+  it("keeps only the RGB_ONLY fallback transparent and single-submission", () => {
+    expect(fieldMaterialRenderPolicy("authentic-rgb", true)).toEqual({
+      transparent: true,
+      depthWrite: false,
+      forceSinglePass: true,
+    });
   });
 });
 
