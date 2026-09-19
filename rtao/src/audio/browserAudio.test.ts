@@ -366,6 +366,19 @@ describe("BrowserAudioRuntime", () => {
     expect(() => audio.playLoop(clip)).toThrow(/disposed/);
   });
 
+  it("fails soft when Web Audio is unavailable and leaves gameplay calls usable", async () => {
+    const audio = new BrowserAudioRuntime(() => {
+      throw new Error("Web Audio is unavailable in this browser.");
+    });
+    const loop = audio.playLoop(clip);
+    expect(audio.playEvent(clip)).toBeNull();
+    expect(await audio.unlock()).toBe(false);
+    expect(audio.snapshot()).toMatchObject({ state: "locked", pendingLoops: 1, pendingEvents: 0, activeSources: 0 });
+    expect(loop.stopped).toBe(false);
+    loop.stop();
+    expect(audio.snapshot().pendingLoops).toBe(0);
+  });
+
   it("rejects invalid loop and gain requests before touching Web Audio", () => {
     let factoryCalls = 0;
     const audio = new BrowserAudioRuntime(() => {

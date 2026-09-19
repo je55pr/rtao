@@ -40,6 +40,9 @@ const explicitlyRequired = [
   "CARS/TIRE.BIN",
   "CARS/WHEEL.BIN",
   "SHOP/T00.BIN",
+] as const;
+
+const optionalBootstrapNativeAudioFiles = [
   "SOUND/CQ_MAIN.TSQ",
   "SOUND/CQ_MAIN.TVB",
   "SOUND/ACTION.TSQ",
@@ -125,7 +128,7 @@ export async function importGame(
       devFieldSet,
     );
     const bootstrapPathSet = new Set([
-      "SYSTEM.CNF", identity.bootExecutable, ...explicitlyRequired, "FLD/223.BIN",
+      "SYSTEM.CNF", identity.bootExecutable, ...explicitlyRequired, ...optionalBootstrapNativeAudioFiles, "FLD/223.BIN",
       ...bootstrapCarBodyIds.map(carAssetPath),
     ].map((path) => path.toUpperCase()));
     const bootstrapEntries = devFieldSet ? [] : selected.filter((entry) => bootstrapPathSet.has(entry.path.toUpperCase()));
@@ -326,7 +329,7 @@ function formatBytes(value: number): string {
   return `${Math.ceil(value / 1024)} KiB`;
 }
 
-async function selectRuntimeFiles(
+export async function selectRuntimeFiles(
   disc: Awaited<ReturnType<typeof openImportSource>>["disc"],
   executable: string,
   runtimeCarBodyIds?: readonly number[],
@@ -346,7 +349,8 @@ async function selectRuntimeFiles(
   await add("SYSTEM.CNF", true);
   await add(executable, true);
   for (const path of explicitlyRequired) await add(path, true);
-  if (!devFieldSet) for (const path of deferredNativeRadioFiles) await add(path, true);
+  for (const path of optionalBootstrapNativeAudioFiles) await add(path, false);
+  if (!devFieldSet) for (const path of deferredNativeRadioFiles) await add(path, false);
   for (const path of await listMatching(disc, "FLD", /^\d{3}\.BIN$/i)) {
     if (devFieldSet) {
       const match = /(\d{3})\.BIN$/i.exec(path);
