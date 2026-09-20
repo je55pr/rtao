@@ -1,7 +1,8 @@
 import {Elf32AddressSpace} from '../formats/elf32';
 import {readNativeRaceContactData,type NativeRaceContactState,type NativeRaceContactDependencies,type NativeRaceContactData} from './nativeRaceContact';
-import {advanceNativeRaceContact,transformNativeRaceIntegerVector,nativeRaceNormalBasis,nativeRaceYawMatrix,
+import {advanceNativeRaceContact,transformNativeRaceIntegerVector,nativeRaceYawMatrix,
   readNativeRaceMathData,type NativeRaceMathData,type NativeRaceMatrix,type NativeRaceVector} from './nativeRaceMath';
+import {nativeRaceBodyMatrix,readNativeRaceBodyData} from './nativeRaceBody';
 import {advanceNativeRaceVehicleVelocity,integrateNativeRacePosition,nativeRaceDrag,nativeRacePositionCoordinates,
   type NativeRaceVehicleState,type NativeRaceEquipment} from './nativeRaceVehicle';
 import type {NativeRaceDriftPolicy} from './nativeRaceTraction';
@@ -20,7 +21,7 @@ export interface NativeRaceFrameData {
 export function readNativeRaceFrameData(executable:Uint8Array):NativeRaceFrameData {
   const elf=new Elf32AddressSpace(executable),gp=0x3dd7f0;
   return {contact:readNativeRaceContactData(executable),math:readNativeRaceMathData(executable),obstacle:readNativeRaceObstacleData(executable),
-    bodySideDivisor:elf.f32(gp-32472),bodyForwardDivisor:elf.f32(gp-32468),bigTyreLift:elf.f32(gp-32464),obstacleYawScale:elf.f32(gp-32596)};
+    ...readNativeRaceBodyData(executable),obstacleYawScale:elf.f32(gp-32596)};
 }
 export interface NativeRaceFrameState {
   readonly vehicle:NativeRaceVehicleState;
@@ -152,12 +153,7 @@ export function advanceNativeRaceFrame(input:NativeRaceFrameInput,data:NativeRac
   const response=respondNativeRaceCollision({position:contact.state.position,velocity:drive.worldVelocity,matrix:contact.matrix,inverse:contact.inverse,
     yaw:drive.state.yaw,previousYaw:oldYaw,collisionFlags:contact.flags|obstacleFlags,carFlags,positionIndex:state.positionIndex,
     sceneFlags:input.sceneFlags,sceneKind:input.sceneKind});
-  const [front,left,right]=contact.state.support;
-  const rearAverage=Math.trunc(((left!+right!)|0)/2);
-  const bodyMatrix=nativeRaceNormalBasis([f(f((right!-left!)|0)/data.bodySideDivisor),1,
-    f(f((front!-rearAverage)|0)/data.bodyForwardDivisor),0]);
-  bodyMatrix[13]=f(f(f((Math.trunc(((front!+rearAverage)|0)/2)-4096)|0)*(-1/32768))+
-    ((input.equipmentFlags&0x400)?data.bigTyreLift:0));
+  const bodyMatrix=nativeRaceBodyMatrix(contact.state.support,input.equipmentFlags,data);
   const schedule=(((input.sceneTime-0xe484)>>>0)>0x1944c?1:0)^((input.commands&16)?1:0);
   return {state:{...state,vehicle:{...drive.state,yaw:response.yaw,runtimeFlags:contact.state.runtimeFlags},
     contact:{...contact.state,position:response.position,yaw:response.yaw,referenceY:coordinates[1]},

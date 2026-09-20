@@ -115,8 +115,8 @@ current toroidal field-normalization rule.
 
 ## Persistent state
 
-A future free-roam contact owner needs retained native state, not the current
-`CarState` booleans. At minimum it must persist:
+The standard-FLD free-roam contact owner retains native state rather than
+reconstructing it from `CarState` booleans. At minimum it persists:
 
 - native fixed-point position;
 - previous native coordinates/reference Y;
@@ -124,6 +124,7 @@ A future free-roam contact owner needs retained native state, not the current
 - support[3], supportDelta[3], impulses[3];
 - unsupported tick count and signed special state;
 - native contact matrix and inverse;
+- the support-derived local chassis/body matrix used by presentation;
 - native yaw plus vehicle state needed by the drive consumer;
 - current/previous world velocity needed to derive local support inputs.
 
@@ -144,7 +145,9 @@ A successful contact step returns and retains:
 - unsupported counter, runtime flags and shallow/deep special state;
 - seven post-query contact points and height words;
 - raw surface words and contact/collision flag bits;
-- normal, matrix and inverse for the next tick;
+- normal, contact matrix and inverse for the next tick;
+- the recovered local chassis/body matrix derived from the three support values,
+  including the `0x0400` Big Tyre lift;
 - impact requests and sound requests as host callbacks, not direct browser
   side effects.
 
@@ -164,10 +167,12 @@ renderY      = nativeY
 renderLocalZ = nativeLocalZ
 ```
 
-The native matrix, yaw, velocity, fixed-point position and seven probes are not
-reflected internally. Browser yaw/sign adaptation and X reflection happen only
-when projecting native state for Three.js or when deliberately calling a
-render-space helper.
+The native contact/body matrices, yaw, velocity, fixed-point position and seven
+probes are not reflected internally. Browser yaw/sign adaptation and X
+reflection happen only when projecting native state for Three.js or when
+deliberately calling a render-space helper. The local chassis matrix is
+conjugated by the X reflection at that presentation boundary so the rendered
+transform remains right-handed.
 
 `normalizeRenderPosition` is a browser world-topology helper. It also contains
 the explicit north/south torus quality-of-life extension. Therefore it must not
@@ -221,10 +226,11 @@ native dispatch remains unrecovered.
 | `addCompiledField` / `addField` | **Retain for render/browser queries; add a parallel native collision source.** | Compiled triangles cannot satisfy native packet queries. |
 | `addCompiledSpecialOutdoor` | **Retain for render/browser queries; add a parallel native collision source if the scene is proven to use this contact path.** | Exact special-outdoor dispatch remains evidence-gated. |
 
-`ArcadeCarController.groundAttitude` is not a `DrivingWorld` API, but it must
-also leave the live physics path once native contact orientation owns body
-attitude. Its four sampled heights and browser smoothing remain a presentation
-compatibility bridge, not PAL suspension.
+`ArcadeCarController.groundAttitude` is not a `DrivingWorld` API. Standard-FLD
+driving no longer calls it: PAL contact orientation owns the terrain/root frame
+and retained support history owns the local chassis/body matrix. Its four
+sampled heights and browser smoothing remain only on compatibility paths where
+native scene dispatch is not recovered; they are not PAL suspension.
 
 ## Explicit unrecovered gaps
 

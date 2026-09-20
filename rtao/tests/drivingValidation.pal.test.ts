@@ -332,9 +332,6 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
             steering: tick >= 20 && tick < 45 ? 1 : 0,
             surfaceIndex: undefined,
             contact: {
-              driveContact: false,
-              accelerationY: 0,
-              allowsYaw: false,
               specialState: contact.specialState,
               propellerEnabled: false,
               native: contact.retainedContact,

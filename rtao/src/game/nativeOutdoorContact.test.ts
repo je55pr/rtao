@@ -5,6 +5,7 @@ import {
 } from "./nativeDrivingMotion";
 import { syntheticNativeDrivingMotionAuthority } from "./nativeDrivingMotion.testSupport";
 import { NativeOutdoorContact, type NativeOutdoorContactQuery } from "./nativeOutdoorContact";
+import { nativeRaceBodyMatrix } from "./nativeRaceBody";
 import { createNativeRaceVehicleState } from "./nativeRaceVehicle";
 import { fieldNumberFromAddress } from "./worldTopology";
 
@@ -62,13 +63,51 @@ describe("native outdoor contact recurrence", () => {
     expect(contact.retainedContact.support.some((value) => value !== 0)).toBe(true);
   });
 
-  test("builds native slope orientation from seven queried probes", () => {
+  test("builds native slope orientation and chassis attitude from queried support", () => {
     const contact = runtime({ x: 800, y: 0, z: 800 });
-    contact.prime(groundQuery((_x, z) => (z - 800) * 0.08));
+    const slope = groundQuery((_x, z) => (z - 800) * 0.08);
+    contact.prime(slope);
+    for (let tick = 0; tick < 12; tick += 1) contact.advance(retainedStep(), slope);
     const pose = contact.pose(0);
     expect(Math.abs(pose.pitch)).toBeGreaterThan(0.02);
     expect(Math.abs(pose.roll)).toBeLessThan(0.01);
+    expect(pose.bodyMatrix).toEqual(
+      nativeRaceBodyMatrix(contact.retainedContact.support, 0, authority.body),
+    );
   });
+
+  test("carries support history deterministically across a terrain crest", () => {
+    const crest = groundQuery((_x, z) => -Math.abs(z - 800) * 0.12);
+    const a = runtime({ x: 800, y: -0.36, z: 797 });
+    const b = runtime({ x: 800, y: -0.36, z: 797 });
+    a.prime(crest);
+    b.prime(crest);
+    const aTilt: number[] = [];
+    const bTilt: number[] = [];
+    for (let tick = 0; tick < 64; tick += 1) {
+      a.advance(retainedStep(0, 4096), crest);
+      b.advance(retainedStep(0, 4096), crest);
+      aTilt.push(a.pose(0).bodyMatrix[6]!);
+      bTilt.push(b.pose(0).bodyMatrix[6]!);
+    }
+    expect(aTilt).toEqual(bTilt);
+    expect(aTilt.some((value) => value > 0.0001)).toBe(true);
+    expect(aTilt.some((value) => value < -0.0001)).toBe(true);
+  });
+  test("carries Big Tyre ride height in the recovered body matrix without moving the contact root", () => {
+    const query = groundQuery(() => 0);
+    const ordinary = runtime();
+    const big = runtime();
+    ordinary.prime(query);
+    big.prime(query, 0x400, 0x400);
+    const ordinaryPose = ordinary.pose(0);
+    const bigPose = big.pose(0);
+    expect(bigPose.position).toEqual(ordinaryPose.position);
+    expect(bigPose.bodyMatrix[13]! - ordinaryPose.bodyMatrix[13]!)
+      .toBeCloseTo(authority.body.bigTyreLift, 7);
+    expect(bigPose.bodyMatrix.slice(0, 12)).toEqual(ordinaryPose.bodyMatrix.slice(0, 12));
+  });
+
   test("rebases fixed native position across an authored field seam", () => {
     const contact = runtime({ x: 0.2, y: 0, z: 800 });
     const query = groundQuery(() => 0);
@@ -81,16 +120,24 @@ describe("native outdoor contact recurrence", () => {
     expect(pose.position.x).toBeLessThanOrEqual(1600);
   });
 
-  test("retains changing support history instead of rebuilding a wheel footprint", () => {
+  test("retains compression and rebound history instead of rebuilding level support", () => {
     const contact = runtime();
     const flat = groundQuery(() => 0);
+    const releasedGround = groundQuery(() => -4);
     contact.prime(flat);
-    const before = [...contact.retainedContact.support];
-    const dropped = groundQuery(() => -4);
-    for (let tick = 0; tick < 20; tick += 1) contact.advance(retainedStep(), dropped);
-    const during = [...contact.retainedContact.support];
-    expect(during).not.toEqual(before);
-    expect(during.some((value, index) => value !== before[index])).toBe(true);
+    const rest = [...contact.retainedContact.support];
+    for (let tick = 0; tick < 20; tick += 1) contact.advance(retainedStep(), releasedGround);
+    const compressed = [...contact.retainedContact.support];
+    const compressedBodyY = contact.pose(0).bodyMatrix[13]!;
+    expect(compressed).not.toEqual(rest);
+    expect(compressed.some((value, index) => value !== rest[index])).toBe(true);
+    expect(Math.abs(compressedBodyY)).toBeGreaterThan(0.0001);
+
+    for (let tick = 0; tick < 80; tick += 1) contact.advance(retainedStep(), flat);
+    const rebound = [...contact.retainedContact.support];
+    const distance = (values: readonly number[]) =>
+      values.reduce((sum, value, index) => sum + Math.abs(value - rest[index]!), 0);
+    expect(distance(rebound)).toBeLessThan(distance(compressed));
   });
   test("loses and reacquires support through the retained native recurrence", () => {
     const contact = runtime();
@@ -116,9 +163,6 @@ describe("native outdoor contact recurrence", () => {
       steering: 1,
       surfaceIndex: undefined,
       contact: {
-        driveContact: false,
-        accelerationY: 0,
-        allowsYaw: false,
         specialState: contact.specialState,
         propellerEnabled: false,
         native: contact.retainedContact,

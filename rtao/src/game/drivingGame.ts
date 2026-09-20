@@ -1,4 +1,5 @@
 import type { Q62CarModel } from "./carView";
+import type { NativeRaceMatrix } from "./nativeRaceMath";
 import {
   NativeDrivingMotion,
   nativeDrivingFixedStepSeconds,
@@ -58,6 +59,8 @@ export interface CarState {
   readonly wheelSpin: number;
   readonly pitch: number;
   readonly roll: number;
+  /** Retained PAL local chassis transform; absent on compatibility-only outdoor paths. */
+  readonly nativeBodyMatrix?: NativeRaceMatrix;
   readonly surfaceFlags: number;
   readonly surfaceKind: DrivingSurfaceKind;
   /** PAL car +0x213 auxiliary-height state: ordinary 0, shallow -1, deep +1. */
@@ -216,6 +219,7 @@ export class ArcadeCarController {
       position: pose.position,
       pitch: pose.pitch,
       roll: pose.roll,
+      nativeBodyMatrix: pose.bodyMatrix,
       surfaceFlags: pose.surfaceFlags,
       surfaceKind: this.world.drivingSurface(pose.fieldNumber, pose.position, pose.position.y),
       contactSpecialState: runtime.specialState,
@@ -320,17 +324,22 @@ export class ArcadeCarController {
       throttle,
       steering,
       surfaceIndex: nativeContact ? undefined : nativeDrivingSurfaceIndex(old.surfaceKind),
-      contact: {
-        // Compiled-only and special-outdoor scenes retain the old bridge.
-        // Standard FLD gameplay supplies retained seven-probe native contact.
+      contact: nativeContact ? {
+        // Standard FLD gameplay derives drive/yaw/vertical support inputs from
+        // retained PAL suspension history. Browser level-support summaries do not enter this path.
+        specialState: nativeContact.specialState,
+        propellerEnabled: (this.nativeSpecialContactEquipmentFlags & 0x40) !== 0,
+        waterSkiEnabled: (this.nativeSpecialContactEquipmentFlags & 0x100) !== 0,
+        native: nativeContact.retainedContact,
+      } : {
+        // Compiled-only and special-outdoor scenes retain the explicit compatibility bridge.
         driveContact: old.contactHasGroundSupport,
         accelerationY: 89,
         allowsYaw: old.contactHasGroundSupport
           || (old.contactSpecialState !== 0 && (this.nativeSpecialContactEquipmentFlags & 0x100) !== 0),
-        specialState: nativeContact?.specialState ?? old.contactSpecialState,
+        specialState: old.contactSpecialState,
         propellerEnabled: (this.nativeSpecialContactEquipmentFlags & 0x40) !== 0,
         waterSkiEnabled: (this.nativeSpecialContactEquipmentFlags & 0x100) !== 0,
-        native: nativeContact?.retainedContact,
       },
     });
 
@@ -637,6 +646,7 @@ export class BrowserDrivingGame {
   }
 
   private applyState(state: CarState): void {
+    this.car.setNativeBodyMatrix(state.nativeBodyMatrix);
     this.car.setWheelState(state.steeringAngle, state.wheelSpin);
     const hostPose = {
       position: this.browserChaseCameraState.position,

@@ -38,6 +38,11 @@ export function syntheticNativeDrivingMotionAuthority(): NativeDrivingMotionAuth
     },
     positionDivisor,
     yawScale,
+    body: {
+      bodySideDivisor: 32768,
+      bodyForwardDivisor: 32768,
+      bigTyreLift: Math.fround(0.85),
+    },
     equipment: syntheticEquipment,
   };
 }

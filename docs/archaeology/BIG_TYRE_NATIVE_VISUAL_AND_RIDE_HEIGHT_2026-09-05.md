@@ -57,9 +57,9 @@ A long-known HG2 teammate glitch independently corroborates that body height is 
 
 ### Browser mapping
 
-The browser separates authored wheel roots from the Q62 body group, whereas the PAL engine derives body/contact transforms through its car solver. To preserve the proven native relationship without lifting the tyre contact patch off the terrain, selector 11 now raises the Q62 body and body-mounted accessories by exactly `+0.85` while leaving the dedicated Big tyre roots on their authored ground-contact transforms.
+The browser separates authored wheel roots from the Q62 body group, whereas the PAL engine derives body/contact transforms through its car solver. Standard-FLD driving now mirrors that separation directly: the retained three-channel support recurrence builds PAL's local chassis/body matrix every tick, selector 11 contributes exactly `+0.85` to that matrix's Y translation, and the dedicated Big tyre roots remain on the contact/root transform. No second visual lift is added on top of the native matrix.
 
-`setNativeTyreAppearance(...)` synchronizes that ride height dynamically. Q's Factory preview/apply/cancel, the outdoor player Q62, and ordinary interior previews now synchronize the native tyre selector rather than relying only on the older descriptive appearance layer.
+The older selector-driven static `+0.85` transform remains only as a compatibility/preview fallback when no retained native body matrix exists, such as unrecovered special-outdoor presentation and non-driving equipment previews. `setNativeTyreAppearance(...)` still synchronizes the authored Big wheel bank there; live standard-FLD ride height is owned by support history instead.
 
 ## Deterministic visual proof
 

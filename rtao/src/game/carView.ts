@@ -26,6 +26,25 @@ export function nativeTyreBodyLift(selector: number): number {
   return validNativeTyreSelector(selector) === nativeBigTyreSelector ? nativeBigTyreBodyLift : 0;
 }
 
+export function nativeBodyMatrixToRenderSpace(matrix: readonly number[]): number[] {
+  if (matrix.length !== 16 || matrix.some((value) => !Number.isFinite(value))) {
+    throw new RangeError("Native body matrix requires 16 finite lanes.");
+  }
+  // PAL world X is reflected only at the renderer boundary. Conjugating the
+  // local chassis transform by that reflection keeps Three.js right-handed.
+  return matrix.map((value, lane) => {
+    const row = lane & 3;
+    const column = lane >> 2;
+    const sign = (row === 0 ? -1 : 1) * (column === 0 ? -1 : 1);
+    return value * sign;
+  });
+}
+
+export function applyNativeBodyMatrixToObject(object: THREE.Object3D, matrix: readonly number[]): void {
+  new THREE.Matrix4().fromArray(nativeBodyMatrixToRenderSpace(matrix))
+    .decompose(object.position, object.quaternion, object.scale);
+}
+
 export interface CarModelOptions {
   readonly name?: string;
   readonly primaryPaint?: readonly [number, number, number];
@@ -68,6 +87,7 @@ export class Q62CarModel extends THREE.Group {
   private wheelTriangleCount = 0;
   private readonly bodyTriangleCount: number;
   private bodyGroup: THREE.Group | undefined;
+  private nativeBodyMatrix: readonly number[] | undefined;
   private paints: { primary: readonly [number, number, number]; secondary: readonly [number, number, number] };
 
   constructor(carBytes: Uint8Array, tireBytes: Uint8Array, options: CarModelOptions = {}) {
@@ -98,7 +118,7 @@ export class Q62CarModel extends THREE.Group {
     this.rebuildWheels();
     this.partsAccessories.name = `${this.name} selected parts preview`;
     this.add(this.partsAccessories);
-    this.syncNativeTyreRideHeight();
+    this.syncNativeBodyTransform();
     this.setPartsAppearance(defaultPartsAppearance);
     this.triangleCount = this.bodyTriangleCount + this.wheelTriangleCount;
     this.primitiveCount = assets.body.length + this.currentWheelPrimitiveCount();
@@ -129,11 +149,17 @@ export class Q62CarModel extends THREE.Group {
     this.nativeTyreSelector = nextSelector;
     if (wasBig !== isBig) {
       this.rebuildWheels();
-      this.syncNativeTyreRideHeight();
+      this.syncNativeBodyTransform();
     }
   }
 
   get usesNativeBigTyre(): boolean { return this.nativeTyreSelector === nativeBigTyreSelector; }
+
+  /** Supplies PAL's retained local chassis/body transform. Wheels remain on the contact transform. */
+  setNativeBodyMatrix(matrix: readonly number[] | undefined): void {
+    this.nativeBodyMatrix = matrix ? [...matrix] : undefined;
+    this.syncNativeBodyTransform();
+  }
 
   /** Applies the original WHEEL.BIN selector and palette colour without touching ownership/save state. */
   setNativeWheelAppearance(selector: number, color: readonly [number, number, number] = this.nativeWheelColor, colorIndex = this.nativeWheelColorIndex): void {
@@ -190,10 +216,12 @@ export class Q62CarModel extends THREE.Group {
   }
 
 
-  private syncNativeTyreRideHeight(): void {
-    const lift = nativeTyreBodyLift(this.nativeTyreSelector);
-    if (this.bodyGroup) this.bodyGroup.position.y = lift;
-    this.partsAccessories.position.y = lift;
+  private syncNativeBodyTransform(): void {
+    const matrix = this.nativeBodyMatrix ?? new THREE.Matrix4()
+      .makeTranslation(0, nativeTyreBodyLift(this.nativeTyreSelector), 0)
+      .toArray();
+    if (this.bodyGroup) applyNativeBodyMatrixToObject(this.bodyGroup, matrix);
+    applyNativeBodyMatrixToObject(this.partsAccessories, matrix);
   }
 
   private rebuildWheels(): void {
@@ -304,7 +332,7 @@ export class Q62CarModel extends THREE.Group {
     body.group.name = `${this.name} body`;
     this.bodyGroup = body.group;
     this.add(body.group);
-    this.syncNativeTyreRideHeight();
+    this.syncNativeBodyTransform();
     return body;
   }
 

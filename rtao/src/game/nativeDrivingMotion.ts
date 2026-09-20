@@ -20,6 +20,7 @@ import {
   type NativeRaceEquipment,
   type NativeRaceVehicleState,
 } from "./nativeRaceVehicle";
+import { readNativeRaceBodyData, type NativeRaceBodyData } from "./nativeRaceBody";
 import { nativeTyreGripProfiles } from "./nativeTyrePerformance";
 import type { DrivingSurfaceKind } from "./worldCollision";
 
@@ -31,6 +32,7 @@ export interface NativeDrivingMotionAuthority {
   readonly math: NativeRaceMathData;
   readonly positionDivisor: number;
   readonly yawScale: number;
+  readonly body: NativeRaceBodyData;
   equipment(selectors: readonly number[]): NativeRaceEquipment;
 }
 export type NativeDrivingSurfaceIndex = 0 | 1 | 2 | 3 | 4 | 5;
@@ -51,9 +53,10 @@ export interface NativeDrivingMotionInput {
   /** Compatibility bridge only. Native outdoor contact supplies a raw surface word instead. */
   readonly surfaceIndex: NativeDrivingSurfaceIndex | undefined;
   readonly contact: {
-    readonly driveContact: boolean;
-    readonly accelerationY: number;
-    readonly allowsYaw: boolean;
+    /** Compatibility-only inputs. Native retained contact derives these from PAL support/history. */
+    readonly driveContact?: boolean;
+    readonly accelerationY?: number;
+    readonly allowsYaw?: boolean;
     readonly specialState: NativeAuxiliaryContactState;
     /** Category 10 selector 1, PAL equipment flag 0x0040. */
     readonly propellerEnabled: boolean;
@@ -92,6 +95,7 @@ export function readNativeDrivingMotionAuthority(executable: Uint8Array): Native
     math: readNativeRaceMathData(executable),
     positionDivisor: contact.positionDivisor,
     yawScale: contact.yawScale,
+    body: readNativeRaceBodyData(executable),
     equipment: (selectors) => readNativeRaceEquipment(executable, selectors),
   };
 }
@@ -144,6 +148,11 @@ export class NativeDrivingMotion {
 
   step(input: NativeDrivingMotionInput): NativeDrivingMotionStep {
     const retained = input.contact.native;
+    if (!retained && (input.contact.driveContact === undefined
+      || input.contact.accelerationY === undefined
+      || input.contact.allowsYaw === undefined)) {
+      throw new RangeError("Compatibility driving contact requires level-support inputs when native contact is absent.");
+    }
     const oldYaw = nativeYawRadians(this.vehicle.yaw, this.authority.yawScale);
     const matrix = retained?.matrix ?? nativeRaceYawMatrix(oldYaw, this.authority.math);
     const inverse = retained?.inverse ?? inverseNativeRaceMatrix(matrix);
@@ -189,12 +198,12 @@ export class NativeDrivingMotion {
       : neutralUnresolvedSurfaceEquipment(this.equipment);
     const driveContact = retained
       ? !!(retained.support[1] || retained.support[2])
-      : input.contact.driveContact;
-    const contactAccelerationY = localDelta?.[1] ?? input.contact.accelerationY;
+      : input.contact.driveContact === true;
+    const contactAccelerationY = localDelta?.[1] ?? input.contact.accelerationY ?? 0;
     const contactAllowsYaw = retained
       ? !!(retained.support[0] || retained.support[1]
         || (input.contact.specialState !== 0 && input.contact.waterSkiEnabled))
-      : input.contact.allowsYaw;
+      : input.contact.allowsYaw === true;
     const drive = advanceNativeRaceVehicleVelocity(
       retained ? { ...this.vehicle, runtimeFlags: 0 } : this.vehicle,
       equipment,
@@ -299,7 +308,10 @@ function nativeYawFromBrowserRadians(radians: number, yawScale: number): number 
 
 function validateAuthority(authority: NativeDrivingMotionAuthority): void {
   if (!Number.isFinite(authority.positionDivisor) || authority.positionDivisor <= 0
-    || !Number.isFinite(authority.yawScale) || authority.yawScale === 0) {
-    throw new RangeError("Native driving motion requires executable-backed position/yaw scales.");
+    || !Number.isFinite(authority.yawScale) || authority.yawScale === 0
+    || !Number.isFinite(authority.body.bodySideDivisor) || authority.body.bodySideDivisor === 0
+    || !Number.isFinite(authority.body.bodyForwardDivisor) || authority.body.bodyForwardDivisor === 0
+    || !Number.isFinite(authority.body.bigTyreLift)) {
+    throw new RangeError("Native driving motion requires executable-backed position/yaw/body constants.");
   }
 }

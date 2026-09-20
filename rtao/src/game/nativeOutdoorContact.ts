@@ -9,6 +9,7 @@ import type {
   NativeRaceContactState,
 } from "./nativeRaceContact";
 import type { NativeRaceCollisionPoint } from "./nativeRaceCollision";
+import { nativeRaceBodyMatrix } from "./nativeRaceBody";
 import {
   advanceNativeRaceContact,
   inverseNativeRaceMatrix,
@@ -39,6 +40,8 @@ export interface NativeOutdoorContactPose {
   readonly surfaceFlags: number;
   readonly hasGroundSupport: boolean;
   readonly auxiliaryY: number | undefined;
+  /** PAL local chassis transform derived from retained support history. */
+  readonly bodyMatrix: NativeRaceMatrix;
 }
 
 const f = Math.fround;
@@ -51,6 +54,7 @@ export class NativeOutdoorContact {
   private contact: NativeRaceContactState;
   private matrix: NativeRaceMatrix;
   private inverse: NativeRaceMatrix;
+  private bodyMatrix: NativeRaceMatrix;
   private surfaces: readonly number[] = Array(7).fill(-1);
   private previousVelocity: NativeRaceVector = [0, 0, 0, 0];
   private normal: NativeRaceVector = [0, 1, 0, 0];
@@ -82,6 +86,7 @@ export class NativeOutdoorContact {
     const yawRadians = nativeYawRadians(nativeYaw, authority.yawScale);
     this.matrix = nativeRaceYawMatrix(yawRadians, authority.math);
     this.inverse = inverseNativeRaceMatrix(this.matrix);
+    this.bodyMatrix = nativeRaceBodyMatrix(this.contact.support, 0, authority.body);
   }
 
   get specialState(): -1 | 0 | 1 {
@@ -182,6 +187,7 @@ export class NativeOutdoorContact {
       surfaceFlags: surface >= 0 ? surface : 0,
       hasGroundSupport: this.contact.support.some((value) => value !== 0),
       auxiliaryY: this.auxiliaryY,
+      bodyMatrix: [...this.bodyMatrix],
     };
   }
 
@@ -228,6 +234,7 @@ export class NativeOutdoorContact {
     this.contact = { ...result.state, referenceY };
     this.matrix = result.matrix;
     this.inverse = result.inverse;
+    this.bodyMatrix = nativeRaceBodyMatrix(result.state.support, input.equipmentFlags, this.authority.body);
     this.surfaces = result.surfaces;
     this.normal = result.normal;
     this.auxiliaryY = result.points[0]?.[3];

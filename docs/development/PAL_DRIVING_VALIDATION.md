@@ -126,16 +126,26 @@ the same recovered scalar vehicle arithmetic used by the ordinary-race path.
 Categories 7..14 remain outside this handling bridge while issue #30's equip
 side effects are unresolved; they are not replaced by browser multipliers.
 
-This does **not** mean outdoor physics is fully native. Free-roam still owns the
-existing footprint collision resolver and presentation ground attitude rather
-than the PAL seven-probe outdoor support/contact solver. It passes an explicit
-level-support compatibility input into `NativeDrivingMotion`; unresolved
-browser surface class `other` remains neutral instead of being assigned an
-invented native surface code. Reverse command production is likewise an
-explicit host bridge because the recovered scalar consumer proves bit 4's
-effect but the upstream outdoor command producer is not yet recovered.
-Developer Shift/RB boost remains a browser traversal aid outside native motion
-state and therefore cannot multiply recovered yaw.
+Standard-FLD free-roam now advances the retained seven-probe PAL contact and
+support recurrence once per native tick. `NativeDrivingMotion` consumes its raw
+surface word, three support values, contact matrix/inverse and retained velocity
+history directly; the former level-support compatibility inputs are supplied
+only on compiled-only and special-outdoor fallback paths. The same support
+history now builds the recovered local chassis/body matrix, including Big
+Tyre's PAL body lift, while contact orientation remains the root terrain frame.
+Browser `groundAttitude` sampling/smoothing therefore no longer contributes to
+standard-FLD pose. Reflection of the local body matrix occurs only when it is
+projected into the Three.js chassis transform.
+
+This still does **not** make all outdoor physics native. Special-outdoor scene
+dispatch and post-contact obstacle/rollback/airborne response remain
+unrecovered, and unresolved browser surface class `other` stays neutral on the
+explicit compatibility path rather than receiving an invented native surface
+code. Reverse command production is likewise an explicit host bridge because
+the recovered scalar consumer proves bit 4's effect but the upstream outdoor
+command producer is not yet recovered. Developer Shift/RB boost remains a
+browser traversal aid outside native motion state and therefore cannot multiply
+recovered yaw.
 
 The production ordinary chase path retains a PAL preset, native vehicle
 yaw/slip and the recovered float32 per-invocation lag recurrence through
