@@ -7,6 +7,11 @@ import {
   type NativeDrivingMotionAuthority,
 } from "./nativeDrivingMotion";
 import { nativeBigTyreSelector, nativeTyreContactThreshold } from "./nativeTyrePerformance";
+import {
+  nativeOptionConfigurationFlag,
+  nativeSpecialAbilityFlags,
+  nativeSpecialPartsConfigurationFlag,
+} from "./nativeSpecialAbilityRuntime";
 import { NativeOutdoorContact } from "./nativeOutdoorContact";
 import {
   advanceNativeAuxiliaryContactState,
@@ -160,13 +165,17 @@ export class ArcadeCarController {
   }
 
   setNativeSpecialSelector(selector: number): void {
-    if (selector === 1) this.nativeSpecialContactEquipmentFlags |= 0x40;
-    else this.nativeSpecialContactEquipmentFlags &= ~0x40;
+    const fittedFlags = nativeSpecialPartsConfigurationFlag(selector);
+    this.nativeSpecialContactEquipmentFlags =
+      (this.nativeSpecialContactEquipmentFlags & ~nativeSpecialAbilityFlags.propeller)
+      | (fittedFlags & nativeSpecialAbilityFlags.propeller);
   }
 
   setNativeOptionSelector(selector: number): void {
-    if (selector === 1) this.nativeSpecialContactEquipmentFlags |= 0x100;
-    else this.nativeSpecialContactEquipmentFlags &= ~0x100;
+    const fittedFlags = nativeOptionConfigurationFlag(selector);
+    this.nativeSpecialContactEquipmentFlags =
+      (this.nativeSpecialContactEquipmentFlags & ~nativeSpecialAbilityFlags.waterSki)
+      | (fittedFlags & nativeSpecialAbilityFlags.waterSki);
   }
 
   private auxiliaryContact(

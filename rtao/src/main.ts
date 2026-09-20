@@ -74,6 +74,7 @@ import {
 } from "./game/interiorFlow";
 import type { QFactoryInteriorView, ShopInteriorRoomView } from "./game/interiorView";
 import { applyNativeDrivingEquipment, nativePlayerEquipmentSelectors } from "./game/nativeDrivingEquipment";
+import { nativeOrdinaryRaceSpecialAbilityFlags } from "./game/nativeSpecialAbilityRuntime";
 import { nativeTyreGripMultiplier } from "./game/nativeTyrePerformance";
 import {
   browserCompatibilityPaintWord,
@@ -1311,6 +1312,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
   const source = activeManifest.raceCourses?.find((record) => record.courseId === courseId);
   const courseLabel = `COURSE/C${courseId.toString().padStart(2, "0")}`;
   if (!compiled || !collision || !source) throw new Error(`${courseLabel} is not present in the completed local race cache.`);
+  const playerSpecialAbilityFlags = nativeOrdinaryRaceSpecialAbilityFlags(playerEquipmentSelectors);
 
   const transitionFromRoom = preserveTownSession
     && !!qFactorySession
@@ -1353,7 +1355,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
     courseBytes,
     compiledCollision: deserializeCompiledCollision(collisionBytes),
     playerEquipmentSelectors,
-    playerEquipmentFlags: 0,
+    playerEquipmentFlags: playerSpecialAbilityFlags,
     globalEquipmentFlags: 0,
     countdown: { elapsedUpdates: 0, fadeUpdates: 64, sceneFlags: 0, updatesPerSecond: 50 },
     sceneKind: 0,
