@@ -5,7 +5,8 @@ import {
   nativeDrivingSurfaceIndex,
   type NativeDrivingMotionAuthority,
 } from "./nativeDrivingMotion";
-import { nativeTyreContactThreshold } from "./nativeTyrePerformance";
+import { nativeBigTyreSelector, nativeTyreContactThreshold } from "./nativeTyrePerformance";
+import { NativeOutdoorContact } from "./nativeOutdoorContact";
 import {
   advanceNativeAuxiliaryContactState,
   nativeDeepAuxiliarySurface,
@@ -79,18 +80,19 @@ export interface CarState {
 export class ArcadeCarController {
   private mutable: CarState;
   private readonly motion: NativeDrivingMotion;
+  private nativeContact: NativeOutdoorContact | undefined;
   private nativeTyreSelector = 0;
   /** Proven special-contact equipment bits only: Propeller 0x40 and Water Ski 0x100. */
   private nativeSpecialContactEquipmentFlags = 0;
 
   constructor(
     private readonly world: DrivingWorld,
-    motionAuthority: NativeDrivingMotionAuthority,
+    private readonly motionAuthority: NativeDrivingMotionAuthority,
     fieldNumber = 223,
     position: Vec3 = { x: 1152, y: 31, z: 555 },
     yaw = -0.1,
   ) {
-    this.motion = new NativeDrivingMotion(motionAuthority, yaw);
+    this.motion = new NativeDrivingMotion(this.motionAuthority, yaw);
     const resolved = world.resolveFootprint(fieldNumber, position, yaw, position.y);
     const resolvedFieldNumber = resolved?.fieldNumber ?? fieldNumber;
     const contact = this.auxiliaryContact(position.y, resolved?.auxiliaryY);
@@ -119,6 +121,7 @@ export class ArcadeCarController {
       nativeEngineLayerSelector: 0,
       distanceTravelled: 0,
     };
+    this.resetNativeContact(this.mutable.fieldNumber, this.mutable.position, yaw);
   }
 
   get state(): CarState { return this.mutable; }
@@ -126,6 +129,11 @@ export class ArcadeCarController {
   setNativeTyreSelector(selector: number): void {
     this.motion.setSelector(1, selector);
     this.nativeTyreSelector = selector;
+  }
+
+  private nativeContactEquipmentFlags(): number {
+    return this.nativeSpecialContactEquipmentFlags
+      | (this.nativeTyreSelector === nativeBigTyreSelector ? 0x400 : 0);
   }
 
   setNativeEngineSelector(selector: number): void {
@@ -174,6 +182,50 @@ export class ArcadeCarController {
     });
   }
 
+  private resetNativeContact(fieldNumber: number, position: Vec3, yaw: number): void {
+    if (!this.world.hasNativeField(fieldNumber)) {
+      this.nativeContact = undefined;
+      return;
+    }
+    const runtime = new NativeOutdoorContact(
+      this.motionAuthority,
+      fieldNumber,
+      position,
+      this.motion.nativeVehicle.yaw,
+    );
+    const equipmentFlags = this.nativeContactEquipmentFlags();
+    runtime.prime(
+      (sourceField, point) => this.world.queryNativeContact(sourceField, point),
+      equipmentFlags,
+      equipmentFlags & 0x400,
+    );
+    this.nativeContact = runtime;
+    this.mutable = this.applyNativeContactPose(this.mutable, runtime.pose(yaw));
+  }
+
+  private applyNativeContactPose(
+    state: CarState,
+    pose: ReturnType<NativeOutdoorContact["pose"]>,
+  ): CarState {
+    const runtime = this.nativeContact;
+    if (!runtime) return state;
+    return {
+      ...state,
+      location: { kind: "standard-world", fieldNumber: pose.fieldNumber },
+      fieldNumber: pose.fieldNumber,
+      position: pose.position,
+      pitch: pose.pitch,
+      roll: pose.roll,
+      surfaceFlags: pose.surfaceFlags,
+      surfaceKind: this.world.drivingSurface(pose.fieldNumber, pose.position, pose.position.y),
+      contactSpecialState: runtime.specialState,
+      contactRuntimeFlags: runtime.runtimeFlags,
+      contactHasGroundSupport: pose.hasGroundSupport,
+      contactAuxiliaryY: pose.auxiliaryY,
+      nativeContactSurfaceFlags: pose.surfaceFlags,
+    };
+  }
+
   enterArea(fieldNumber: number, position: { readonly x: number; readonly z: number }): void {
     const current = this.mutable;
     this.relocate(fieldNumber, { x: position.x, y: current.position.y, z: position.z }, current.yaw);
@@ -190,6 +242,7 @@ export class ArcadeCarController {
     );
     const contact = this.auxiliaryContact(current.position.y, resolved?.auxiliaryY);
     this.motion.reset(current.yaw);
+    this.nativeContact = undefined;
     this.mutable = {
       location: { kind: "special-outdoor", areaCode },
       fieldNumber: -1,
@@ -252,6 +305,7 @@ export class ArcadeCarController {
       nativeEngineLayerSelector: 0,
       distanceTravelled: this.mutable.distanceTravelled,
     };
+    this.resetNativeContact(this.mutable.fieldNumber, this.mutable.position, yaw);
   }
 
   update(dt: number, input: DriveInput): void {
@@ -261,22 +315,66 @@ export class ArcadeCarController {
     const old = this.mutable;
     const throttle = clamp(input.throttle, -1, 1);
     const steering = clamp(input.steering, -1, 1);
+    const nativeContact = old.location.kind === "standard-world" ? this.nativeContact : undefined;
     const motion = this.motion.step({
       throttle,
       steering,
-      surfaceIndex: nativeDrivingSurfaceIndex(old.surfaceKind),
+      surfaceIndex: nativeContact ? undefined : nativeDrivingSurfaceIndex(old.surfaceKind),
       contact: {
-        // Free-roam still uses the browser footprint bridge, not PAL's seven-
-        // probe support solver. Auxiliary contact is retained independently so
-        // deep water does not masquerade as a missing/invalid footprint.
+        // Compiled-only and special-outdoor scenes retain the old bridge.
+        // Standard FLD gameplay supplies retained seven-probe native contact.
         driveContact: old.contactHasGroundSupport,
         accelerationY: 89,
         allowsYaw: old.contactHasGroundSupport
           || (old.contactSpecialState !== 0 && (this.nativeSpecialContactEquipmentFlags & 0x100) !== 0),
-        specialState: old.contactSpecialState,
+        specialState: nativeContact?.specialState ?? old.contactSpecialState,
         propellerEnabled: (this.nativeSpecialContactEquipmentFlags & 0x40) !== 0,
+        waterSkiEnabled: (this.nativeSpecialContactEquipmentFlags & 0x100) !== 0,
+        native: nativeContact?.retainedContact,
       },
     });
+
+    if (nativeContact) {
+      const equipmentFlags = this.nativeContactEquipmentFlags();
+      const advanced = nativeContact.advance(
+        motion,
+        (sourceField, point) => this.world.queryNativeContact(sourceField, point),
+        equipmentFlags,
+        equipmentFlags & 0x400,
+      );
+      if (!advanced) {
+        // The browser north/south torus is intentionally not a native-contact
+        // input. Fail closed at that unrecovered outer-world response boundary.
+        this.motion.haltTranslation();
+        this.mutable = {
+          ...old,
+          speed: 0,
+          nativeEngineSpeed: motion.nativeVehicle.engineSpeed,
+          nativeEngineLayerSelector: (motion.commands & 1) as 0 | 1,
+        };
+        return;
+      }
+      const yaw = motion.yaw;
+      const pose = nativeContact.pose(yaw);
+      const speed = motion.speed;
+      const steeringAngle = -motion.steeringFraction * 0.48;
+      let wheelSpin = old.wheelSpin - speed * dt / 0.355;
+      if (Math.abs(wheelSpin) > Math.PI * 2) wheelSpin %= Math.PI * 2;
+      const state: CarState = {
+        ...old,
+        yaw,
+        nativeYaw: motion.nativeVehicle.yaw,
+        nativeSlipAngle: motion.nativeVehicle.slipAngle,
+        speed,
+        steeringAngle,
+        wheelSpin,
+        nativeEngineSpeed: motion.nativeVehicle.engineSpeed,
+        nativeEngineLayerSelector: (motion.commands & 1) as 0 | 1,
+        distanceTravelled: old.distanceTravelled + Math.hypot(motion.deltaX, motion.deltaZ),
+      };
+      this.mutable = this.applyNativeContactPose(state, pose);
+      return;
+    }
 
     // Shift/RB is a browser development traversal aid, not a recovered PAL
     // equipment path. Keep it outside native state so it cannot amplify yaw.

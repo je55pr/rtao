@@ -1,10 +1,15 @@
-import { readNativeRaceContactData, type NativeAuxiliaryContactState } from "./nativeRaceContact";
+import {
+  readNativeRaceContactData,
+  type NativeAuxiliaryContactState,
+  type NativeRaceContactData,
+} from "./nativeRaceContact";
 import {
   inverseNativeRaceMatrix,
   nativeRaceYawMatrix,
   readNativeRaceMathData,
   transformNativeRaceIntegerVector,
   type NativeRaceMathData,
+  type NativeRaceMatrix,
   type NativeRaceVector,
 } from "./nativeRaceMath";
 import {
@@ -22,6 +27,7 @@ export const nativeDrivingFixedStepSeconds = 1 / 50;
 const normalDryGrip = nativeTyreGripProfiles[0]!.dry;
 
 export interface NativeDrivingMotionAuthority {
+  readonly contact: NativeRaceContactData;
   readonly math: NativeRaceMathData;
   readonly positionDivisor: number;
   readonly yawScale: number;
@@ -29,9 +35,20 @@ export interface NativeDrivingMotionAuthority {
 }
 export type NativeDrivingSurfaceIndex = 0 | 1 | 2 | 3 | 4 | 5;
 
+export interface NativeDrivingRetainedContact {
+  /** Raw first retained PAL surface word. Its low three bits select native grip. */
+  readonly surfaceFlags: number | undefined;
+  readonly support: readonly number[];
+  readonly matrix: NativeRaceMatrix;
+  readonly inverse: NativeRaceMatrix;
+  /** Previous frame's gravity-adjusted velocity, matching the recovered frame recurrence. */
+  readonly previousVelocity: NativeRaceVector;
+}
+
 export interface NativeDrivingMotionInput {
   readonly throttle: number;
   readonly steering: number;
+  /** Compatibility bridge only. Native outdoor contact supplies a raw surface word instead. */
   readonly surfaceIndex: NativeDrivingSurfaceIndex | undefined;
   readonly contact: {
     readonly driveContact: boolean;
@@ -40,7 +57,18 @@ export interface NativeDrivingMotionInput {
     readonly specialState: NativeAuxiliaryContactState;
     /** Category 10 selector 1, PAL equipment flag 0x0040. */
     readonly propellerEnabled: boolean;
+    /** Category 11 selector 1, PAL equipment flag 0x0100. */
+    readonly waterSkiEnabled?: boolean;
+    readonly native?: NativeDrivingRetainedContact;
   };
+}
+
+export interface NativeDrivingContactKinematics {
+  readonly previousVelocity: NativeRaceVector;
+  readonly localDelta: NativeRaceVector;
+  readonly gravity: NativeRaceVector;
+  readonly dragForward: number;
+  readonly mass: number;
 }
 
 export interface NativeDrivingMotionStep {
@@ -53,11 +81,14 @@ export interface NativeDrivingMotionStep {
   readonly nativeVelocity: NativeRaceVector;
   readonly nativeVehicle: NativeRaceVehicleState;
   readonly surfaceResolved: boolean;
+  /** Present only when the caller supplied retained native outdoor contact. */
+  readonly nativeContactKinematics?: NativeDrivingContactKinematics;
 }
 
 export function readNativeDrivingMotionAuthority(executable: Uint8Array): NativeDrivingMotionAuthority {
   const contact = readNativeRaceContactData(executable);
   return {
+    contact,
     math: readNativeRaceMathData(executable),
     positionDivisor: contact.positionDivisor,
     yawScale: contact.yawScale,
@@ -112,10 +143,24 @@ export class NativeDrivingMotion {
   }
 
   step(input: NativeDrivingMotionInput): NativeDrivingMotionStep {
+    const retained = input.contact.native;
     const oldYaw = nativeYawRadians(this.vehicle.yaw, this.authority.yawScale);
-    const matrix = nativeRaceYawMatrix(oldYaw, this.authority.math);
-    const inverse = inverseNativeRaceMatrix(matrix);
-    const localVelocity = transformNativeRaceIntegerVector(inverse, this.velocity);
+    const matrix = retained?.matrix ?? nativeRaceYawMatrix(oldYaw, this.authority.math);
+    const inverse = retained?.inverse ?? inverseNativeRaceMatrix(matrix);
+    const currentVelocity = this.velocity;
+    const previousVelocity: NativeRaceVector = retained
+      ? [currentVelocity[0], (currentVelocity[1] - 89) | 0, currentVelocity[2], currentVelocity[3]]
+      : currentVelocity;
+    const localVelocity = transformNativeRaceIntegerVector(inverse, previousVelocity);
+    const localDelta = retained
+      ? transformNativeRaceIntegerVector(
+          inverse,
+          currentVelocity.map((value, index) => (value - retained.previousVelocity[index]!) | 0) as unknown as NativeRaceVector,
+        )
+      : undefined;
+    const gravity = retained
+      ? transformNativeRaceIntegerVector(inverse, [0, 89, 0, 0])
+      : undefined;
     const commands = nativeDrivingCommands(input, this.vehicle);
     let forward = localVelocity[2];
     if (input.contact.propellerEnabled && input.contact.specialState !== 0) {
@@ -130,24 +175,36 @@ export class NativeDrivingMotion {
       0,
       0,
     );
-    // Deep auxiliary contact replaces the runtime surface with 0x100651, whose
-    // low three bits select grip slot 1. Otherwise preserve the source-owned
-    // explicit surface-index bridge, including unresolved-neutral handling.
-    const effectiveSurfaceIndex = input.contact.specialState > 0 ? 1 : input.surfaceIndex;
+    // Native outdoor contact owns the raw surface word. The legacy browser
+    // bridge remains unchanged when retained contact is absent.
+    const rawSurfaceIndex = retained?.surfaceFlags === undefined || retained.surfaceFlags < 0
+      ? undefined
+      : retained.surfaceFlags & 7;
+    const effectiveSurfaceIndex = input.contact.specialState > 0
+      ? 1
+      : retained ? rawSurfaceIndex : input.surfaceIndex;
     const surfaceResolved = effectiveSurfaceIndex !== undefined;
     const equipment = surfaceResolved
       ? this.equipment
       : neutralUnresolvedSurfaceEquipment(this.equipment);
+    const driveContact = retained
+      ? !!(retained.support[1] || retained.support[2])
+      : input.contact.driveContact;
+    const contactAccelerationY = localDelta?.[1] ?? input.contact.accelerationY;
+    const contactAllowsYaw = retained
+      ? !!(retained.support[0] || retained.support[1]
+        || (input.contact.specialState !== 0 && input.contact.waterSkiEnabled))
+      : input.contact.allowsYaw;
     const drive = advanceNativeRaceVehicleVelocity(
-      this.vehicle,
+      retained ? { ...this.vehicle, runtimeFlags: 0 } : this.vehicle,
       equipment,
       {
         localForwardSpeed: drag.forward,
         localSideSpeed: drag.side,
         surfaceIndex: effectiveSurfaceIndex ?? 0,
-        driveContact: input.contact.driveContact,
-        contactAccelerationY: input.contact.accelerationY,
-        contactAllowsYaw: input.contact.allowsYaw,
+        driveContact,
+        contactAccelerationY,
+        contactAllowsYaw,
       },
       commands,
       4,
@@ -174,6 +231,15 @@ export class NativeDrivingMotion {
       nativeVelocity: this.velocity,
       nativeVehicle: this.vehicle,
       surfaceResolved,
+      ...(retained && localDelta && gravity ? {
+        nativeContactKinematics: {
+          previousVelocity,
+          localDelta,
+          gravity,
+          dragForward: drag.forward,
+          mass: this.equipment.mass,
+        },
+      } : {}),
     };
   }
 }

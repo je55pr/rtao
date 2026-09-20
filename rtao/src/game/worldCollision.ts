@@ -1,7 +1,11 @@
 import { deserializeCompiledCollision, type CompiledFieldCollision } from "../formats/fieldCollision";
 import { deserializeCompiledField, type CompiledFieldMesh } from "../formats/fieldGeometry";
 import type { CompiledRoadNetwork } from "../formats/fieldMinimap";
-import { fieldExtent, normalizeRenderPosition } from "./worldTopology";
+import { fieldExtent, normalizeNativePosition, normalizeRenderPosition } from "./worldTopology";
+import {
+  NativeRaceCollisionSampler,
+  type NativeRaceCollisionPoint,
+} from "./nativeRaceCollision";
 
 export interface Vec3 {
   readonly x: number;
@@ -162,12 +166,46 @@ export class FieldCollisionSampler {
 
 export class DrivingWorld {
   private readonly fields = new Map<number, FieldCollisionSampler>();
+  private readonly nativeFields = new Map<number, NativeRaceCollisionSampler>();
   private readonly surfaces = new Map<number, FieldDrivingSurfaceSampler>();
   private readonly specialOutdoorScenes = new Map<number, FieldCollisionSampler>();
   private readonly specialOutdoorSurfaces = new Map<number, FieldDrivingSurfaceSampler>();
 
   addField(fieldNumber: number, bytes: Uint8Array): void {
     this.fields.set(fieldNumber, new FieldCollisionSampler(deserializeCompiledCollision(bytes)));
+  }
+
+  /** Retains authored PAL packet/plane collision for native outdoor contact. */
+  addNativeField(fieldNumber: number, fieldBytes: Uint8Array): void {
+    this.nativeFields.set(fieldNumber, new NativeRaceCollisionSampler(fieldBytes));
+  }
+
+  hasNativeField(fieldNumber: number): boolean {
+    return this.nativeFields.has(fieldNumber);
+  }
+
+  queryNativeContact(
+    originFieldNumber: number,
+    point: NativeRaceCollisionPoint,
+  ): { readonly point: NativeRaceCollisionPoint; readonly flags: number; readonly ceilingY: number } {
+    const normalized = normalizeNativePosition(originFieldNumber, { x: point[0], y: point[2] });
+    if (!normalized) return { point, flags: -1, ceilingY: 10000 };
+    const sampler = this.nativeFields.get(normalized.fieldNumber);
+    if (!sampler) return { point, flags: -1, ceilingY: 10000 };
+    const localPoint: NativeRaceCollisionPoint = [
+      Math.fround(normalized.localPosition.x),
+      Math.fround(point[1]),
+      Math.fround(normalized.localPosition.y),
+      Math.fround(point[3]),
+    ];
+    const hit = sampler.query(localPoint);
+    return {
+      point: hit.flags >= 0
+        ? [Math.fround(point[0]), hit.point[1], Math.fround(point[2]), hit.point[3]]
+        : point,
+      flags: hit.flags,
+      ceilingY: hit.ceilingY,
+    };
   }
 
   addCompiledField(fieldNumber: number, collision: CompiledFieldCollision): void {

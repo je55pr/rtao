@@ -1035,7 +1035,14 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   if (!startupFieldSet && !bootstrapInstall && collisionWorld.length !== 64) throw new Error(`The cached install has ${collisionWorld.length}/64 collision sectors.`);
   requiredElement<HTMLElement>("viewer-title").textContent = "Preparing driving surfaces";
   for (const [index, collision] of collisionWorld.entries()) {
-    drivingWorld.addField(collision.fieldNumber, await readBytes(directory, collision.path));
+    const field = upgradedManifest.fields.find((candidate) => candidate.fieldNumber === collision.fieldNumber);
+    if (!field) throw new Error(`FLD/${collision.fieldNumber.toString().padStart(3, "0")} source is missing.`);
+    const [compiledCollisionBytes, nativeFieldBytes] = await Promise.all([
+      readBytes(directory, collision.path),
+      readBytes(directory, `game/${field.path}`),
+    ]);
+    drivingWorld.addField(collision.fieldNumber, compiledCollisionBytes);
+    drivingWorld.addNativeField(collision.fieldNumber, nativeFieldBytes);
     loadedWorldFieldNumbers.add(collision.fieldNumber);
     requiredElement<HTMLElement>("field-count").textContent = `${index + 1}/${collisionWorld.length}`;
     if ((index & 7) === 7) await nextFrame();
@@ -1151,10 +1158,15 @@ async function ensureWorldFieldLoaded(fieldNumber: number): Promise<void> {
   if (!activeManifest || activeManifest.installStage === "bootstrap" || !activeDirectory || !worldView || !drivingWorld) return;
   const compiled = activeManifest.compiledFields.find((field) => field.fieldNumber === fieldNumber);
   const collisionRecord = activeManifest.collisionFields?.find((field) => field.fieldNumber === fieldNumber);
-  if (!compiled || !collisionRecord) throw new Error(`FLD/${fieldNumber.toString().padStart(3, "0")} is not present in the completed local cache.`);
+  const field = activeManifest.fields.find((candidate) => candidate.fieldNumber === fieldNumber);
+  if (!compiled || !collisionRecord || !field) throw new Error(`FLD/${fieldNumber.toString().padStart(3, "0")} is not present in the completed local cache.`);
   const task = (async () => {
-    const [[meshBytes, collisionBytes], { deserializeCompiledField }, { deserializeCompiledCollision }] = await Promise.all([
-      Promise.all([readBytes(activeDirectory!, compiled.path), readBytes(activeDirectory!, collisionRecord.path)]),
+    const [[meshBytes, collisionBytes, nativeFieldBytes], { deserializeCompiledField }, { deserializeCompiledCollision }] = await Promise.all([
+      Promise.all([
+        readBytes(activeDirectory!, compiled.path),
+        readBytes(activeDirectory!, collisionRecord.path),
+        readBytes(activeDirectory!, `game/${field.path}`),
+      ]),
       import("./formats/fieldGeometry"),
       import("./formats/fieldCollision"),
     ]);
@@ -1163,6 +1175,7 @@ async function ensureWorldFieldLoaded(fieldNumber: number): Promise<void> {
     const stats = worldView!.addCompiledFieldMesh(fieldNumber, mesh);
     drivingWorld!.addCompiledFieldSurface(fieldNumber, mesh);
     drivingWorld!.addCompiledField(fieldNumber, collision);
+    drivingWorld!.addNativeField(fieldNumber, nativeFieldBytes);
     loadedWorldFieldNumbers.add(fieldNumber);
     await loadLazyFieldDynamicObjects(fieldNumber);
     requiredElement<HTMLElement>("field-count").textContent = String(stats.sectors);

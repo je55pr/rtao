@@ -6,6 +6,7 @@ import { Iso9660Disc } from "../src/disc/iso9660";
 import { RawMode2SectorSource } from "../src/disc/randomAccess";
 import { assertBrowserCameraTraceMatchesPal, assertBrowserDrivingTraceMatchesPal } from "../src/game/drivingValidation";
 import { NativeDrivingMotion, readNativeDrivingMotionAuthority } from "../src/game/nativeDrivingMotion";
+import { NativeOutdoorContact } from "../src/game/nativeOutdoorContact";
 import { NativeRaceCollisionSampler } from "../src/game/nativeRaceCollision";
 import {
   advanceNativeRaceFrame,
@@ -299,6 +300,63 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
           palSceneFlags = palResult.sceneFlags;
         }
       }
+    } finally {
+      opened.close();
+    }
+  }, 120_000);
+
+  test("free-roam retained contact runs deterministically on authored FLD/223 packets", async () => {
+    const opened = await openPalDisc(binPath!);
+    try {
+      const executable = await opened.disc.readFile("SLES_513.56");
+      const fieldBytes = await opened.disc.readFile("FLD/223.BIN");
+      const authority = readNativeDrivingMotionAuthority(executable);
+      const collision = new NativeRaceCollisionSampler(fieldBytes);
+      const run = () => {
+        const motion = new NativeDrivingMotion(authority, -0.1);
+        const contact = new NativeOutdoorContact(
+          authority,
+          223,
+          { x: 1152, y: 31, z: 555 },
+          motion.nativeVehicle.yaw,
+        );
+        const query = (fieldNumber: number, point: Parameters<NativeRaceCollisionSampler["query"]>[0]) =>
+          fieldNumber === 223
+            ? collision.query(point)
+            : { point, flags: -1, ceilingY: 10000 };
+        contact.prime(query);
+        const observations: unknown[] = [];
+        for (let tick = 0; tick < 80; tick += 1) {
+          const step = motion.step({
+            throttle: tick < 60 ? 1 : 0,
+            steering: tick >= 20 && tick < 45 ? 1 : 0,
+            surfaceIndex: undefined,
+            contact: {
+              driveContact: false,
+              accelerationY: 0,
+              allowsYaw: false,
+              specialState: contact.specialState,
+              propellerEnabled: false,
+              native: contact.retainedContact,
+            },
+          });
+          expect(contact.advance(step, query)).toBe(true);
+          const pose = contact.pose(step.yaw);
+          observations.push({
+            tick,
+            pose,
+            support: [...contact.retainedContact.support],
+            surfaceFlags: contact.retainedContact.surfaceFlags,
+            velocity: [...step.nativeVelocity],
+            yaw: step.nativeVehicle.yaw,
+          });
+        }
+        return observations;
+      };
+      const first = run();
+      const second = run();
+      expect(first).toEqual(second);
+      expect(first.length).toBe(80);
     } finally {
       opened.close();
     }

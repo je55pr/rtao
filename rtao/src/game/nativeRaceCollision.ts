@@ -73,10 +73,12 @@ export class NativeRaceCollisionSampler {
   private readonly chunks: ReturnType<typeof readCollisionChunkDirectory>['chunks'];
 
   constructor(fieldBytes: Uint8Array) {
-    this.bytes = fieldBytes;
     const header = readFieldHeader(fieldBytes);
-    this.collisionOffset = header.collision.offset;
     this.chunks = readCollisionChunkDirectory(fieldBytes, header).chunks;
+    // Retain the authored collision section only. This preserves packet order,
+    // plane records and 100-unit cells without keeping the rest of the FLD payload.
+    this.bytes = fieldBytes.slice(header.collision.offset, header.collision.offset + header.collision.length);
+    this.collisionOffset = 0;
   }
 
   query(point: NativeRaceCollisionPoint): NativeRaceCollisionResult & { point: NativeRaceCollisionPoint } {

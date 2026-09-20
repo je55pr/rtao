@@ -2,10 +2,12 @@
 
 ## Scope
 
-This note defines the narrow browser/native seam needed to replace the current
-free-roam footprint bridge with recovered PAL contact evolution. It does not
-implement the bridge, outdoor collision response, airborne gameplay, or new
-equipment behavior.
+This note defines the narrow browser/native seam that replaces the standard-FLD
+free-roam footprint bridge with recovered PAL contact evolution. The retained
+seven-probe support/orientation recurrence and raw FLD packet query are now live
+for standard-world driving. It still does not claim the unrecovered post-contact
+outdoor obstacle/rollback response, airborne gameplay, special-outdoor dispatch,
+or new equipment behavior beyond the separately recovered contact flags.
 
 The contract is constrained by retained PAL contact, suspension, collision,
 math and enclosing-frame evidence already in this repository:
@@ -201,20 +203,21 @@ labels and non-native presentation only.
 
 ## DrivingWorld API disposition
 
-The following disposition applies when the native free-roam contact owner is
-integrated. Until then the existing bridge remains the live compatibility path.
+The following disposition is now applied to standard FLD driving. Compiled-only
+fixtures and special-outdoor scenes retain the compatibility bridge where the
+native dispatch remains unrecovered.
 
 | Existing API | Disposition | Reason |
 | --- | --- | --- |
 | `resolveFootprint` | **Retire from live driving/contact.** | Four reflected wheel samples, averaged Y, all-wheel acceptance and auxiliary summary collapse the seven-probe native state and encourage candidate/axis-slide policy. |
-| `resolveSpecialOutdoorFootprint` | **Retire from live driving/contact.** | Same lossy policy for special outdoor scenes. |
+| `resolveSpecialOutdoorFootprint` | **Compatibility-only pending native dispatch.** | Special-outdoor collision ownership remains unrecovered, so this lossy path is kept explicit rather than presented as native contact. |
 | `sampleGround` | **Retain as browser data query.** | Useful for spawn/debug/world simulation. It is reflected nearest-triangle sampling, not the native packet query. |
 | `sampleSpecialOutdoorGround` | **Retain as browser data query.** | Same role outside standard FLD topology. |
 | `sampleAuxiliaryHeight` | **Retain only as diagnostic/compatibility data query.** | It can expose an auxiliary plane but cannot reproduce the complete native query result/order. |
 | `sampleHighest` | **Retain as presentation query.** | Camera obstruction/world placement use it; it must not drive native support. |
 | `sampleSpecialOutdoorHighest` | **Retain as presentation query.** | Same special-scene camera role. |
 | `drivingSurface` | **Adapt: remove from native motion input; retain for UI/debug labels.** | Road-ribbon precedence and `DrivingSurfaceKind` are browser policy. Native motion must consume retained raw contact surface slots. |
-| `specialOutdoorDrivingSurface` | **Adapt identically.** | Keep labels/diagnostics; do not feed native contact/traction. |
+| `specialOutdoorDrivingSurface` | **Compatibility label/input only.** | Keep labels and the gated old bridge until special-outdoor native dispatch is recovered. |
 | `addCompiledField` / `addField` | **Retain for render/browser queries; add a parallel native collision source.** | Compiled triangles cannot satisfy native packet queries. |
 | `addCompiledSpecialOutdoor` | **Retain for render/browser queries; add a parallel native collision source if the scene is proven to use this contact path.** | Exact special-outdoor dispatch remains evidence-gated. |
 
@@ -227,32 +230,36 @@ compatibility bridge, not PAL suspension.
 
 This contract intentionally stops before implementing the following:
 
-1. **Free-roam collision-query dispatch.** The exact outdoor caller/provider
-   that maps native sector/scene state to original FLD or special-outdoor
-   collision records must be retained from executable/runtime evidence.
-2. **Original-data lifetime in the browser.** The current compiled collision
-   cache is insufficient. The loading path needs a payload-safe runtime way to
-   keep native collision records available without committing proprietary bytes.
-3. **Outdoor post-contact collision response.** The recovered ordinary frame
+1. **Exact free-roam scene dispatch.** Standard FLD driving now selects authored
+   raw collision sections through unreflected field topology, but this is a host
+   seam rather than proof of the original sector/scene dispatcher. Special-outdoor
+   dispatch remains unrecovered and gated.
+2. **Outdoor post-contact collision response.** The recovered ordinary frame
    explicitly rejects scene kind 28 and does not establish the free-roam
    obstacle/rollback/airborne response. Do not reuse the race response merely
    because contact is shared.
+3. **Free-roam scene/effect inputs.** Car flags, scene flags/commands and the
+   vertical-impulse producer are not recovered for this caller. Production keeps
+   their effect branches neutral instead of borrowing ordinary-race defaults.
 4. **Reset/debug/scene-specific enclosing paths.** These remain outside the
    verified frame and must stay gated.
 5. **Upstream free-roam command production.** Reverse/brake command policy is
    still host-owned in `NativeDrivingMotion`; this contract does not bless it
    as native.
-6. **Browser torus policy at native boundaries.** North/south wrapping is an
-   intentional port extension. The scene handoff required when native state
-   crosses a browser world seam must be designed without feeding that extension
-   into PAL contact math.
+6. **Browser torus policy at native boundaries.** East/west FLD rebasing is
+   handled outside contact math. North/south browser wrapping remains a port
+   extension and the native path fails closed instead of consuming it.
 7. **Effects and audio realization.** Native contact returns requests; exact
    browser audiovisual presentation is a separate host concern.
 
 ## Integration acceptance criteria
 
-A later implementation may claim this contract is connected only when all of
-the following are true:
+The standard-FLD implementation is now connected against the structural
+criteria below. Deterministic CI tests cover flat ground, slopes, field seams,
+retained support changes and support loss/reacquisition. A PAL-only FLD/223
+integration case is retained in `tests/drivingValidation.pal.test.ts`; parity
+must not be claimed unless it and the surrounding PAL gate are run with locally
+supplied original inputs.
 
 - free-roam performs exactly one contact advance per 50 Hz native driving tick;
 - retained support/impulse/unsupported/special/matrix state survives across
@@ -270,4 +277,6 @@ the following are true:
   including support loss/recovery and auxiliary contact, before parity is
   claimed.
 
-No production gameplay behavior is changed by this document.
+Production standard-FLD gameplay now uses this seam. The unrecovered paths
+above remain explicitly gated, and this is not a claim of end-to-end PAL
+free-roam parity.

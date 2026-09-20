@@ -148,10 +148,15 @@ export function nativeRaceDrag(forward: number, side: number, mass: number, spec
   return { forward: decay(forward, divisor), side: decay(side, specialState > 0 ? 64 : 1024) };
 }
 
+/** Per-axis fixed-position delta used by PAL 0x0021D1B8. */
+export function nativeRacePositionDelta(velocity: number): number {
+  return Math.trunc(((velocity | 0) << 4) / 25) | 0;
+}
+
 /** Position accumulator at 0x0021D1B8; X/Z have native 28-bit wrapping. */
 export function integrateNativeRacePosition(position: readonly [number, number, number], velocity: readonly [number, number, number]): [number, number, number] {
   return position.map((value, axis) => {
-    const next = (value + Math.trunc((velocity[axis]! << 4) / 25)) | 0;
+    const next = (value + nativeRacePositionDelta(velocity[axis]!)) | 0;
     return axis === 1 ? next : next & 0x0fffffff;
   }) as [number, number, number];
 }

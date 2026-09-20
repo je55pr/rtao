@@ -94,6 +94,34 @@ export function relativeRenderTranslation(originFieldNumber: number, targetField
   };
 }
 
+/**
+ * Normalises unreflected PAL-local X/Z across authored standard-world seams.
+ * East/west retains the recovered wrap. North/south deliberately fails closed:
+ * browser torus wrapping is a host extension and must not enter native contact.
+ */
+export function normalizeNativePosition(currentFieldNumber: number, nativePosition: Vec2): SectorPosition | undefined {
+  const current = addressFromFieldNumber(currentFieldNumber);
+  const currentBase = sourceBase(currentFieldNumber);
+  const canonicalSourceX = currentBase.x + nativePosition.x;
+  const rowDelta = Math.floor(nativePosition.y / fieldExtent);
+  const targetRow = current.row + rowDelta;
+  if (targetRow < 0 || targetRow >= worldGridHeight) return undefined;
+  const targetLocalZ = positiveModulo(nativePosition.y, fieldExtent);
+
+  for (let column = 0; column < worldGridWidth; column += 1) {
+    const candidateField = fieldNumberFromAddress(column, targetRow);
+    const candidateBase = sourceBase(candidateField);
+    const localSourceX = positiveModulo(canonicalSourceX - candidateBase.x, worldCircumference);
+    if (localSourceX < fieldExtent) {
+      return {
+        fieldNumber: candidateField,
+        localPosition: { x: localSourceX, y: targetLocalZ },
+      };
+    }
+  }
+  return undefined;
+}
+
 /** Normalises reflected Three.js X/Z coordinates through both axes of HG2's toroidal world. */
 export function normalizeRenderPosition(currentFieldNumber: number, renderPosition: Vec2): SectorPosition {
   const current = addressFromFieldNumber(currentFieldNumber);

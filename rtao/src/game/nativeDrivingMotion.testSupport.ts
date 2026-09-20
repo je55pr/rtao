@@ -8,7 +8,23 @@ import type { NativeRaceEquipment } from "./nativeRaceVehicle";
 
 /** Copyright-safe deterministic fixture for unit tests. PAL-backed tests use the executable reader. */
 export function syntheticNativeDrivingMotionAuthority(): NativeDrivingMotionAuthority {
+  const positionDivisor = 20_971.51953125;
+  const yawScale = Math.fround(Math.PI);
   return {
+    contact: {
+      probes: [
+        [0, 0, 0.68, 0],
+        [-0.66, 0, 0.68, 0],
+        [0.66, 0, 0.68, 0],
+        [-0.66, 0, 0, 0],
+        [0.66, 0, 0, 0],
+        [-0.66, 0, -0.66, 0],
+        [0.66, 0, -0.66, 0],
+      ],
+      positionDivisor,
+      bigTyreThreshold: Math.fround(1.35),
+      yawScale,
+    },
     math: {
       // sin(x) Taylor coefficients in the native powers 9,7,5,3 layout.
       rotationCoefficients: [
@@ -20,8 +36,8 @@ export function syntheticNativeDrivingMotionAuthority(): NativeDrivingMotionAuth
       normalYThreshold: 0.5,
       normalYIncrement: 0.1,
     },
-    positionDivisor: 20_971.51953125,
-    yawScale: Math.fround(Math.PI),
+    positionDivisor,
+    yawScale,
     equipment: syntheticEquipment,
   };
 }
