@@ -1,0 +1,133 @@
+import {
+  beginNativeChaseRecenter,
+  createNativeChaseCameraState,
+  resetNativeChaseLag,
+  selectNativeChasePreset,
+  type NativeChaseCameraState,
+  type NativeChaseVector,
+} from "./nativeChaseCamera";
+
+export type NativeCameraVector = NativeChaseVector;
+
+export interface NativeCameraFinalOutput {
+  readonly position: NativeCameraVector;
+  readonly target: NativeCameraVector;
+}
+
+export interface NativeCameraRenderPose {
+  readonly position: NativeCameraVector;
+  readonly target: NativeCameraVector;
+}
+
+export interface NativeCameraRendererBoundary<TProjection = unknown> {
+  /**
+   * Converts one native-space point into the renderer coordinate system.
+   * Handedness/reflection belongs here, after the native camera has produced
+   * its final output.
+   */
+  readonly toRenderPoint: (point: NativeCameraVector) => NativeCameraVector;
+  /**
+   * Renderer-owned projection state. The retained chase archaeology does not
+   * yet prove the output-builder projection values used by the browser.
+   */
+  readonly projection: TProjection;
+}
+export interface NativeCameraRenderFrame<TProjection = unknown> {
+  readonly pose: NativeCameraRenderPose;
+  readonly projection: TProjection;
+}
+
+export interface NativeCameraObstructionProbe {
+  readonly point: NativeCameraVector;
+}
+
+export interface NativeCameraObstructionSample {
+  /**
+   * Mirrors the executable branch distinction only: false means the selected
+   * scene collision query rejected the probe.
+   */
+  readonly valid: boolean;
+  /**
+   * Corrected native-space height when the selected scene query supplies one.
+   * Exact collision-query arguments remain owned by the scene adapter.
+   */
+  readonly correctedY?: number;
+}
+
+export type NativeCameraObstructionQuery = (
+  probe: NativeCameraObstructionProbe,
+) => NativeCameraObstructionSample;
+
+export interface NativeCameraRuntimeContractState {
+  readonly controller: NativeChaseCameraState;
+  /**
+   * Present only after a native output-builder implementation has produced the
+   * final pose. Native chase state alone is not this output.
+   */
+  readonly finalOutput?: NativeCameraFinalOutput;
+}
+
+export type NativeCameraLifecycleEvent =
+  | { readonly kind: "native-lag-reset" }
+  | { readonly kind: "native-recenter" }
+  | { readonly kind: "native-preset-select"; readonly presetIndex: number }
+  | { readonly kind: "host-output-invalidate" };
+export function createNativeCameraRuntimeContractState(
+  presetIndex: number,
+): NativeCameraRuntimeContractState {
+  return { controller: createNativeChaseCameraState(presetIndex) };
+}
+
+export function withNativeCameraFinalOutput(
+  state: NativeCameraRuntimeContractState,
+  finalOutput: NativeCameraFinalOutput,
+): NativeCameraRuntimeContractState {
+  return { ...state, finalOutput };
+}
+
+export function applyNativeCameraLifecycle(
+  state: NativeCameraRuntimeContractState,
+  event: NativeCameraLifecycleEvent,
+): NativeCameraRuntimeContractState {
+  switch (event.kind) {
+    case "native-lag-reset":
+      return { controller: resetNativeChaseLag(state.controller) };
+    case "native-recenter":
+      return { controller: beginNativeChaseRecenter(state.controller) };
+    case "native-preset-select":
+      return {
+        controller: selectNativeChasePreset(state.controller, event.presetIndex),
+      };
+    case "host-output-invalidate":
+      return state.finalOutput === undefined
+        ? state
+        : { controller: state.controller };
+  }
+}
+
+export function nativeCameraFrameForRenderer<TProjection>(
+  output: NativeCameraFinalOutput,
+  boundary: NativeCameraRendererBoundary<TProjection>,
+): NativeCameraRenderFrame<TProjection> {
+  return {
+    pose: {
+      position: boundary.toRenderPoint(output.position),
+      target: boundary.toRenderPoint(output.target),
+    },
+    projection: boundary.projection,
+  };
+}
+/**
+ * Common reflected-X boundary used by HG2 field/course presentation.
+ * The origin is supplied by the scene adapter rather than hidden in camera
+ * arithmetic so native output stays in native coordinates.
+ */
+export function reflectNativeCameraPointX(
+  point: NativeCameraVector,
+  xOrigin: number,
+): NativeCameraVector {
+  if (!Number.isFinite(xOrigin)) {
+    throw new RangeError("Native camera X-reflection origin must be finite.");
+  }
+  return [xOrigin - point[0], point[1], point[2]];
+}

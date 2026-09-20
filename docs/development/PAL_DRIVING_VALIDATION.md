@@ -137,22 +137,26 @@ effect but the upstream outdoor command producer is not yet recovered.
 Developer Shift/RB boost remains a browser traversal aid outside native motion
 state and therefore cannot multiply recovered yaw.
 
-The production ordinary chase path now consumes a retained PAL preset,
-native vehicle yaw/slip and the recovered float32 per-invocation lag recurrence
-through `nativeChaseCamera.ts`. Free-roam advances that state on the same 50 Hz
-fixed ticks as native vehicle motion; ordinary races use the same camera runtime
-after each recovered race step. The previous browser distance/lift/blend and
-instant-snap policy has been removed. The handoff does not prove the upstream
-initial preset selector, so `browserOrdinaryChasePresetIndex` keeps the current
-record-0 choice explicitly host-side rather than declaring it a native default.
+The production ordinary chase path retains a PAL preset, native vehicle
+yaw/slip and the recovered float32 per-invocation lag recurrence through
+`nativeChaseCamera.ts`. Free-roam advances that controller state on the same
+50 Hz fixed ticks as native vehicle motion; ordinary races advance the same
+state after each recovered race step. Live rendering still uses the explicitly
+host-owned `browserChaseCamera` / `ordinaryRaceChaseCamera` framing because
+the retained follow-helper state is not proven to be final output-builder
+position. The handoff also does not prove the upstream initial preset selector,
+so `browserOrdinaryChasePresetIndex` keeps the current record-0 choice
+explicitly host-side rather than declaring it a native default.
 
-End-to-end PAL output-builder parity is still bounded by the optional measured
-camera trace above. Preset fields whose render meaning is not proven, the timed
-recenter angle and slip state are retained without inventing projection effects.
-`browserChaseCameraSafety.ts` remains an explicitly host-only height-clearance
-adapter; it is not the native `gp-0x3e60` obstruction loop. The recovered
-semantic `Change View` action likewise has no browser binding until that binding
-is independently proven.
+The state/output/renderer/obstruction/lifecycle boundary is frozen in
+`PAL_NATIVE_CAMERA_HOST_CONTRACT_2026-09-20.md` and represented by
+`nativeCameraRuntimeContract.ts`. End-to-end PAL output-builder parity remains
+bounded by the optional measured camera trace above. Preset fields whose render
+meaning is not proven, the timed recenter angle and slip state are retained
+without inventing projection effects. `browserChaseCameraSafety.ts` remains an
+explicitly host-only height-clearance adapter; it is not the native
+`gp-0x3e60` obstruction loop. The recovered semantic `Change View` action
+likewise has no browser binding until that binding is independently proven.
 
 Cross-mode regression coverage additionally locks the integration seams rather than introducing a third motion model: `nativeDrivingCrossMode.test.ts` drives `NativeDrivingMotion` and the ordinary-race scalar consumer from identical recovered equipment/contact inputs and requires exact vehicle/velocity parity, then verifies that free-roam and reflected race presentation advance the same native chase-camera recurrence. Ordinary race launch paths snapshot one complete saved selector block; direct race entry and Q's Factory therefore no longer diverge on player equipment, while unresolved categories 7..14 remain excluded from scalar handling.
 
