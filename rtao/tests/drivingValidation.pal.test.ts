@@ -8,6 +8,7 @@ import { assertBrowserCameraTraceMatchesPal, assertBrowserDrivingTraceMatchesPal
 import { NativeDrivingMotion, readNativeDrivingMotionAuthority } from "../src/game/nativeDrivingMotion";
 import { NativeOutdoorContact } from "../src/game/nativeOutdoorContact";
 import { NativeRaceCollisionSampler } from "../src/game/nativeRaceCollision";
+import { DrivingWorld } from "../src/game/worldCollision";
 import {
   advanceNativeRaceFrame,
   readNativeRaceFrameData,
@@ -366,6 +367,89 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
       const second = run();
       expect(first).toEqual(second);
       expect(first.length).toBe(80);
+    } finally {
+      opened.close();
+    }
+  }, 120_000);
+
+  test("free-roam real FLD shoreline and field seam retain native contact state", async () => {
+    const opened = await openPalDisc(binPath!);
+    try {
+      const executable = await opened.disc.readFile("SLES_513.56");
+      const authority = readNativeDrivingMotionAuthority(executable);
+      const world = new DrivingWorld();
+      for (const fieldNumber of [223, 221]) {
+        world.addNativeField(
+          fieldNumber,
+          await opened.disc.readFile(`FLD/${fieldNumber.toString().padStart(3, "0")}.BIN`),
+        );
+      }
+      const query = (fieldNumber: number, point: Parameters<NativeRaceCollisionSampler["query"]>[0]) =>
+        world.queryNativeContact(fieldNumber, point);
+
+      const shoreline = { x: 578.7818400065104, y: 20.5, z: 1317.1686328125 };
+      const ordinary = new NativeOutdoorContact(authority, 223, shoreline, 0);
+      const bigTyre = new NativeOutdoorContact(authority, 223, shoreline, 0);
+      ordinary.prime(query, 0, 0);
+      bigTyre.prime(query, 0x400, 0x400);
+      expect(ordinary.specialState).toBe(1);
+      expect(bigTyre.specialState).toBe(-1);
+      expect(bigTyre.pose(0).bodyMatrix[13]! - ordinary.pose(0).bodyMatrix[13]!)
+        .toBeCloseTo(authority.body.bigTyreLift, 7);
+
+      const seamX = 160.2;
+      const seamZ = 1599.8;
+      const seed = world.queryNativeContact(
+        223,
+        [Math.fround(1600 - seamX), 10000, Math.fround(seamZ), 0],
+      );
+      expect(seed.flags).toBeGreaterThanOrEqual(0);
+      const motion = new NativeDrivingMotion(authority, 0);
+      const contact = new NativeOutdoorContact(
+        authority,
+        223,
+        { x: seamX, y: seed.point[1], z: seamZ },
+        motion.nativeVehicle.yaw,
+      );
+      contact.prime(query);
+      let crossed = false;
+      for (let tick = 0; tick < 240; tick += 1) {
+        const step = motion.step({
+          throttle: 1,
+          steering: 0,
+          surfaceIndex: undefined,
+          contact: {
+            specialState: contact.specialState,
+            propellerEnabled: false,
+            native: contact.retainedContact,
+          },
+        });
+        const response = contact.advance(
+          step,
+          query,
+          0,
+          0,
+          (fieldNumber, position, inverseYaw, height) =>
+            world.queryNativeObstacle(fieldNumber, position, inverseYaw, height, authority.obstacle),
+        );
+        expect(response, `FLD/223 seam contact escaped at tick ${tick}`).toBeDefined();
+        motion.applyNativeContactResponse(response!.velocity, response!.yaw, response!.runtimeFlags);
+        const pose = contact.pose(response!.browserYaw);
+        expect([
+          pose.position.x,
+          pose.position.y,
+          pose.position.z,
+          pose.pitch,
+          pose.roll,
+          ...pose.bodyMatrix,
+        ].every(Number.isFinite)).toBe(true);
+        expect(contact.retainedContact.support.every((value) => value >= 0 && value <= 8192)).toBe(true);
+        if (pose.fieldNumber === 221) {
+          crossed = true;
+          break;
+        }
+      }
+      expect(crossed).toBe(true);
     } finally {
       opened.close();
     }

@@ -66,6 +66,18 @@ x3-steering tick-62 fork is retained as a witness: retail reaches drift/slip/yaw
 raw retail authority coverage intact without misclassifying the intentional host
 policy as PAL behavior.
 
+Free-roam contact validation now also has two complementary stress gates. The
+CI-safe `nativeOutdoorContactSoak.test.ts` composes 6,000 PAL ticks of mixed
+slope/crest support, dry/off-road/grass surface words, shoreline auxiliary
+contact, an 80-tick unsupported interval, repeated obstacle masks and Big Tyre.
+It requires deterministic output, finite pose/velocity/body matrices, native
+support clamps `0..8192`, and the unsupported recovery pulse. With
+`RTA_PAL_BIN` present, `drivingValidation.pal.test.ts` additionally loads the
+original `FLD/223.BIN` and `FLD/221.BIN`: it rechecks the retained Peach
+shoreline normal-vs-Big-Tyre state split and drives the native contact runtime
+across the retained FLD/223 -> FLD/221 seam without browser footprint fallback.
+Special-outdoor scenes remain on their separately tested compatibility path.
+
 ## Camera authority and optional output trace
 
 The executable-backed ordinary chase-camera runtime contract is now retained in
