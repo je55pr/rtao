@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { CompiledFieldCollision } from "../formats/fieldCollision";
 import { ArcadeCarController } from "./drivingGame";
+import { applyNativeDrivingEquipment } from "./nativeDrivingEquipment";
 import { nativeDrivingFixedStepSeconds, nativeDrivingSurfaceIndex } from "./nativeDrivingMotion";
 import type { NativeRaceCollisionPoint } from "./nativeRaceCollision";
 import { syntheticNativeDrivingMotionAuthority } from "./nativeDrivingMotion.testSupport";

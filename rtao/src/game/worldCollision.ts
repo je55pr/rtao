@@ -12,6 +12,10 @@ import {
   type NativeRaceObstacleData,
 } from "./nativeRaceObstacle";
 import type { NativeRaceMatrix, NativeRaceVector } from "./nativeRaceMath";
+import type {
+  NativeCameraObstructionProbe,
+  NativeCameraObstructionSample,
+} from "./nativeCameraRuntimeContract";
 
 export interface Vec3 {
   readonly x: number;
@@ -232,6 +236,25 @@ export class DrivingWorld {
       flags: hit.flags,
       ceilingY: hit.ceilingY,
     };
+  }
+
+  /**
+   * Ordinary-world camera height query through the retained native FLD strip
+   * walker. Invalid native contact remains invalid; valid hits expose only the
+   * corrected Y consumed by the recovered near-edge obstruction loop.
+   */
+  queryNativeCameraObstruction(
+    originFieldNumber: number,
+    probe: NativeCameraObstructionProbe,
+  ): NativeCameraObstructionSample {
+    const hit = this.queryNativeContact(originFieldNumber, [
+      Math.fround(probe.point[0]),
+      Math.fround(probe.point[1]),
+      Math.fround(probe.point[2]),
+      1,
+    ]);
+    if (hit.flags < 0) return { valid: false };
+    return { valid: true, correctedY: hit.point[1] };
   }
 
   queryNativeObstacle(

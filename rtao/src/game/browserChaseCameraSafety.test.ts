@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import {
   applyBrowserChaseObstructionSafety,
+  applyBrowserChaseSafetyToSelection,
   browserOrdinaryChasePresetIndex,
 } from "./browserChaseCameraSafety";
 
@@ -22,4 +23,16 @@ test("browser obstruction safety stays a post-native rendering adjustment", () =
   );
   expect(raised.position).toEqual([0, 4.8, -7]);
   expect(raised.target).toEqual(nativePose.target);
+});
+
+test("browser obstruction safety never alters native final output", () => {
+  const nativePose = {
+    position: [0, 2, -7] as const,
+    target: [0, 0, 0] as const,
+  };
+  const resolved = applyBrowserChaseSafetyToSelection(
+    { source: "native-final-output", pose: nativePose },
+    () => ({ y: 100 }),
+  );
+  expect(resolved).toBe(nativePose);
 });

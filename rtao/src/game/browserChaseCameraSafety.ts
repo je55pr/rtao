@@ -1,4 +1,5 @@
 import type { NativeChaseVector } from "./nativeChaseCamera";
+import type { NativeCameraRenderSelection } from "./nativeCameraRuntimeContract";
 
 export interface BrowserChasePose {
   readonly position: NativeChaseVector;
@@ -46,4 +47,17 @@ export function applyBrowserChaseObstructionSafety(
     position: [pose.position[0], cameraY, pose.position[2]],
     target: pose.target,
   };
+}
+
+/**
+ * Native final output has its own pre-render obstruction stage. Never apply
+ * the browser height-clearance fallback on top of a native-resolved frame.
+ */
+export function applyBrowserChaseSafetyToSelection(
+  selection: NativeCameraRenderSelection,
+  sampleHighest: (point: { x: number; y: number; z: number }) => BrowserChaseObstruction | undefined,
+): BrowserChasePose {
+  return selection.source === "native-final-output"
+    ? selection.pose
+    : applyBrowserChaseObstructionSafety(selection.pose, sampleHighest);
 }

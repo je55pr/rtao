@@ -29,12 +29,15 @@ import {
 } from "./nativeCameraRuntimeContract";
 import {
   advanceBrowserChaseCamera,
-  rebaseBrowserChaseCamera,
   type BrowserChaseCameraState,
 } from "./browserChaseCamera";
-import { fieldExtent, relativeRenderTranslation } from "./worldTopology";
 import {
-  applyBrowserChaseObstructionSafety,
+  createOutdoorDrivingCameraLifecycleState,
+  rebaseOutdoorDrivingCameraAcrossFieldSeam,
+} from "./drivingCameraLifecycle";
+import { fieldExtent } from "./worldTopology";
+import {
+  applyBrowserChaseSafetyToSelection,
   browserOrdinaryChasePresetIndex,
 } from "./browserChaseCameraSafety";
 import type { DrivingSurfaceKind, DrivingWorld, Vec3 } from "./worldCollision";
@@ -581,9 +584,7 @@ export class BrowserDrivingGame {
     this.controls.reset();
     this.unsubscribeControls = this.input.subscribe(this.handleControlEvent);
     const state = this.controller.state;
-    this.cameraRuntimeState = createNativeCameraRuntimeContractState(browserOrdinaryChasePresetIndex);
-    this.browserChaseCameraState = { position: [0, 0, 0], target: [0, 0, 0], ready: false };
-    this.advanceCamera(state, true);
+    this.initializeCameraForScene(state);
     this.view.startDriving(this.car, state.fieldNumber, state.position, state.yaw);
     this.applyState(state);
     this.frameHandle = requestAnimationFrame(this.frame);
@@ -632,16 +633,22 @@ export class BrowserDrivingGame {
   enterArea(fieldNumber: number, position: { readonly x: number; readonly z: number }): void {
     this.controls.reset();
     this.controller.enterArea(fieldNumber, position);
-    this.advanceCamera(this.controller.state, true);
-    this.accumulator = 0;
-    this.lastTime = performance.now();
-    this.applyState(this.controller.state);
+    this.reinitializeCameraForScene();
   }
 
   enterSpecialOutdoor(areaCode: number, position: { readonly x: number; readonly z: number }): void {
     this.controls.reset();
     this.controller.enterSpecialOutdoor(areaCode, position);
-    this.advanceCamera(this.controller.state, true);
+    this.reinitializeCameraForScene();
+  }
+
+  /**
+   * Native outdoor camera tasks are reconstructed on real scene entry/re-entry.
+   * Pauses and ordinary FLD seams deliberately do not call this.
+   */
+  reinitializeCameraForScene(): void {
+    this.controls.reset();
+    this.initializeCameraForScene(this.controller.state);
     this.accumulator = 0;
     this.lastTime = performance.now();
     this.applyState(this.controller.state);
@@ -664,12 +671,13 @@ export class BrowserDrivingGame {
       if (previousState.location.kind === "standard-world"
         && nextState.location.kind === "standard-world"
         && previousState.fieldNumber !== nextState.fieldNumber) {
-        const offset = relativeRenderTranslation(previousState.fieldNumber, nextState.fieldNumber);
-        this.browserChaseCameraState = rebaseBrowserChaseCamera(
-          this.browserChaseCameraState,
-          offset.x,
-          offset.y,
+        const rebased = rebaseOutdoorDrivingCameraAcrossFieldSeam(
+          { native: this.cameraRuntimeState, browser: this.browserChaseCameraState },
+          previousState.fieldNumber,
+          nextState.fieldNumber,
         );
+        this.cameraRuntimeState = rebased.native;
+        this.browserChaseCameraState = rebased.browser;
       }
       this.advanceCamera(nextState, false);
       this.accumulator -= nativeDrivingFixedStepSeconds;
@@ -677,6 +685,13 @@ export class BrowserDrivingGame {
     this.applyState(this.controller.state);
     this.frameHandle = requestAnimationFrame(this.frame);
   };
+
+  private initializeCameraForScene(state: CarState): void {
+    const initialized = createOutdoorDrivingCameraLifecycleState(browserOrdinaryChasePresetIndex);
+    this.cameraRuntimeState = initialized.native;
+    this.browserChaseCameraState = initialized.browser;
+    this.advanceCamera(state, true);
+  }
 
   private advanceCamera(state: CarState, snap: boolean): void {
     // Keep advancing proven controller slip/recenter state. The recovered
@@ -705,14 +720,14 @@ export class BrowserDrivingGame {
       position: this.browserChaseCameraState.position,
       target: this.browserChaseCameraState.target,
     };
-    const hostPose = state.location.kind === "standard-world"
+    const selection = state.location.kind === "standard-world"
       ? selectNativeCameraRenderPose(
           this.cameraRuntimeState,
           (point) => reflectNativeCameraPointX(point, fieldExtent),
           fallbackPose,
-        ).pose
-      : fallbackPose;
-    const chase = applyBrowserChaseObstructionSafety(hostPose, (point) =>
+        )
+      : { source: "host-fallback" as const, pose: fallbackPose };
+    const chase = applyBrowserChaseSafetyToSelection(selection, (point) =>
       state.location.kind === "special-outdoor"
         ? this.world.sampleSpecialOutdoorHighest(state.location.areaCode, point)
         : this.world.sampleHighest(state.fieldNumber, point)

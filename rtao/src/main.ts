@@ -1626,6 +1626,7 @@ function stopPeachRace(): void {
   if (worldCanvas) worldCanvas.style.removeProperty("visibility");
   worldSimulation?.setPaused(false);
   if (resumeTownSession) {
+    drivingGame?.reinitializeCameraForScene();
     drivingGame?.setPaused(false);
     startNativeFreeRoamMusic();
   }
@@ -2912,6 +2913,7 @@ function endShopInteriorPreview(resumeOutdoorMusic = true): void {
   requiredElement<HTMLElement>("factory-dialogue").hidden = false;
   requiredElement<HTMLElement>("factory-speaker").textContent = "Q's Factory";
   delete root.dataset.dialogueSlot;
+  if (resumeOutdoorMusic) drivingGame?.reinitializeCameraForScene();
   drivingGame?.setPaused(false);
   worldSimulation?.setPaused(false);
   if (resumeOutdoorMusic && isDriving) startNativeFreeRoamMusic();
@@ -4241,6 +4243,7 @@ function endQFactoryInterior(resumeOutdoorMusic = true): void {
   requiredElement<HTMLElement>("factory-parts").hidden = true;
   requiredElement<HTMLElement>("factory-dialogue").hidden = false;
   delete root.dataset.dialogueSlot;
+  if (resumeOutdoorMusic) drivingGame?.reinitializeCameraForScene();
   drivingGame?.setPaused(false);
   worldSimulation?.setPaused(false);
   if (resumeOutdoorMusic && isDriving) startNativeFreeRoamMusic();

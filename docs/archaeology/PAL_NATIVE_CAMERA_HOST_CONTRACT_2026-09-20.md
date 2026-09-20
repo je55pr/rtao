@@ -86,16 +86,19 @@ collision function through `gp-0x3e60`, probes camera-output blocks at
 adjusts camera state angle `+0x16` by `-0x80` or `+0x80`, rebuilds via
 `0x00220458`, and repeats to its signed-angle boundary.
 
-The runtime contract therefore exposes `NativeCameraObstructionQuery` in
-native coordinates. A scene adapter may satisfy that query only when it
-preserves the selected native collision semantics. The current
-`DrivingWorld.sampleHighest` plus six-point height-clearance loop is not that
-query and must not be wired into the native obstruction loop merely because it
-also detects geometry near the camera.
+`nativeCameraObstruction.ts` now implements that two-probe correction loop as
+a pure native stage, including the paired-preset bypass, raw `+0x28 & 0x8000`
+and `+0x0B` bypass gates, signed-angle termination, and a rebuild after every
+`0x80` correction. `DrivingWorld.queryNativeCameraObstruction` supplies the
+ordinary-world query through the retained wrapped native FLD strip walker.
+The stage still requires the output builder to supply the exact transformed
+`+0x100/+0x110` probe points; those points are not reconstructed from browser
+camera geometry. Course-cell scene modes likewise remain a separate adapter.
 
-Obstruction belongs before renderer reflection. Browser clipping/visibility
-safety, if retained, is a presentation post-process and remains explicitly
-non-native.
+The existing `DrivingWorld.sampleHighest` plus six-point height-clearance loop
+is not the native query. It remains presentation safety only while the browser
+fallback pose is selected, and is explicitly bypassed once a native final
+output is selected. Obstruction belongs before renderer reflection.
 
 ## Lifecycle contract
 
@@ -107,9 +110,18 @@ Only recovered state transitions are allowed to mutate native controller state:
   as the existing native helper does.
 
 A separate `host-output-invalidate` event discards only a previously resolved
-final presentation output. It does not alter native controller state. This is
-the correct seam for browser scene-coordinate discontinuities until archaeology
-proves a corresponding PAL camera reset/rebase transition.
+final presentation output. It does not alter native controller state. Ordinary
+FLD seams use that event plus `rebaseBrowserChaseCamera`: they are coordinate-
+frame changes inside one outdoor scene, so native lag/controller state remains
+continuous and the browser fallback is rebased instead of snapping or flying
+across the world.
+
+True scene construction is different. Outdoor startup, Warp/area entry,
+interior-to-outdoor return, race start, and the eventual race-to-outdoor return
+construct a fresh native camera task, so the browser integration recreates its
+camera runtime state at those boundaries. Menu/dialogue pauses preserve camera
+history. Race finish itself does not reset the suspended outdoor camera; the
+reset happens when the outdoor scene is re-entered.
 ## Browser fallback disposition
 
 The live fallbacks remain necessary, but their retirement conditions are now
@@ -124,9 +136,11 @@ narrow and explicit:
 - `ordinaryRaceChaseCamera` remains the same explicit fallback. The retained
   race contact matrix is not substituted for the camera-specific
   `0x0021EAC8` matrix merely because both are native transforms.
-- `applyBrowserChaseObstructionSafety` stays as host-only readability safety
-  until the native `gp-0x3e60` obstruction query can be supplied with the
-  correct scene-collision semantics. It must not be folded into native state.
+- `applyBrowserChaseObstructionSafety` remains host-only readability safety
+  only for fallback poses. The ordinary-world native FLD collision-query adapter
+  and recovered two-probe correction stage now exist, but live native correction
+  still waits for exact transformed near-edge probes from the final-output
+  producer; course-cell scene modes remain separately evidence-gated.
 - `browserOrdinaryChasePresetIndex = 0` stays until the upstream initial
   preset selector is recovered. The ten preset records themselves are native;
   selecting record zero as the initial browser view is not yet proven native.

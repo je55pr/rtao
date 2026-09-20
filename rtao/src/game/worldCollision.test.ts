@@ -4,6 +4,27 @@ import { DrivingWorld, FieldCollisionSampler, flatFieldCollision, nativeDrivingS
 import type { CompiledFieldCollision } from "../formats/fieldCollision";
 import type { CompiledFieldMesh } from "../formats/fieldGeometry";
 import { nativeRaceIdentity, type NativeRaceVector } from "./nativeRaceMath";
+import type { NativeRaceCollisionPoint } from "./nativeRaceCollision";
+
+class CameraHeightWorld extends DrivingWorld {
+  constructor(
+    private readonly flags: number,
+    private readonly correctedY: number,
+  ) {
+    super();
+  }
+
+  override queryNativeContact(
+    _originFieldNumber: number,
+    point: NativeRaceCollisionPoint,
+  ) {
+    return {
+      point: [point[0], this.correctedY, point[2], point[3]] as NativeRaceCollisionPoint,
+      flags: this.flags,
+      ceilingY: 10000,
+    };
+  }
+}
 
 describe("world collision", () => {
   it("samples a reflected field surface", () => {
@@ -104,6 +125,20 @@ describe("world collision", () => {
 
     expect(world.drivingSurface(origin, { x: 960, y: 0, z: 0.2 })).toBe("snow");
     expect(world.drivingSurface(origin, { x: 960, y: 0, z: -0.2 })).toBe("ice");
+  });
+
+  it("adapts the ordinary native FLD height query for camera near-edge probes", () => {
+    const raised = new CameraHeightWorld(0x550, 12);
+    expect(raised.queryNativeCameraObstruction(
+      223,
+      { point: [100, 10, 200] },
+    )).toEqual({ valid: true, correctedY: 12 });
+
+    const invalid = new CameraHeightWorld(-1, 99);
+    expect(invalid.queryNativeCameraObstruction(
+      223,
+      { point: [100, 10, 200] },
+    )).toEqual({ valid: false });
   });
 
   it("adds only enabled slot-11 runtime obstacle groups to the authored outdoor mask", () => {
