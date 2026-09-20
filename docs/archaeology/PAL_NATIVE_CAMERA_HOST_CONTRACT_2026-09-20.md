@@ -57,7 +57,10 @@ presentation policy until separately recovered.
 
 The same rule removes the need for a native camera implementation to receive a
 browser `yawSign`: reflection belongs after final native output, not inside
-native yaw/preset arithmetic.
+native yaw/preset arithmetic. The production controller now enforces this rule:
+free-roam converts its reflected host vehicle position back to native before
+camera arithmetic, while ordinary races pass their native simulation position
+directly.
 ## Obstruction query boundary
 
 The native obstruction loop at `0x0021ef20` calls the selected scene
@@ -124,6 +127,8 @@ The CI-safe regression for this boundary is
 output cannot be confused with controller state, reflection happens exactly
 once at the renderer boundary, projection remains opaque host data, and host
 scene invalidation does not mutate native controller state.
+
+The PAL-backed authority test also pins the ordinary call into `0x00220458`, the two projection-pair stores at `0x002207e8/+8`, and the builder's `output + 0x100` block. Those structural witnesses do not by themselves identify a Three.js eye/target/FOV mapping, so the fallback retirement conditions above remain unchanged.
 
 The existing camera authority gates remain:
 

@@ -114,15 +114,19 @@ export class OrdinaryRaceCoordinator {
 
   private advancePlayerCamera(): void {
     const car = this.runtime.session.entrant(0);
-    const pose = racePoseFromSessionCar(car);
     this.cameraState = advanceNativeChaseCamera(
       this.cameraState,
       {
-        position: pose.position,
+        // Race simulation coordinates are already PAL/native. Reflection is a
+        // renderer concern and must not alter native follow/yaw state.
+        position: [
+          car.state.coordinates[0],
+          car.state.coordinates[1],
+          car.state.coordinates[2],
+        ],
         nativeYaw: car.state.vehicle.yaw,
         nativeSlip: car.state.vehicle.slipAngle,
       },
-      { yawSign: -1 },
     );
   }
 

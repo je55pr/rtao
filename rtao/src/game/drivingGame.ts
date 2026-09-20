@@ -22,7 +22,6 @@ import {
 import {
   advanceNativeChaseCamera,
   createNativeChaseCameraState,
-  resetNativeChaseLag,
   type NativeChaseCameraState,
 } from "./nativeChaseCamera";
 import {
@@ -30,7 +29,7 @@ import {
   rebaseBrowserChaseCamera,
   type BrowserChaseCameraState,
 } from "./browserChaseCamera";
-import { relativeRenderTranslation } from "./worldTopology";
+import { fieldExtent, relativeRenderTranslation } from "./worldTopology";
 import {
   applyBrowserChaseObstructionSafety,
   browserOrdinaryChasePresetIndex,
@@ -630,7 +629,6 @@ export class BrowserDrivingGame {
   enterArea(fieldNumber: number, position: { readonly x: number; readonly z: number }): void {
     this.controls.reset();
     this.controller.enterArea(fieldNumber, position);
-    this.chaseCameraState = resetNativeChaseLag(this.chaseCameraState);
     this.advanceCamera(this.controller.state, true);
     this.accumulator = 0;
     this.lastTime = performance.now();
@@ -640,7 +638,6 @@ export class BrowserDrivingGame {
   enterSpecialOutdoor(areaCode: number, position: { readonly x: number; readonly z: number }): void {
     this.controls.reset();
     this.controller.enterSpecialOutdoor(areaCode, position);
-    this.chaseCameraState = resetNativeChaseLag(this.chaseCameraState);
     this.advanceCamera(this.controller.state, true);
     this.accumulator = 0;
     this.lastTime = performance.now();
@@ -670,7 +667,6 @@ export class BrowserDrivingGame {
           offset.x,
           offset.y,
         );
-        this.chaseCameraState = resetNativeChaseLag(this.chaseCameraState);
       }
       this.advanceCamera(nextState, false);
       this.accumulator -= nativeDrivingFixedStepSeconds;
@@ -686,7 +682,10 @@ export class BrowserDrivingGame {
     this.chaseCameraState = advanceNativeChaseCamera(
       this.chaseCameraState,
       {
-        position: [state.position.x, state.position.y, state.position.z],
+        // DrivingWorld exposes reflected render coordinates. Undo only the
+        // established host reflection here so native camera state never mixes
+        // browser handedness into PAL yaw/follow arithmetic.
+        position: [fieldExtent - state.position.x, state.position.y, state.position.z],
         nativeYaw: state.nativeYaw,
         nativeSlip: state.nativeSlipAngle,
       },

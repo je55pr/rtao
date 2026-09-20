@@ -6,7 +6,7 @@ import {
   createNativeChaseCameraState,
   nativeChaseSlipInput,
   nativeChaseYawRadians,
-  projectNativeChasePresetForBrowser,
+  projectNativeChaseFollowTarget,
   resetNativeChaseLag,
   selectNativeChasePreset,
   stepNativeChaseLag,
@@ -14,30 +14,29 @@ import {
 
 describe("native chase-camera runtime", () => {
   test("projects recovered ordinary preset zero from native yaw", () => {
-    const pose = projectNativeChasePresetForBrowser(
+    const pose = projectNativeChaseFollowTarget(
       { position: [10, 2, 20], nativeYaw: 0, nativeSlip: 0 },
       0,
     );
     expect(pose.position).toEqual([10, 4, 13]);
     expect(pose.target).toEqual([10, 2, 20]);
 
-    const quarterTurn = projectNativeChasePresetForBrowser(
+    const quarterTurn = projectNativeChaseFollowTarget(
       { position: [10, 2, 20], nativeYaw: 0x4000, nativeSlip: 0 },
       0,
     );
     expect(quarterTurn.position[0]).toBeCloseTo(3, 5);
     expect(quarterTurn.position[2]).toBeCloseTo(20, 5);
   });
-  test("uses signed native yaw and race presentation reflection", () => {
+  test("uses signed native yaw without renderer handedness policy", () => {
     expect(nativeChaseYawRadians(0x4000)).toBeCloseTo(Math.PI / 2, 6);
     expect(nativeChaseYawRadians(0xc000)).toBeCloseTo(-Math.PI / 2, 6);
-    const race = projectNativeChasePresetForBrowser(
+    const native = projectNativeChaseFollowTarget(
       { position: [100, 2, 200], nativeYaw: 0x4000, nativeSlip: 0 },
       0,
-      -1,
     );
-    expect(race.position[0]).toBeCloseTo(107, 5);
-    expect(race.position[2]).toBeCloseTo(200, 5);
+    expect(native.position[0]).toBeCloseTo(93, 5);
+    expect(native.position[2]).toBeCloseTo(200, 5);
   });
 
   test("retains the executable-backed slip input rule", () => {

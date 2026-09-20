@@ -93,6 +93,30 @@ suite('verified PAL chase-camera executable evidence',()=>{
     const end=elf.indexOf(0,stringOffset);
     expect(elf.subarray(stringOffset,end).toString('ascii')).toBe('Change View');
   });
+  it('pins the native output-builder and projection-pair boundary',()=>{
+    const builderCall=word(0x21fa70);
+    expect(opcode(builderCall)).toBe(3);
+    expect(jumpTarget(0x21fa70,builderCall)).toBe(0x220458);
+
+    const projectionX=word(0x2207e8);
+    expect(opcode(projectionX)).toBe(0x39);
+    expect(rs(projectionX)).toBe(28);
+    expect(rt(projectionX)).toBe(12);
+    expect(signedImmediate(projectionX)).toBe(-16016);
+
+    const projectionY=word(0x2207f0);
+    expect(opcode(projectionY)).toBe(0x39);
+    expect(rs(projectionY)).toBe(28);
+    expect(rt(projectionY)).toBe(13);
+    expect(signedImmediate(projectionY)).toBe(-16012);
+
+    const projectionOutput=word(0x220500);
+    expect(opcode(projectionOutput)).toBe(9);
+    expect(rs(projectionOutput)).toBe(18);
+    expect(rt(projectionOutput)).toBe(16);
+    expect(signedImmediate(projectionOutput)).toBe(0x100);
+  });
+
   it('decodes the selected collision query and transform rebuild call',()=>{
     const queryLoad=word(0x21ef24);
     expect(opcode(queryLoad)).toBe(0x23);

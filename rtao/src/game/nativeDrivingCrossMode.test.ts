@@ -84,7 +84,7 @@ describe("native driving cross-mode integration", () => {
     }
   });
 
-  test("free-roam and reflected race presentation advance one chase-camera recurrence", () => {
+  test("free-roam and race advance one native chase-camera recurrence before presentation", () => {
     let free = createNativeChaseCameraState(0);
     let race = createNativeChaseCameraState(0);
     const samples = [
@@ -94,21 +94,8 @@ describe("native driving cross-mode integration", () => {
     ];
     for (const sample of samples) {
       free = advanceNativeChaseCamera(free, sample);
-      race = advanceNativeChaseCamera(
-        race,
-        {
-          ...sample,
-          position: [1600 - sample.position[0], sample.position[1], sample.position[2]],
-        },
-        { yawSign: -1 },
-      );
-      expect(race.position[0]).toBeCloseTo(1600 - free.position[0], 5);
-      expect(race.position[1]).toBeCloseTo(free.position[1], 5);
-      expect(race.position[2]).toBeCloseTo(free.position[2], 5);
-      expect(race.target[0]).toBeCloseTo(1600 - free.target[0], 5);
-      expect(race.target[1]).toBeCloseTo(free.target[1], 5);
-      expect(race.target[2]).toBeCloseTo(free.target[2], 5);
-      expect(race.slipInput).toBe(free.slipInput);
+      race = advanceNativeChaseCamera(race, sample);
+      expect(race).toEqual(free);
     }
   });
 });

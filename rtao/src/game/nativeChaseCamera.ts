@@ -29,9 +29,7 @@ export interface NativeChaseCameraState {
   readonly slipInput: number;
   readonly recenter: NativeChaseRecenterState;
 }
-export interface NativeChasePresentationOptions {
-  /** Browser-space reflection for renderers whose X axis mirrors PAL course space. */
-  readonly yawSign?: 1 | -1;
+export interface NativeChaseAdvanceOptions {
   readonly presetIndex?: number;
 }
 
@@ -65,9 +63,9 @@ export function createNativeChaseCameraState(
   };
 }
 
-export function nativeChaseYawRadians(nativeYaw: number, sign: 1 | -1 = 1): number {
+export function nativeChaseYawRadians(nativeYaw: number): number {
   const signedYaw = signed16(nativeYaw);
-  return Math.fround(Math.fround(signedYaw * nativeChasePi) / 32768) * sign;
+  return Math.fround(Math.fround(signedYaw * nativeChasePi) / 32768);
 }
 
 export function nativeChaseSlipInput(nativeSlip: number, presetIndex: number): number {
@@ -150,15 +148,11 @@ export function selectNativeChasePreset(
 export function advanceNativeChaseCamera(
   state: NativeChaseCameraState,
   vehicle: NativeChaseVehiclePose,
-  options: NativeChasePresentationOptions = {},
+  options: NativeChaseAdvanceOptions = {},
 ): NativeChaseCameraState {
   const presetIndex = options.presetIndex ?? state.presetIndex;
   assertPresetIndex(presetIndex);
-  const desired = projectNativeChasePresetForBrowser(
-    vehicle,
-    presetIndex,
-    options.yawSign ?? 1,
-  );
+  const desired = projectNativeChaseFollowTarget(vehicle, presetIndex);
   const slipInput = nativeChaseSlipInput(vehicle.nativeSlip, presetIndex);
   const recenter = advanceNativeChaseRecenter(state.recenter, presetIndex);
 
@@ -189,18 +183,16 @@ export function advanceNativeChaseCamera(
 }
 
 /**
- * Browser render projection of the recovered vehicle-relative preset vector.
- * PAL output-builder parity still requires an optional numeric camera trace;
- * field14, slipInput and recenter angle remain retained state, not guessed
- * render semantics.
+ * Native-space follow-helper target derived from the recovered vehicle-relative
+ * preset vector. This is controller state, not the final 0x00220458 camera
+ * output. Renderer handedness conversion must happen after final output.
  */
-export function projectNativeChasePresetForBrowser(
+export function projectNativeChaseFollowTarget(
   vehicle: NativeChaseVehiclePose,
   presetIndex: number,
-  yawSign: 1 | -1 = 1,
 ): { readonly position: NativeChaseVector; readonly target: NativeChaseVector } {
   const preset = nativeChasePreset(presetIndex);
-  const yaw = nativeChaseYawRadians(vehicle.nativeYaw, yawSign);
+  const yaw = nativeChaseYawRadians(vehicle.nativeYaw);
   const sine = Math.sin(yaw);
   const cosine = Math.cos(yaw);
   const [localX, localY, localZ] = preset.vector00;
