@@ -44,7 +44,7 @@ The English Options records at `0x00307dc0` and native configuration table at
 | Item | Name | Recovered role |
 |---:|---|---|
 | 0 | None | no option |
-| 1 | Water Ski | water driving; propulsion dependency |
+| 1 | Water Ski | `0x0100`: unsupported-contact steering authority; native seven-probe vertical/impulse branch |
 | 2 | Flight Wing | flight with jet turbine |
 | 3 | Police Light | roof light |
 | 4 | Sign | Peach Town café advertising |
@@ -52,6 +52,13 @@ The English Options records at `0x00307dc0` and native configuration table at
 | 6 | Sign | Sandpolis bakery advertising |
 | 7 | Sign | White Mountain wool-shop advertising |
 | 8 | Sign | Papaya Island coconut-shop advertising |
+
+Later PAL consumer recovery narrows Water Ski selector 1 to configuration flag
+`0x0100`. In the playable bridge it supplies unsupported-contact steering
+authority only; in the native seven-probe contact path it selects the recovered
+vertical/impulse handling. It is not a recovered propulsion source. Recovered
+special-contact thrust instead belongs to category 10 selector 1, Propeller
+(`0x0040`). No broader Water Ski water-driving semantics are claimed here.
 
 This matches the action-15 reward census: Owner fits item 4, Nobizo 5,
 Chocolat 6, Kate 7 and Daniel 8.
