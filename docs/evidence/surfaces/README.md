@@ -31,6 +31,24 @@ The census is collision-word evidence only. It does not infer surfaces from rend
 material colour, minimap roads, or other visual heuristics. High bits of each representative
 32-bit surface word are preserved verbatim instead of normalising the word to its low nibble.
 
+## Integrated surface/water validation
+
+`rtao/tests/surfaceWaterIntegration.pal.test.ts` exercises the live browser bridge against the
+same PAL image rather than forcing surface classes. It checks a paved Dry witness in FLD/223,
+Off-road and Grass in FLD/013, Snow and Ice in FLD/203, and Cloud Hill's ACTION/A16 Dry
+collision. It also locks the minimap-road precedence where a White Mountain paved ribbon sits
+over an Off-road collision word, the debug labels for the underlying native flags, and real
+White Mountain Snow/Ice specialist-tyre response through the recovered PAL motion authority.
+
+The retained Peach north-road probe crosses FLD/223 -> FLD/221 under ordinary unboosted native
+motion while remaining paved and ground-supported. A payload-free FLD/223 shoreline witness at
+car position `(578.781840, 20.5, 1317.168633)` has ordinary ground at 20.5 and the front-centre
+auxiliary plane at 21.5. Normal tyres therefore enter recovered deep state `+1`; Big Tyre's
+1.35 threshold yields shallow state `-1`. Water Ski does not alter motion there because wheel
+support is still present, matching its recovered unsupported-contact steering role rather than
+inventing propulsion. Static Wet remains intentionally unexercised because the complete census
+contains zero selector-2 field or special-outdoor triangles.
+
 Run the regression from `rtao` with the local PAL image:
 
 ```cmd
