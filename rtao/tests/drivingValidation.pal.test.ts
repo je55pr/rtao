@@ -23,6 +23,7 @@ import {
 } from "../src/game/nativeRaceMath";
 import { readNativeRaceObstaclePoints } from "../src/game/nativeRaceObstacle";
 import {
+  advanceNativeRaceVehicleVelocity,
   createNativeRaceVehicleState,
   nativeRaceDrag,
   readNativeRaceEquipment,
@@ -303,7 +304,7 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
     }
   }, 120_000);
 
-  test("free-roam native equipment selectors match the PAL scalar vehicle call independently and combined", async () => {
+  test("free-roam equipment preserves the retail PAL oracle and symmetric playable drift policy", async () => {
     const opened = await openPalDisc(binPath!);
     try {
       const executable = await opened.disc.readFile("SLES_513.56");
@@ -316,31 +317,56 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
           motion.setSelector(category, equipmentCase.selectors[category]!);
         }
         const machine = new PalScalarMachine(executable);
-        let palState = createNativeRaceVehicleState(0);
-        let palVelocity: NativeRaceVector = [0, 0, 0, 0];
+        let retailState = createNativeRaceVehicleState(0);
+        let retailVelocity: NativeRaceVector = [0, 0, 0, 0];
+        let symmetricState = createNativeRaceVehicleState(0);
+        let symmetricVelocity: NativeRaceVector = [0, 0, 0, 0];
 
         for (let tick = 0; tick < 160; tick += 1) {
           const throttle = tick < 90 ? 1 : tick < 125 ? -1 : 0;
           const steering = tick < 20 ? 0 : tick < 55 ? 1 : tick < 90 ? -1 : 0;
-          const commands = (throttle > 0 ? 1 : throttle < 0 ? (palState.nativeSpeed > 0 ? 2 : 5) : 0)
+          const commandsFor = (state: NativeRaceVehicleState): number =>
+            (throttle > 0 ? 1 : throttle < 0 ? (state.nativeSpeed > 0 ? 2 : 5) : 0)
             | (steering > 0 ? 0x2000 : steering < 0 ? 0x8000 : 0);
-          const yawRadians = Math.fround(
-            Math.fround((palState.yaw << 16 >> 16) * authority.yawScale) / 32768,
+          const retailCommands = commandsFor(retailState);
+          const retailYawRadians = Math.fround(
+            Math.fround((retailState.yaw << 16 >> 16) * authority.yawScale) / 32768,
           );
-          const matrix = nativeRaceYawMatrix(yawRadians, authority.math);
-          const inverse = inverseNativeRaceMatrix(matrix);
-          const localVelocity = transformNativeRaceIntegerVector(inverse, palVelocity);
-          const drag = nativeRaceDrag(localVelocity[2], localVelocity[0], equipment.mass, 0, 0, 0);
+          const retailMatrix = nativeRaceYawMatrix(retailYawRadians, authority.math);
+          const retailInverse = inverseNativeRaceMatrix(retailMatrix);
+          const retailLocalVelocity = transformNativeRaceIntegerVector(retailInverse, retailVelocity);
+          const retailDrag = nativeRaceDrag(retailLocalVelocity[2], retailLocalVelocity[0], equipment.mass, 0, 0, 0);
           const pal = palScalarMotionStep(
             machine,
-            palState,
+            retailState,
             equipment,
-            matrix,
-            drag.forward,
-            drag.side,
-            commands,
+            retailMatrix,
+            retailDrag.forward,
+            retailDrag.side,
+            retailCommands,
             89,
           );
+          const retail = advanceNativeRaceVehicleVelocity(
+            retailState,
+            equipment,
+            {
+              localForwardSpeed: retailDrag.forward,
+              localSideSpeed: retailDrag.side,
+              surfaceIndex: 0,
+              driveContact: true,
+              contactAccelerationY: 89,
+              contactAllowsYaw: true,
+            },
+            retailCommands,
+            4,
+            retailMatrix,
+            true,
+            "retail",
+          );
+          const label = `${equipmentCase.label} tick ${tick}`;
+          expect(retail.state, `${label} retail vehicle state`).toEqual(pal.state);
+          expect(retail.worldVelocity, `${label} retail world velocity`).toEqual(pal.worldVelocity);
+
           const browser = motion.step({
             throttle,
             steering,
@@ -353,11 +379,57 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
               propellerEnabled: false,
             },
           });
-          const label = `${equipmentCase.label} tick ${tick}`;
-          expect(browser.nativeVehicle, `${label} vehicle state`).toEqual(pal.state);
-          expect(browser.nativeVelocity, `${label} world velocity`).toEqual(pal.worldVelocity);
-          palState = pal.state;
-          palVelocity = pal.worldVelocity;
+          const symmetricCommands = commandsFor(symmetricState);
+          const symmetricYawRadians = Math.fround(
+            Math.fround((symmetricState.yaw << 16 >> 16) * authority.yawScale) / 32768,
+          );
+          const symmetricMatrix = nativeRaceYawMatrix(symmetricYawRadians, authority.math);
+          const symmetricInverse = inverseNativeRaceMatrix(symmetricMatrix);
+          const symmetricLocalVelocity = transformNativeRaceIntegerVector(symmetricInverse, symmetricVelocity);
+          const symmetricDrag = nativeRaceDrag(
+            symmetricLocalVelocity[2],
+            symmetricLocalVelocity[0],
+            equipment.mass,
+            0,
+            0,
+            0,
+          );
+          const symmetric = advanceNativeRaceVehicleVelocity(
+            symmetricState,
+            equipment,
+            {
+              localForwardSpeed: symmetricDrag.forward,
+              localSideSpeed: symmetricDrag.side,
+              surfaceIndex: 0,
+              driveContact: true,
+              contactAccelerationY: 89,
+              contactAllowsYaw: true,
+            },
+            symmetricCommands,
+            4,
+            symmetricMatrix,
+            true,
+            "symmetric",
+          );
+          expect(browser.commands, `${label} playable commands`).toBe(symmetricCommands);
+          expect(browser.nativeVehicle, `${label} playable vehicle state`).toEqual(symmetric.state);
+          expect(browser.nativeVelocity, `${label} playable world velocity`).toEqual(symmetric.worldVelocity);
+          if (equipmentCase.label === "x3-steering" && tick === 62) {
+            expect({
+              driftRate: pal.state.driftRate,
+              slipAngle: pal.state.slipAngle,
+              yaw: pal.state.yaw,
+            }).toEqual({ driftRate: -5, slipAngle: -45, yaw: 5320 });
+            expect({
+              driftRate: browser.nativeVehicle.driftRate,
+              slipAngle: browser.nativeVehicle.slipAngle,
+              yaw: browser.nativeVehicle.yaw,
+            }).toEqual({ driftRate: -1, slipAngle: -8, yaw: 5357 });
+          }
+          retailState = pal.state;
+          retailVelocity = pal.worldVelocity;
+          symmetricState = symmetric.state;
+          symmetricVelocity = symmetric.worldVelocity;
         }
       }
     } finally {

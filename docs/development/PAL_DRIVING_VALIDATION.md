@@ -9,9 +9,10 @@ The gate has three deliberately separate parts:
 - ordinary race motion/contact/equipment: browser TypeScript
   `advanceNativeRaceFrame` is compared frame-by-frame with instructions
   executed by `palRaceFrameOracle`;
-- free-roam motion core: `NativeDrivingMotion` is compared update-by-update
-  with the executable's original `0x0021B1C0` scalar vehicle call while both
-  receive the same explicit contact inputs;
+- free-roam motion core: the recovered retail scalar composition is compared
+  update-by-update with the executable's original `0x0021B1C0` vehicle call,
+  while `NativeDrivingMotion` is independently compared with that same scalar
+  composition using the explicit playable `symmetric` drift policy;
 - chase camera: the retained executable-backed preset/yaw/slip/lag/recenter
   contract is covered by deterministic tests. Live browser rendering currently
   uses an explicitly host-owned chase framing fallback because the recovered
@@ -53,14 +54,17 @@ Native integer/state fields are exact by default. Tolerances are explicit
 arguments to the comparison helper; do not widen them merely to make a changed
 browser implementation pass.
 
-The free-roam motion-core gate additionally runs eight 160-update cases through
-`NativeDrivingMotion` and the loaded executable routine: selector-zero baseline,
-Tyre, Engine, Chassis, Transmission, Steering and Brake independently, plus one
-combined loadout. Each case includes acceleration, both steering directions and
-a brake/reverse-command phase. Vehicle state and transformed world velocity
-must match exactly on every update. This locks the recovered equipment records,
-gearbox, drive force, traction, brake hold curve, steering accumulator/curvature,
-yaw/drift and fixed-point velocity transform behind the production runtime boundary.
+The free-roam motion-core gate additionally runs eight 160-update equipment
+cases: selector-zero baseline, Tyre, Engine, Chassis, Transmission, Steering and
+Brake independently, plus one combined loadout. Each case includes acceleration,
+both steering directions and a brake/reverse-command phase. The retail scalar
+composition must match the loaded executable exactly on vehicle state and world
+velocity at every update. Separately, `NativeDrivingMotion` must match the same
+composition with the explicit playable `symmetric` drift policy exactly. The
+x3-steering tick-62 fork is retained as a witness: retail reaches drift/slip/yaw
+`-5/-45/5320`, while playable symmetric drift reaches `-1/-8/5357`. This keeps
+raw retail authority coverage intact without misclassifying the intentional host
+policy as PAL behavior.
 
 ## Camera authority and optional output trace
 
