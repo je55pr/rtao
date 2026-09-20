@@ -1,5 +1,5 @@
 import { deserializeCompiledCollision, type CompiledFieldCollision } from "../formats/fieldCollision";
-import { deserializeCompiledField, type CompiledFieldBatch, type CompiledFieldMesh } from "../formats/fieldGeometry";
+import { deserializeCompiledField, type CompiledFieldMesh } from "../formats/fieldGeometry";
 import type { CompiledRoadNetwork } from "../formats/fieldMinimap";
 import { fieldExtent, normalizeRenderPosition } from "./worldTopology";
 
@@ -198,7 +198,10 @@ export class DrivingWorld {
 
   specialOutdoorDrivingSurface(areaCode: number, position: Vec3, referenceY = position.y): DrivingSurfaceKind {
     const collision = this.specialOutdoorScenes.get(areaCode)?.sampleClosest(position.x, position.z, referenceY);
-    return this.specialOutdoorSurfaces.get(areaCode)?.kindAt(position.x, position.z, referenceY, collision?.surfaceFlags) ?? "paved-road";
+    const surfaceSampler = this.specialOutdoorSurfaces.get(areaCode);
+    if (surfaceSampler) return surfaceSampler.kindAt(position.x, position.z, collision?.surfaceFlags);
+    if (!collision) return "other";
+    return nativeDrivingSurfaceFromCollisionFlags(collision.surfaceFlags) ?? "other";
   }
 
   resolveSpecialOutdoorFootprint(
@@ -259,8 +262,11 @@ export class DrivingWorld {
 
   drivingSurface(originFieldNumber: number, position: Vec3, referenceY = position.y): DrivingSurfaceKind {
     const normalized = normalizeRenderPosition(originFieldNumber, { x: position.x, y: position.z });
-    const surfaceFlags = this.fields.get(normalized.fieldNumber)?.sampleClosest(normalized.localPosition.x, normalized.localPosition.y, referenceY)?.surfaceFlags;
-    return this.surfaces.get(normalized.fieldNumber)?.kindAt(normalized.localPosition.x, normalized.localPosition.y, referenceY, surfaceFlags) ?? "paved-road";
+    const collision = this.fields.get(normalized.fieldNumber)?.sampleClosest(normalized.localPosition.x, normalized.localPosition.y, referenceY);
+    const surfaceSampler = this.surfaces.get(normalized.fieldNumber);
+    if (surfaceSampler) return surfaceSampler.kindAt(normalized.localPosition.x, normalized.localPosition.y, collision?.surfaceFlags);
+    if (!collision) return "other";
+    return nativeDrivingSurfaceFromCollisionFlags(collision.surfaceFlags) ?? "other";
   }
 
   resolveFootprint(originFieldNumber: number, candidate: Vec3, yaw: number, referenceY: number, contactThreshold = 0.5): ResolvedFootprint | undefined {
@@ -299,30 +305,13 @@ export class DrivingWorld {
 }
 
 class FieldDrivingSurfaceSampler {
-  private readonly batchesByChunk = new Map<number, CompiledFieldBatch[]>();
+  constructor(private readonly mesh: CompiledFieldMesh) {}
 
-  constructor(private readonly mesh: CompiledFieldMesh) {
-    for (const batch of mesh.batches) {
-      if (batch.billboard || batch.chunkIndex < 0 || batch.chunkIndex >= 64) continue;
-      const sourceX = batch.chunkIndex % 8, z = Math.floor(batch.chunkIndex / 8);
-      const key = 7 - sourceX + z * 8;
-      const list = this.batchesByChunk.get(key) ?? [];
-      list.push(batch);
-      this.batchesByChunk.set(key, list);
-    }
-  }
-
-  kindAt(x: number, z: number, referenceY: number, surfaceFlags?: number): DrivingSurfaceKind {
+  kindAt(x: number, z: number, surfaceFlags?: number): DrivingSurfaceKind {
     const roadKind = this.roadKindAt(x, z);
     if (roadKind) return roadKind;
-    if (surfaceFlags !== undefined) {
-      const nativeSurface = nativeDrivingSurfaceFromCollisionFlags(surfaceFlags);
-      if (nativeSurface) return nativeSurface;
-    }
-    const textureBasePointer = this.closestTextureAt(x, z, referenceY);
-    if (textureBasePointer === 14515) return "grass";
-    if (textureBasePointer === 14634) return "dirt";
-    return "other";
+    if (surfaceFlags === undefined) return "other";
+    return nativeDrivingSurfaceFromCollisionFlags(surfaceFlags) ?? "other";
   }
 
   private roadKindAt(x: number, z: number): DrivingSurfaceKind | undefined {
@@ -338,41 +327,6 @@ class FieldDrivingSurfaceSampler {
     }
     return undefined;
   }
-
-  private closestTextureAt(x: number, z: number, referenceY: number): number | undefined {
-    const chunkX = Math.max(0, Math.min(7, Math.floor(x / 200))), chunkZ = Math.max(0, Math.min(7, Math.floor(z / 200)));
-    let bestTexture: number | undefined, bestDistance = Number.POSITIVE_INFINITY;
-    for (let dz = -1; dz <= 1; dz += 1) for (let dx = -1; dx <= 1; dx += 1) {
-      const neighbourX = chunkX + dx, neighbourZ = chunkZ + dz;
-      if (neighbourX < 0 || neighbourX >= 8 || neighbourZ < 0 || neighbourZ >= 8) continue;
-      for (const batch of this.batchesByChunk.get(neighbourX + neighbourZ * 8) ?? []) {
-        const positions = batch.positions;
-        for (let offset = 0; offset + 8 < positions.length; offset += 9) {
-          const y = sampleExpandedTriangleY(positions, offset, x, z);
-          if (y === undefined) continue;
-          const distance = Math.abs(y - referenceY);
-          if (distance < bestDistance) {
-            bestDistance = distance;
-            bestTexture = batch.textureBasePointer;
-          }
-        }
-      }
-    }
-    return bestTexture;
-  }
-}
-
-function sampleExpandedTriangleY(p: Float32Array, offset: number, x: number, z: number): number | undefined {
-  const ax = p[offset] ?? 0, ay = p[offset + 1] ?? 0, az = p[offset + 2] ?? 0;
-  const bx = p[offset + 3] ?? 0, by = p[offset + 4] ?? 0, bz = p[offset + 5] ?? 0;
-  const cx = p[offset + 6] ?? 0, cy = p[offset + 7] ?? 0, cz = p[offset + 8] ?? 0;
-  const v0x = bx - ax, v0z = bz - az, v1x = cx - ax, v1z = cz - az, v2x = x - ax, v2z = z - az;
-  const determinant = v0x * v1z - v1x * v0z;
-  if (Math.abs(determinant) < 0.00001) return undefined;
-  const u = (v2x * v1z - v1x * v2z) / determinant, v = (v0x * v2z - v2x * v0z) / determinant;
-  if (u < -0.002 || v < -0.002 || u + v > 1.002) return undefined;
-  const y = ay + u * (by - ay) + v * (cy - ay);
-  return Number.isFinite(y) ? y : undefined;
 }
 
 function containsTriangle2d(ax: number, az: number, bx: number, bz: number, cx: number, cz: number, x: number, z: number): boolean {

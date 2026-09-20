@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { diagnosticsReportText, FrameRateSampler, liveDiagnosticsRows, surfaceLabel } from "./debugDiagnostics";
+import { diagnosticsReportText, FrameRateSampler, liveDiagnosticsRows, nativeCollisionSurfaceLabel, surfaceLabel } from "./debugDiagnostics";
 
 const live = {
   mode: "driving",
@@ -7,6 +7,7 @@ const live = {
   fieldNumber: 223,
   position: { x: 1582.5, y: 31.25, z: 40 },
   surface: "paved-road",
+  surfaceFlags: 0x80100651,
   loadedSectors: 9,
   installStage: "complete",
 } as const;
@@ -14,21 +15,24 @@ const live = {
 describe("live diagnostics rows", () => {
   test("keeps raw reconstruction values out of the game HUD and in the overlay", () => {
     const rows = liveDiagnosticsRows(live);
-    expect(rows.map((row) => row.label)).toEqual(["Mode", "FPS", "Cache", "Field", "Position", "Surface"]);
+    expect(rows.map((row) => row.label)).toEqual(["Mode", "FPS", "Cache", "Field", "Position", "Resolved surface", "Native collision"]);
     expect(rows[1]!.value).toBe("60");
     expect(rows[3]!.value).toBe("FLD/223");
     expect(rows[4]!.value).toBe("1582.50, 31.25, 40.00");
     expect(rows[5]!.value).toBe("Paved road");
+    expect(rows[6]!.value).toBe("Off-road · selector 1 · 0x80100651");
   });
 
   test("renders placeholders when nothing is being driven", () => {
-    const rows = liveDiagnosticsRows({ ...live, mode: "overview", fps: undefined, fieldNumber: undefined, position: undefined, surface: undefined });
-    expect(rows.map((row) => row.value)).toEqual(["overview", "—", "complete · 9 live", "—", "—", "—"]);
+    const rows = liveDiagnosticsRows({ ...live, mode: "overview", fps: undefined, fieldNumber: undefined, position: undefined, surface: undefined, surfaceFlags: undefined });
+    expect(rows.map((row) => row.value)).toEqual(["overview", "—", "complete · 9 live", "—", "—", "—", "—"]);
   });
 
-  test("labels every native driving surface", () => {
+  test("labels resolved and raw native surfaces separately", () => {
     expect(surfaceLabel("dirt")).toBe("Dirt");
     expect(surfaceLabel("ice")).toBe("Ice");
+    expect(nativeCollisionSurfaceLabel(0x00000444)).toBe("Snow · selector 4 · 0x00000444");
+    expect(nativeCollisionSurfaceLabel(0x0000000f)).toBe("Unresolved · selector 15 · 0x0000000f");
   });
 });
 

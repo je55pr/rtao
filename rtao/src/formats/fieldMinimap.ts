@@ -31,7 +31,9 @@ const minimapVuProgram = 10;
 const vectorsPerVertex = 4;
 const bytesPerVector3 = 12;
 const roadMapColor = 88;
-const dirtTextureBasePointer = 14634;
+// This pointer is retained only to tag the four authored dirt-road ribbons during compilation.
+// Free terrain classification must come from collision surface words, never render textures.
+const dirtRoadUnderlayTextureBasePointer = 14634;
 
 export function readFieldMinimapPrimitives(bytes: Uint8Array): FieldMinimapPrimitive[] {
   const header = readFieldHeader(bytes);
@@ -101,7 +103,7 @@ export function compileFieldRoadNetwork(bytes: Uint8Array, renderPrimitives: Fie
       const a = projected[pair * 2], b = projected[Math.min(pair * 2 + 1, projected.length - 1)];
       if (!a || !b) continue;
       const underlay = surface.sampleHighest((a.x + b.x) * 0.5, (a.z + b.z) * 0.5);
-      if (underlay?.textureBasePointer === dirtTextureBasePointer) dirtSamples += 1;
+      if (underlay?.textureBasePointer === dirtRoadUnderlayTextureBasePointer) dirtSamples += 1;
     }
     const dirt = dirtSamples > pairCount / 2;
     ribbonCount += 1;

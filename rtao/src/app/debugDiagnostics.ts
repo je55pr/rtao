@@ -4,7 +4,7 @@
  * developer opens the overlay.
  */
 
-import type { DrivingSurfaceKind } from "../game/worldCollision";
+import { nativeDrivingSurfaceFromCollisionFlags, type DrivingSurfaceKind } from "../game/worldCollision";
 
 export interface DiagnosticsRow {
   readonly label: string;
@@ -17,6 +17,7 @@ export interface LiveDiagnostics {
   readonly fieldNumber: number | undefined;
   readonly position: { readonly x: number; readonly y: number; readonly z: number } | undefined;
   readonly surface: DrivingSurfaceKind | undefined;
+  readonly surfaceFlags: number | undefined;
   readonly loadedSectors: number;
   readonly installStage: string | undefined;
 }
@@ -36,6 +37,13 @@ export function surfaceLabel(kind: DrivingSurfaceKind): string {
   return surfaceLabels[kind];
 }
 
+export function nativeCollisionSurfaceLabel(surfaceFlags: number): string {
+  const selector = surfaceFlags & 0xf;
+  const kind = nativeDrivingSurfaceFromCollisionFlags(surfaceFlags);
+  const nativeName = kind === "dirt" ? "Off-road" : kind ? surfaceLabel(kind) : "Unresolved";
+  return `${nativeName} · selector ${selector} · 0x${(surfaceFlags >>> 0).toString(16).padStart(8, "0")}`;
+}
+
 export function liveDiagnosticsRows(live: LiveDiagnostics): readonly DiagnosticsRow[] {
   return [
     { label: "Mode", value: live.mode },
@@ -46,7 +54,8 @@ export function liveDiagnosticsRows(live: LiveDiagnostics): readonly Diagnostics
       label: "Position",
       value: live.position ? `${live.position.x.toFixed(2)}, ${live.position.y.toFixed(2)}, ${live.position.z.toFixed(2)}` : "—",
     },
-    { label: "Surface", value: live.surface ? surfaceLabel(live.surface) : "—" },
+    { label: "Resolved surface", value: live.surface ? surfaceLabel(live.surface) : "—" },
+    { label: "Native collision", value: live.surfaceFlags === undefined ? "—" : nativeCollisionSurfaceLabel(live.surfaceFlags) },
   ];
 }
 

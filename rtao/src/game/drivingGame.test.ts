@@ -23,6 +23,17 @@ class ForcedSurfaceWorld extends DrivingWorld {
   }
 }
 
+class PositionSurfaceWorld extends DrivingWorld {
+  constructor() {
+    super();
+    for (const field of allWorldFieldNumbers()) this.addCompiledField(field, flatFieldCollision());
+  }
+
+  override drivingSurface(_originFieldNumber: number, position: Vec3, _referenceY?: number): DrivingSurfaceKind {
+    return position.z > 555.4 ? "snow" : "dry";
+  }
+}
+
 class FloodedEdgeWorld extends DrivingWorld {
   private flooded = false;
 
@@ -66,6 +77,22 @@ describe("recovered driving integration", () => {
     expect(a.state.nativeEngineSpeed).toBeGreaterThan(0);
     expect(a.state.nativeEngineLayerSelector).toBe(1);
     expect(a.state.distanceTravelled).toBeGreaterThan(0);
+  });
+
+  test("reports the resolved surface at the post-step position without changing contact physics", () => {
+    const world = new PositionSurfaceWorld();
+    const car = controller(world);
+    let crossed = false;
+    for (let frame = 0; frame < 120; frame += 1) {
+      const beforeZ = car.state.position.z;
+      car.update(nativeDrivingFixedStepSeconds, drive);
+      if (beforeZ <= 555.4 && car.state.position.z > 555.4) {
+        expect(car.state.surfaceKind).toBe("snow");
+        crossed = true;
+        break;
+      }
+    }
+    expect(crossed).toBe(true);
   });
 
   test("rejects browser timing that would rescale native update arithmetic", () => {

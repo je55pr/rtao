@@ -9,7 +9,7 @@ describe("compiled field collision", () => {
         0, 3, 0, 10, 3, 0, 0, 3, 10,
         10, 3, 0, 10, 3, 10, 0, 3, 10,
       ]),
-      surfaceFlags: new Uint32Array([0x1234, 0xabcd]),
+      surfaceFlags: new Uint32Array([0x80100651, 0x00000455]),
     });
     const decoded = deserializeCompiledCollision(encoded);
     expect(decoded.triangleCount).toBe(2);
@@ -17,6 +17,6 @@ describe("compiled field collision", () => {
       0, 3, 0, 10, 3, 0, 0, 3, 10,
       10, 3, 0, 10, 3, 10, 0, 3, 10,
     ]);
-    expect([...decoded.surfaceFlags]).toEqual([0x1234, 0xabcd]);
+    expect([...decoded.surfaceFlags]).toEqual([0x80100651, 0x00000455]);
   });
 });

@@ -32,13 +32,15 @@ describe("world collision", () => {
     expect(world.resolveFootprint(223, { x: 800, y: 0, z: 800 }, 0, 0, Math.fround(1.35))?.y).toBe(0);
   });
 
-  it("classifies field materials and lets authored road ribbons override them", () => {
+  it("does not guess field surfaces from legacy texture pointers", () => {
     const world = new DrivingWorld();
-    const grass = surfaceMesh(14515);
-    world.addCompiledFieldSurface(223, grass);
-    expect(world.drivingSurface(223, { x: 800, y: 0, z: 800 })).toBe("grass");
-    world.addCompiledFieldSurface(223, surfaceMesh(14515, 1));
+    world.addCompiledField(223, flatFieldCollision(0, 0x111));
+    world.addCompiledFieldSurface(223, surfaceMesh(14515));
     expect(world.drivingSurface(223, { x: 800, y: 0, z: 800 })).toBe("dirt");
+
+    world.addCompiledField(220, flatFieldCollision(0, 0x006));
+    world.addCompiledFieldSurface(220, surfaceMesh(14515));
+    expect(world.drivingSurface(220, { x: 800, y: 0, z: 800 })).toBe("other");
   });
 
   it("decodes the collision low nibble in native tyre-table order", () => {
@@ -51,13 +53,46 @@ describe("world collision", () => {
     expect(nativeDrivingSurfaceFromCollisionFlags(0x006)).toBeUndefined();
   });
 
-  it("uses native collision surfaces while retaining road-ribbon priority", () => {
+  it("applies authored road precedence before the native collision selector", () => {
     const world = new DrivingWorld();
     world.addCompiledField(203, flatFieldCollision(0, 0x444));
     world.addCompiledFieldSurface(203, surfaceMesh(14535));
     expect(world.drivingSurface(203, { x: 800, y: 0, z: 800 })).toBe("snow");
     world.addCompiledFieldSurface(203, surfaceMesh(14535, 0));
     expect(world.drivingSurface(203, { x: 800, y: 0, z: 800 })).toBe("paved-road");
+    world.addCompiledFieldSurface(203, surfaceMesh(14535, 1));
+    expect(world.drivingSurface(203, { x: 800, y: 0, z: 800 })).toBe("dirt");
+  });
+
+  it("uses collision selectors even when no render-surface cache is loaded", () => {
+    const world = new DrivingWorld();
+    world.addCompiledField(113, flatFieldCollision(0, 0x00000455));
+    expect(world.drivingSurface(113, { x: 800, y: 0, z: 800 })).toBe("ice");
+    expect(world.drivingSurface(203, { x: 800, y: 0, z: 800 })).toBe("other");
+  });
+
+  it("resolves native surfaces through ordinary field seams", () => {
+    const world = new DrivingWorld();
+    const origin = fieldNumberFromAddress(5, 0);
+    const acrossNorthSeam = fieldNumberFromAddress(4, 7);
+    world.addCompiledField(origin, flatFieldCollision(0, 0x444));
+    world.addCompiledField(acrossNorthSeam, flatFieldCollision(0, 0x455));
+    world.addCompiledFieldSurface(origin, surfaceMesh(14535));
+    world.addCompiledFieldSurface(acrossNorthSeam, surfaceMesh(14535));
+
+    expect(world.drivingSurface(origin, { x: 960, y: 0, z: 0.2 })).toBe("snow");
+    expect(world.drivingSurface(origin, { x: 960, y: 0, z: -0.2 })).toBe("ice");
+  });
+
+  it("samples special-outdoor native collision without a texture or road guess", () => {
+    const world = new DrivingWorld();
+    world.addCompiledSpecialOutdoor(16, flatFieldCollision(50, 0x00002550));
+    const point = { x: 800, y: 50, z: 800 };
+    expect(world.sampleSpecialOutdoorGround(16, point, 50)).toEqual({ y: 50, surfaceFlags: 0x00002550 });
+    expect(world.specialOutdoorDrivingSurface(16, point, 50)).toBe("dry");
+
+    world.addCompiledSpecialOutdoorSurface(16, surfaceMesh(14515));
+    expect(world.specialOutdoorDrivingSurface(16, point, 50)).toBe("dry");
   });
 });
 

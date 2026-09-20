@@ -195,13 +195,13 @@ export class ArcadeCarController {
     const old = this.mutable;
     const throttle = clamp(input.throttle, -1, 1);
     const steering = clamp(input.steering, -1, 1);
-    const surfaceKind = old.location.kind === "special-outdoor"
+    const contactSurfaceKind = old.location.kind === "special-outdoor"
       ? this.world.specialOutdoorDrivingSurface(old.location.areaCode, old.position, old.position.y)
       : this.world.drivingSurface(old.fieldNumber, old.position, old.position.y);
     const motion = this.motion.step({
       throttle,
       steering,
-      surfaceKind,
+      surfaceKind: contactSurfaceKind,
       contact: {
         // Free-roam still uses the browser footprint bridge, not PAL's seven-
         // probe support solver. 89 is PAL's recovered gravity quantum and is
@@ -271,6 +271,9 @@ export class ArcadeCarController {
       ? old.location
       : { kind: "standard-world", fieldNumber: resolvedFieldNumber };
     const attitude = this.groundAttitude(nextLocation, resolved.position, yaw, old.pitch, old.roll, dt);
+    const resolvedSurfaceKind = nextLocation.kind === "special-outdoor"
+      ? this.world.specialOutdoorDrivingSurface(nextLocation.areaCode, resolved.position, resolved.y)
+      : this.world.drivingSurface(nextLocation.fieldNumber, resolved.position, resolved.y);
     this.mutable = {
       location: nextLocation,
       fieldNumber: nextLocation.kind === "standard-world" ? nextLocation.fieldNumber : -1,
@@ -284,7 +287,7 @@ export class ArcadeCarController {
       pitch: attitude.pitch,
       roll: attitude.roll,
       surfaceFlags: resolved.surfaceFlags,
-      surfaceKind,
+      surfaceKind: resolvedSurfaceKind,
       nativeEngineSpeed: motion.nativeVehicle.engineSpeed,
       nativeEngineLayerSelector: (motion.commands & 1) as 0 | 1,
       distanceTravelled: old.distanceTravelled + distanceMoved,

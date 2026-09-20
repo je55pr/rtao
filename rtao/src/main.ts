@@ -1874,6 +1874,7 @@ function refreshDebugOverlay(): void {
     fieldNumber: state?.location.kind === "standard-world" ? state.fieldNumber : undefined,
     position: state?.position,
     surface: state?.surfaceKind,
+    surfaceFlags: state?.surfaceFlags,
     loadedSectors: loadedWorldFieldNumbers.size,
     installStage: activeManifest?.installStage,
   });
