@@ -38,6 +38,22 @@ The native side owns all state whose next value depends on the previous PAL
 tick. The host owns scene selection, collision-data lifetime, browser input
 collection, effect/audio delivery and final render-space projection.
 
+Construction and standard-FLD relocation follow the same ownership boundary.
+When authored native FLD collision is loaded, the requested field/position is
+passed directly into `NativeOutdoorContact` and primed there; the browser
+four-corner `resolveFootprint` result must not seed, rebase or pre-average that
+initial native state. Compiled-only fixtures retain the old footprint bridge as
+an explicit compatibility fallback, and special-outdoor scenes retain their
+separate compatibility path until native dispatch is recovered.
+
+The active equipment selector snapshot is part of that initialization
+transaction. It must be applied before the initial contact prime, not patched in
+after a baseline prime. In particular, Big Tyre contributes `0x0400` to both
+the contact and global-equipment inputs so the first exposed pose has the
+recovered `+0.85` body lift and `1.35` auxiliary threshold; Water Ski contributes
+`0x0100` to that same first contact state. Relocation primes with the selectors
+already active on the controller.
+
 The required ordering for one driving tick is:
 
 1. consume commands and advance recovered native velocity state;

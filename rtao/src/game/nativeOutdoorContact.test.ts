@@ -120,6 +120,21 @@ describe("native outdoor contact recurrence", () => {
     expect(pose.position.x).toBeLessThanOrEqual(1600);
   });
 
+  test("fails closed at north/south world edges instead of injecting the browser torus", () => {
+    const query = groundQuery(() => 0);
+    const northField = fieldNumberFromAddress(3, 0);
+    const southField = fieldNumberFromAddress(3, 7);
+    const north = runtime({ x: 800, y: 0, z: 0.2 }, northField);
+    const south = runtime({ x: 800, y: 0, z: 1599.8 }, southField);
+    north.prime(query);
+    south.prime(query);
+
+    expect(north.advance(retainedStep(0, -32768), query)).toBeUndefined();
+    expect(south.advance(retainedStep(0, 32768), query)).toBeUndefined();
+    expect(north.pose(0).fieldNumber).toBe(northField);
+    expect(south.pose(0).fieldNumber).toBe(southField);
+  });
+
   test("retains compression and rebound history instead of rebuilding level support", () => {
     const contact = runtime();
     const flat = groundQuery(() => 0);

@@ -1670,8 +1670,8 @@ async function toggleDriving(): Promise<void> {
     semanticInput,
     readNativeDrivingMotionAuthority(activeExecutableBytes),
     (state, enabled) => syncNativeEngineAudio(state.nativeEngineSpeed, state.nativeEngineLayerSelector, enabled),
+    playerEquipmentState,
   );
-  applyNativeDrivingEquipment(drivingGame, playerEquipmentState);
   advertisingDistanceTracker.reset();
   interactionContactTracker.clear();
   drivingGame.start();

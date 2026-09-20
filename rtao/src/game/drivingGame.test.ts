@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 import type { CompiledFieldCollision } from "../formats/fieldCollision";
 import { ArcadeCarController } from "./drivingGame";
-import { applyNativeDrivingEquipment } from "./nativeDrivingEquipment";
 import { nativeDrivingFixedStepSeconds, nativeDrivingSurfaceIndex } from "./nativeDrivingMotion";
+import type { NativeRaceCollisionPoint } from "./nativeRaceCollision";
 import { syntheticNativeDrivingMotionAuthority } from "./nativeDrivingMotion.testSupport";
 import { allWorldFieldNumbers } from "./worldTopology";
 import { DrivingWorld, flatFieldCollision, type DrivingSurfaceKind, type Vec3 } from "./worldCollision";
@@ -35,6 +35,32 @@ class PositionSurfaceWorld extends DrivingWorld {
   }
 }
 
+class NativeOnlyWorld extends DrivingWorld {
+  footprintCalls = 0;
+
+  constructor(private readonly auxiliaryY = 0) {
+    super();
+  }
+
+  override hasNativeField(_fieldNumber: number): boolean {
+    return true;
+  }
+
+  override queryNativeContact(_originFieldNumber: number, point: NativeRaceCollisionPoint) {
+    const hit: NativeRaceCollisionPoint = [point[0], 0, point[2], this.auxiliaryY];
+    return { point: hit, flags: 0x550, ceilingY: 10000 };
+  }
+
+  override resolveFootprint(..._args: Parameters<DrivingWorld["resolveFootprint"]>): never {
+    this.footprintCalls += 1;
+    throw new Error("native standard-FLD initialization must not resolve a browser footprint");
+  }
+
+  override drivingSurface(): DrivingSurfaceKind {
+    return "dry";
+  }
+}
+
 function controller(world: DrivingWorld): ArcadeCarController {
   return new ArcadeCarController(world, syntheticNativeDrivingMotionAuthority());
 }
@@ -56,6 +82,50 @@ function collisionSurfaceWorld(surfaceFlags: number): DrivingWorld {
 }
 
 describe("recovered driving integration", () => {
+  test("initializes and relocates native standard FLD contact without the browser four-point resolver", () => {
+    const world = new NativeOnlyWorld();
+    const car = new ArcadeCarController(
+      world,
+      syntheticNativeDrivingMotionAuthority(),
+      223,
+      { x: 800, y: 0, z: 800 },
+      0,
+    );
+    expect(world.footprintCalls).toBe(0);
+    expect(car.state.contactHasGroundSupport).toBe(true);
+    expect(car.state.nativeBodyMatrix).toBeDefined();
+
+    car.teleport(223, { x: 700, y: 0, z: 700 }, 0.25);
+    expect(world.footprintCalls).toBe(0);
+    expect(car.state.position.x).toBeCloseTo(700, 5);
+    expect(car.state.position.z).toBeCloseTo(700, 5);
+  });
+
+  test("primes already-equipped Big Tyre with its native lift and shoreline threshold", () => {
+    const ordinary = new ArcadeCarController(
+      new NativeOnlyWorld(0.8),
+      syntheticNativeDrivingMotionAuthority(),
+      223,
+      { x: 800, y: 0, z: 800 },
+      0,
+    );
+    const big = new ArcadeCarController(
+      new NativeOnlyWorld(0.8),
+      syntheticNativeDrivingMotionAuthority(),
+      223,
+      { x: 800, y: 0, z: 800 },
+      0,
+      { selectedItem: (_loadout, category) => category === 1 ? 11 : 0 },
+    );
+
+    expect(ordinary.state.contactSpecialState).toBe(1);
+    expect(big.state.contactSpecialState).toBe(-1);
+    expect(big.state.contactRuntimeFlags & 0x40).toBe(0x40);
+    expect(big.state.nativeBodyMatrix).toBeDefined();
+    expect(ordinary.state.nativeBodyMatrix).toBeDefined();
+    expect(big.state.nativeBodyMatrix![13]! - ordinary.state.nativeBodyMatrix![13]!).toBeCloseTo(0.85, 7);
+  });
+
   test("advances deterministically at the recovered 50 Hz fixed step", () => {
     const a = controller(flatWorld());
     const b = controller(flatWorld());
@@ -263,17 +333,17 @@ describe("recovered driving integration", () => {
     const makeCar = (propeller: boolean, waterSki: boolean) => {
       const world = new DrivingWorld();
       world.addCompiledField(223, auxiliaryOnlyCollision(0.8));
-      const car = new ArcadeCarController(
+      return new ArcadeCarController(
         world,
         syntheticNativeDrivingMotionAuthority(),
         223,
         { x: 800, y: 0, z: 800 },
         0,
+        {
+          selectedItem: (_loadout, category) =>
+            ((category === 10 && propeller) || (category === 11 && waterSki)) ? 1 : 0,
+        },
       );
-      applyNativeDrivingEquipment(car, {
-        selectedItem: (_loadout, category) => ((category === 10 && propeller) || (category === 11 && waterSki)) ? 1 : 0,
-      });
-      return car;
     };
     const neither = makeCar(false, false);
     const skiOnly = makeCar(false, true);

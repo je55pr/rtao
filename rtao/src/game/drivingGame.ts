@@ -6,6 +6,7 @@ import {
   nativeDrivingSurfaceIndex,
   type NativeDrivingMotionAuthority,
 } from "./nativeDrivingMotion";
+import { applyNativeDrivingEquipment, type NativeDrivingEquipmentSource } from "./nativeDrivingEquipment";
 import { nativeBigTyreSelector, nativeTyreContactThreshold } from "./nativeTyrePerformance";
 import {
   nativeOptionConfigurationFlag,
@@ -99,36 +100,14 @@ export class ArcadeCarController {
     fieldNumber = 223,
     position: Vec3 = { x: 1152, y: 31, z: 555 },
     yaw = -0.1,
+    initialEquipment?: NativeDrivingEquipmentSource,
   ) {
     this.motion = new NativeDrivingMotion(this.motionAuthority, yaw);
-    const resolved = world.resolveFootprint(fieldNumber, position, yaw, position.y);
-    const resolvedFieldNumber = resolved?.fieldNumber ?? fieldNumber;
-    const contact = this.auxiliaryContact(position.y, resolved?.auxiliaryY);
-    this.mutable = {
-      location: { kind: "standard-world", fieldNumber: resolvedFieldNumber },
-      fieldNumber: resolvedFieldNumber,
-      position: resolved?.position ?? position,
-      yaw,
-      nativeYaw: this.motion.nativeVehicle.yaw,
-      nativeSlipAngle: this.motion.nativeVehicle.slipAngle,
-      speed: 0,
-      steeringAngle: 0,
-      wheelSpin: 0,
-      pitch: 0,
-      roll: 0,
-      surfaceFlags: resolved?.surfaceFlags ?? 0,
-      surfaceKind: world.drivingSurface(resolved?.fieldNumber ?? fieldNumber, resolved?.position ?? position, resolved?.y ?? position.y),
-      contactSpecialState: contact.specialState,
-      contactRuntimeFlags: contact.runtimeFlags,
-      contactHasGroundSupport: resolved?.hasGroundSupport ?? false,
-      contactAuxiliaryY: resolved?.auxiliaryY,
-      nativeContactSurfaceFlags: contact.specialState > 0
-        ? nativeDeepAuxiliarySurface(resolved?.surfaceFlags ?? 0)
-        : resolved?.surfaceFlags ?? 0,
-      nativeEngineSpeed: 0,
-      nativeEngineLayerSelector: 0,
-      distanceTravelled: 0,
-    };
+    // Startup equipment must exist before the first native contact prime: Big Tyre
+    // changes both body lift and the auxiliary threshold, while Water Ski changes
+    // the native contact flag word consumed by that same recurrence.
+    applyNativeDrivingEquipment(this, initialEquipment);
+    this.mutable = this.standardWorldState(fieldNumber, position, yaw, 0);
     this.resetNativeContact(this.mutable.fieldNumber, this.mutable.position, yaw);
   }
 
@@ -197,6 +176,73 @@ export class ArcadeCarController {
       // retain the recovered 0x40 transition as a per-update pulse here as well.
       runtimeFlags: 0,
     });
+  }
+
+  private standardWorldState(
+    fieldNumber: number,
+    position: Vec3,
+    yaw: number,
+    distanceTravelled: number,
+  ): CarState {
+    if (this.world.hasNativeField(fieldNumber)) {
+      return {
+        location: { kind: "standard-world", fieldNumber },
+        fieldNumber,
+        position,
+        yaw,
+        nativeYaw: this.motion.nativeVehicle.yaw,
+        nativeSlipAngle: this.motion.nativeVehicle.slipAngle,
+        speed: 0,
+        steeringAngle: 0,
+        wheelSpin: 0,
+        pitch: 0,
+        roll: 0,
+        surfaceFlags: 0,
+        surfaceKind: "other",
+        contactSpecialState: 0,
+        contactRuntimeFlags: 0,
+        contactHasGroundSupport: false,
+        contactAuxiliaryY: undefined,
+        nativeContactSurfaceFlags: 0,
+        nativeEngineSpeed: 0,
+        nativeEngineLayerSelector: 0,
+        distanceTravelled,
+      };
+    }
+
+    // Compiled-only fixtures retain the old browser compatibility bridge.
+    const resolved = this.world.resolveFootprint(fieldNumber, position, yaw, position.y);
+    const resolvedFieldNumber = resolved?.fieldNumber ?? fieldNumber;
+    const contact = this.auxiliaryContact(position.y, resolved?.auxiliaryY);
+    return {
+      location: { kind: "standard-world", fieldNumber: resolvedFieldNumber },
+      fieldNumber: resolvedFieldNumber,
+      position: resolved?.position ?? position,
+      yaw,
+      nativeYaw: this.motion.nativeVehicle.yaw,
+      nativeSlipAngle: this.motion.nativeVehicle.slipAngle,
+      speed: 0,
+      steeringAngle: 0,
+      wheelSpin: 0,
+      pitch: 0,
+      roll: 0,
+      surfaceFlags: resolved?.surfaceFlags ?? 0,
+      surfaceKind: this.world.drivingSurface(
+        resolved?.fieldNumber ?? fieldNumber,
+        resolved?.position ?? position,
+        resolved?.y ?? position.y,
+      ),
+      contactSpecialState: contact.specialState,
+      contactRuntimeFlags: contact.runtimeFlags,
+      contactHasGroundSupport: resolved?.hasGroundSupport ?? false,
+      contactAuxiliaryY: resolved?.auxiliaryY,
+      nativeContactSurfaceFlags: contact.specialState > 0
+        ? nativeDeepAuxiliarySurface(resolved?.surfaceFlags ?? 0)
+        : resolved?.surfaceFlags ?? 0,
+      nativeEngineSpeed: 0,
+      nativeEngineLayerSelector: 0,
+      distanceTravelled,
+    };
   }
 
   private resetNativeContact(fieldNumber: number, position: Vec3, yaw: number): void {
@@ -294,35 +340,9 @@ export class ArcadeCarController {
   }
 
   private relocate(fieldNumber: number, position: Vec3, yaw: number): void {
+    const distanceTravelled = this.mutable.distanceTravelled;
     this.motion.reset(yaw);
-    const resolved = this.world.resolveFootprint(fieldNumber, position, yaw, position.y);
-    const resolvedFieldNumber = resolved?.fieldNumber ?? fieldNumber;
-    const contact = this.auxiliaryContact(position.y, resolved?.auxiliaryY);
-    this.mutable = {
-      location: { kind: "standard-world", fieldNumber: resolvedFieldNumber },
-      fieldNumber: resolvedFieldNumber,
-      position: resolved?.position ?? position,
-      yaw,
-      nativeYaw: this.motion.nativeVehicle.yaw,
-      nativeSlipAngle: this.motion.nativeVehicle.slipAngle,
-      speed: 0,
-      steeringAngle: 0,
-      wheelSpin: 0,
-      pitch: 0,
-      roll: 0,
-      surfaceFlags: resolved?.surfaceFlags ?? 0,
-      surfaceKind: this.world.drivingSurface(resolved?.fieldNumber ?? fieldNumber, resolved?.position ?? position, resolved?.y ?? position.y),
-      contactSpecialState: contact.specialState,
-      contactRuntimeFlags: contact.runtimeFlags,
-      contactHasGroundSupport: resolved?.hasGroundSupport ?? false,
-      contactAuxiliaryY: resolved?.auxiliaryY,
-      nativeContactSurfaceFlags: contact.specialState > 0
-        ? nativeDeepAuxiliarySurface(resolved?.surfaceFlags ?? 0)
-        : resolved?.surfaceFlags ?? 0,
-      nativeEngineSpeed: 0,
-      nativeEngineLayerSelector: 0,
-      distanceTravelled: this.mutable.distanceTravelled,
-    };
+    this.mutable = this.standardWorldState(fieldNumber, position, yaw, distanceTravelled);
     this.resetNativeContact(this.mutable.fieldNumber, this.mutable.position, yaw);
   }
 
@@ -538,8 +558,16 @@ export class BrowserDrivingGame {
     private readonly input: BrowserSemanticInput,
     motionAuthority: NativeDrivingMotionAuthority,
     private readonly onNativeEngineState?: (state: CarState, active: boolean) => void,
+    initialEquipment?: NativeDrivingEquipmentSource,
   ) {
-    this.controller = new ArcadeCarController(world, motionAuthority);
+    this.controller = new ArcadeCarController(
+      world,
+      motionAuthority,
+      223,
+      { x: 1152, y: 31, z: 555 },
+      -0.1,
+      initialEquipment,
+    );
     this.controls = input.createScope();
   }
 

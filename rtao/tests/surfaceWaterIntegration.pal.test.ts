@@ -36,6 +36,7 @@ async function addField(world: DrivingWorld, disc: Iso9660Disc, fieldNumber: num
   const collision = compileFieldCollision(bytes);
   world.addCompiledField(fieldNumber, collision);
   world.addCompiledFieldSurface(fieldNumber, compileFieldVertexColorMesh(bytes));
+  world.addNativeField(fieldNumber, bytes);
   return collision;
 }
 
@@ -195,8 +196,14 @@ describe.skipIf(!binPath)("PAL integrated field surfaces and water contact", () 
       // Payload-free witness derived from FLD/223's retained 0x10000000 auxiliary plane.
       const shoreline = { x: 578.7818400065104, y: 20.5, z: 1317.1686328125 };
       const normal = new ArcadeCarController(world, authority, 223, shoreline, 0);
-      const waterSki = new ArcadeCarController(world, authority, 223, shoreline, 0);
-      waterSki.setNativeOptionSelector(1);
+      const waterSki = new ArcadeCarController(
+        world,
+        authority,
+        223,
+        shoreline,
+        0,
+        { selectedItem: (_loadout, category) => category === 11 ? 1 : 0 },
+      );
 
       for (const car of [normal, waterSki]) {
         expect(car.state.surfaceKind).toBe("dirt");
@@ -218,12 +225,21 @@ describe.skipIf(!binPath)("PAL integrated field surfaces and water contact", () 
       expect(normal.state.distanceTravelled).toBeGreaterThan(0);
       expect(normal.state.surfaceKind).not.toBe("wet");
 
-      const big = new ArcadeCarController(world, authority, 223, shoreline, 0);
-      big.setNativeTyreSelector(11);
-      big.teleport(223, shoreline, 0);
+      const big = new ArcadeCarController(
+        world,
+        authority,
+        223,
+        shoreline,
+        0,
+        { selectedItem: (_loadout, category) => category === 1 ? 11 : 0 },
+      );
       expect(big.state.contactAuxiliaryY).toBe(21.5);
       expect(big.state.contactSpecialState).toBe(-1);
       expect(big.state.contactRuntimeFlags & 0x40).toBe(0x40);
+      expect(big.state.nativeBodyMatrix).toBeDefined();
+      expect(normal.state.nativeBodyMatrix).toBeDefined();
+      expect(big.state.nativeBodyMatrix![13]! - normal.state.nativeBodyMatrix![13]!)
+        .toBeCloseTo(authority.body.bigTyreLift, 7);
     } finally {
       opened.close();
     }
