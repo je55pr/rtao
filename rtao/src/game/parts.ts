@@ -142,8 +142,8 @@ const partDefinitions: readonly PartDefinition[] = [
   part("horns", "melody-horn", "Melody", "A placeholder musical horn selection for future audio work."),
 
   part("meters", "normal-meter", "Normal Meter", "The current driving readout."),
-  part("meters", "sports-meter", "Sports Meter", "Reserved for a sport-styled HUD skin."),
-  part("meters", "digital-meter", "Digital Meter", "Reserved for a digital HUD skin."),
+  part("meters", "chronometer", "Chronometer", "Native meter selector; HUD presentation remains unrecovered."),
+  part("meters", "digital-meter", "Digital Meter", "Native meter selector; HUD presentation remains unrecovered."),
   part("meters", "classic-meter", "Classic Meter", "Reserved for a classic HUD skin."),
 ];
 
@@ -190,7 +190,7 @@ const knownNativePartEntries = [
   [10, 0, "no-special"], [10, 1, "propeller"], [10, 2, "jet-turbine"],
   [11, 0, "no-option"], [11, 1, "water-ski"], [11, 2, "flight-wing"], [11, 3, "police-light"],
   [11, 4, "billboard"], [11, 5, "fuji-sign"], [11, 6, "sandpolis-sign"], [11, 7, "white-mountain-sign"], [11, 8, "papaya-sign"],
-  [13, 0, "normal-horn"], [13, 1, "air-horn"], [14, 0, "normal-meter"], [14, 1, "digital-meter"],
+  [13, 0, "normal-horn"], [13, 1, "air-horn"], [14, 0, "normal-meter"], [14, 1, "chronometer"], [14, 10, "digital-meter"],
 ] as const;
 
 const knownNativePartIds = new Map<string, string>(

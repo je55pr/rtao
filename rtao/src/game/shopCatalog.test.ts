@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { knownNativePart } from "./parts";
+import { applyKnownNativeEquipmentSelectors, defaultPartLoadout, knownNativePart } from "./parts";
 import {
   PartsShopCatalogueSession,
   peachPartsShopStock,
@@ -48,7 +48,7 @@ describe("Peach Parts Shop catalogue", () => {
       ["Mesh", 7, 1],
       ["Spoke 1", 7, 2],
       ["Air Horn", 13, 1],
-      ["Digital Meter", 14, 1],
+      ["Digital Meter", 14, 10],
     ]);
   });
 
@@ -60,6 +60,16 @@ describe("Peach Parts Shop catalogue", () => {
     }
     expect(knownNativePart(13, 1)?.name).toBe("Air Horn");
     expect(knownNativePart(7, 2)?.name).toBe("Spoke 1");
+    expect(knownNativePart(14, 1)?.name).toBe("Chronometer");
+    expect(knownNativePart(14, 10)?.name).toBe("Digital Meter");
+  });
+
+  it("applies the exact PAL meter selectors without claiming HUD rendering", () => {
+    const selectors = new Array(15).fill(0);
+    selectors[14] = 1;
+    expect(applyKnownNativeEquipmentSelectors(defaultPartLoadout, selectors).meters).toBe("chronometer");
+    selectors[14] = 10;
+    expect(applyKnownNativeEquipmentSelectors(defaultPartLoadout, selectors).meters).toBe("digital-meter");
   });
 
   it("wraps across only the categories that Peach actually sells", () => {

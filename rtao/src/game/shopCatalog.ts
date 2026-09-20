@@ -51,7 +51,7 @@ export const peachPartsShopStock: readonly ShopPartStockItem[] = Object.freeze([
   stock("wheels", 7, 1, "mesh-wheel", "Mesh", 500, "Mesh-pattern wheel trim."),
   stock("wheels", 7, 2, "spoke-1-wheel", "Spoke 1", 500, "The first spoke-pattern wheel trim."),
   stock("horns", 13, 1, "air-horn", "Air Horn", 1_000, "A replacement horn sound."),
-  stock("meters", 14, 1, "digital-meter", "Digital Meter", 100, "A digital dashboard meter."),
+  stock("meters", 14, 10, "digital-meter", "Digital Meter", 100, "Native meter selector; HUD presentation remains unrecovered."),
 ]);
 
 /**
