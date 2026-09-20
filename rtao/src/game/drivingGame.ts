@@ -350,10 +350,17 @@ export class ArcadeCarController {
         (sourceField, point) => this.world.queryNativeContact(sourceField, point),
         equipmentFlags,
         equipmentFlags & 0x400,
+        (sourceField, position, inverseYaw, height) => this.world.queryNativeObstacle(
+          sourceField,
+          position,
+          inverseYaw,
+          height,
+          this.motionAuthority.obstacle,
+        ),
       );
       if (!advanced) {
         // The browser north/south torus is intentionally not a native-contact
-        // input. Fail closed at that unrecovered outer-world response boundary.
+        // input. Fail closed only at that unrecovered outer-world boundary.
         this.motion.haltTranslation();
         this.mutable = {
           ...old,
@@ -363,7 +370,9 @@ export class ArcadeCarController {
         };
         return;
       }
-      const yaw = motion.yaw;
+      this.motion.applyNativeContactResponse(advanced.velocity, advanced.yaw, advanced.runtimeFlags);
+      const nativeVehicle = this.motion.nativeVehicle;
+      const yaw = advanced.browserYaw;
       const pose = nativeContact.pose(yaw);
       const speed = motion.speed;
       const steeringAngle = -motion.steeringFraction * 0.48;
@@ -372,12 +381,12 @@ export class ArcadeCarController {
       const state: CarState = {
         ...old,
         yaw,
-        nativeYaw: motion.nativeVehicle.yaw,
-        nativeSlipAngle: motion.nativeVehicle.slipAngle,
+        nativeYaw: nativeVehicle.yaw,
+        nativeSlipAngle: nativeVehicle.slipAngle,
         speed,
         steeringAngle,
         wheelSpin,
-        nativeEngineSpeed: motion.nativeVehicle.engineSpeed,
+        nativeEngineSpeed: nativeVehicle.engineSpeed,
         nativeEngineLayerSelector: (motion.commands & 1) as 0 | 1,
         distanceTravelled: old.distanceTravelled + Math.hypot(motion.deltaX, motion.deltaZ),
       };

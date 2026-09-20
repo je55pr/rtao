@@ -5,9 +5,10 @@
 This note defines the narrow browser/native seam that replaces the standard-FLD
 free-roam footprint bridge with recovered PAL contact evolution. The retained
 seven-probe support/orientation recurrence and raw FLD packet query are now live
-for standard-world driving. It still does not claim the unrecovered post-contact
-outdoor obstacle/rollback response, airborne gameplay, special-outdoor dispatch,
-or new equipment behavior beyond the separately recovered contact flags.
+for standard-world driving. The separately recovered outdoor scene-kind `-1`
+obstacle/rollback response now follows contact as well, including retained
+unsupported/landing behavior. Special-outdoor dispatch and new equipment
+behavior beyond the separately recovered contact flags remain outside this seam.
 
 The contract is constrained by retained PAL contact, suspension, collision,
 math and enclosing-frame evidence already in this repository:
@@ -240,15 +241,21 @@ This contract intentionally stops before implementing the following:
    raw collision sections through unreflected field topology, but this is a host
    seam rather than proof of the original sector/scene dispatcher. Special-outdoor
    dispatch remains unrecovered and gated.
-2. **Outdoor post-contact collision response.** The recovered ordinary frame
-   explicitly rejects scene kind 28 and does not establish the free-roam
-   obstacle/rollback/airborne response. Do not reuse the race response merely
-   because contact is shared.
-3. **Free-roam scene/effect inputs.** Car flags, scene flags/commands and the
+2. **Dynamic outdoor obstacle enable source.** The recovered outdoor wrapper
+   uses at most 26 runtime groups when the selected slot is `11`, with enables
+   sourced from the PAL runtime bitset at `0x018255F0`. The browser has no
+   recovered owner for that bitset, so the exact group-enable seam is exposed
+   without fabricating enabled groups. Base authored obstacle records and the
+   scene-kind `-1` response are live.
+3. **Free-roam scene/effect inputs.** Controlled-car collision/landing requests
+   use the recovered car identity, but broader scene flags/commands and the
    vertical-impulse producer are not recovered for this caller. Production keeps
    their effect branches neutral instead of borrowing ordinary-race defaults.
-4. **Reset/debug/scene-specific enclosing paths.** These remain outside the
-   verified frame and must stay gated.
+4. **Reset producer and scene-specific enclosing paths.** The controlled-car
+   scene-`0x400` reset branch at `0x21C97C` / `0x219160` is recovered, but the
+   browser has no evidence that ordinary collision, unsupported support or
+   water state raises that flag. Its trigger owner and other debug/scene paths
+   therefore remain separate and gated.
 5. **Upstream free-roam command production.** Reverse/brake command policy is
    still host-owned in `NativeDrivingMotion`; this contract does not bless it
    as native.
@@ -277,8 +284,8 @@ supplied original inputs.
 - reflection occurs once at the native-to-browser projection boundary;
 - `resolveFootprint*`, candidate rejection/axis slides and `groundAttitude` no
   longer determine live native pose;
-- unresolved outdoor collision/scene paths fail closed or remain explicitly
-  gated rather than silently falling back to the old footprint policy;
+- outdoor contact/obstacle collision uses the recovered scene-kind `-1`
+  rollback/push response; unrecovered scene/reset/topology paths remain gated;
 - PAL-backed regression covers a retained multi-tick outdoor contact sequence,
   including support loss/recovery and auxiliary contact, before parity is
   claimed.

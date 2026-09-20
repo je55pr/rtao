@@ -137,15 +137,22 @@ Browser `groundAttitude` sampling/smoothing therefore no longer contributes to
 standard-FLD pose. Reflection of the local body matrix occurs only when it is
 projected into the Three.js chassis transform.
 
+Standard-FLD post-contact response is now native as well: terrain-edge/contact
+flags and authored outdoor obstacle masks feed the recovered scene-kind `-1`
+rollback/push response, and the resulting velocity/yaw are retained into the
+next 50 Hz tick. Unsupported support remains the recovered support/history/
+impulse recurrence rather than a browser ballistic mode or road snap. The
+slot-`11` 26-group obstacle extension is represented by an explicit runtime
+enable seam; the browser does not fabricate the unrecovered PAL enable bitset.
+
 This still does **not** make all outdoor physics native. Special-outdoor scene
-dispatch and post-contact obstacle/rollback/airborne response remain
-unrecovered, and unresolved browser surface class `other` stays neutral on the
-explicit compatibility path rather than receiving an invented native surface
-code. Reverse command production is likewise an explicit host bridge because
-the recovered scalar consumer proves bit 4's effect but the upstream outdoor
-command producer is not yet recovered. Developer Shift/RB boost remains a
-browser traversal aid outside native motion state and therefore cannot multiply
-recovered yaw.
+dispatch remains compatibility-only, unresolved browser surface class `other`
+stays neutral on that path, and the explicit scene-`0x400` reset producer is
+not inferred from collision/support failure. Reverse command production is
+likewise an explicit host bridge because the recovered scalar consumer proves
+bit 4's effect but the upstream outdoor command producer is not yet recovered.
+Developer Shift/RB boost remains a browser traversal aid outside native motion
+state and therefore cannot multiply recovered yaw.
 
 The production ordinary chase path retains a PAL preset, native vehicle
 yaw/slip and the recovered float32 per-invocation lag recurrence through

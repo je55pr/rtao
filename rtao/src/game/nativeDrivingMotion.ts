@@ -21,6 +21,8 @@ import {
   type NativeRaceVehicleState,
 } from "./nativeRaceVehicle";
 import { readNativeRaceBodyData, type NativeRaceBodyData } from "./nativeRaceBody";
+import { readNativeRaceObstacleData, type NativeRaceObstacleData } from "./nativeRaceObstacle";
+import { Elf32AddressSpace } from "../formats/elf32";
 import { nativeTyreGripProfiles } from "./nativeTyrePerformance";
 import type { DrivingSurfaceKind } from "./worldCollision";
 
@@ -33,6 +35,8 @@ export interface NativeDrivingMotionAuthority {
   readonly positionDivisor: number;
   readonly yawScale: number;
   readonly body: NativeRaceBodyData;
+  readonly obstacle: NativeRaceObstacleData;
+  readonly obstacleYawScale: number;
   equipment(selectors: readonly number[]): NativeRaceEquipment;
 }
 export type NativeDrivingSurfaceIndex = 0 | 1 | 2 | 3 | 4 | 5;
@@ -90,12 +94,15 @@ export interface NativeDrivingMotionStep {
 
 export function readNativeDrivingMotionAuthority(executable: Uint8Array): NativeDrivingMotionAuthority {
   const contact = readNativeRaceContactData(executable);
+  const elf = new Elf32AddressSpace(executable), gp = 0x3dd7f0;
   return {
     contact,
     math: readNativeRaceMathData(executable),
     positionDivisor: contact.positionDivisor,
     yawScale: contact.yawScale,
     body: readNativeRaceBodyData(executable),
+    obstacle: readNativeRaceObstacleData(executable),
+    obstacleYawScale: elf.f32(gp - 32596),
     equipment: (selectors) => readNativeRaceEquipment(executable, selectors),
   };
 }
@@ -144,6 +151,11 @@ export class NativeDrivingMotion {
       slipAngle: 0,
       driftRate: 0,
     };
+  }
+
+  applyNativeContactResponse(velocity: NativeRaceVector, yaw: number, runtimeFlags: number): void {
+    this.velocity = velocity.map((value) => value | 0) as unknown as NativeRaceVector;
+    this.vehicle = { ...this.vehicle, yaw: yaw & 0xffff, runtimeFlags: runtimeFlags >>> 0 };
   }
 
   step(input: NativeDrivingMotionInput): NativeDrivingMotionStep {
@@ -311,7 +323,10 @@ function validateAuthority(authority: NativeDrivingMotionAuthority): void {
     || !Number.isFinite(authority.yawScale) || authority.yawScale === 0
     || !Number.isFinite(authority.body.bodySideDivisor) || authority.body.bodySideDivisor === 0
     || !Number.isFinite(authority.body.bodyForwardDivisor) || authority.body.bodyForwardDivisor === 0
-    || !Number.isFinite(authority.body.bigTyreLift)) {
-    throw new RangeError("Native driving motion requires executable-backed position/yaw/body constants.");
+    || !Number.isFinite(authority.body.bigTyreLift)
+    || !Number.isFinite(authority.obstacle.minimumX)
+    || !Number.isFinite(authority.obstacle.maximumX)
+    || !Number.isFinite(authority.obstacleYawScale) || authority.obstacleYawScale === 0) {
+    throw new RangeError("Native driving motion requires executable-backed position/yaw/body/obstacle constants.");
   }
 }

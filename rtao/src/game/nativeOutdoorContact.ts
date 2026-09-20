@@ -17,7 +17,8 @@ import {
   type NativeRaceMatrix,
   type NativeRaceVector,
 } from "./nativeRaceMath";
-import { nativeRacePositionDelta } from "./nativeRaceVehicle";
+import { nativeRacePositionCoordinates, nativeRacePositionDelta } from "./nativeRaceVehicle";
+import { respondNativeRaceCollision } from "./nativeRaceCollisionResponse";
 import {
   addressFromFieldNumber,
   fieldNumberFromAddress,
@@ -31,6 +32,26 @@ export type NativeOutdoorContactQuery = (
   sector: number,
   probeIndex: number,
 ) => ReturnType<NativeRaceContactDependencies["query"]>;
+
+export type NativeOutdoorObstacleQuery = (
+  fieldNumber: number,
+  position: NativeRaceVector,
+  inverseYaw: NativeRaceMatrix,
+  height: number,
+) => number;
+
+export interface NativeOutdoorContactAdvanceResult {
+  readonly contactFlags: number;
+  readonly obstacleFlags: number;
+  readonly collisionFlags: number;
+  readonly velocity: NativeRaceVector;
+  readonly yaw: number;
+  readonly browserYaw: number;
+  readonly runtimeFlags: number;
+  readonly diagnosticRequested: boolean;
+  readonly impactRequests: readonly { readonly channel: number; readonly kind: number; readonly strength: number }[];
+  readonly soundRequests: readonly number[];
+}
 
 export interface NativeOutdoorContactPose {
   readonly fieldNumber: number;
@@ -137,21 +158,23 @@ export class NativeOutdoorContact {
     query: NativeOutdoorContactQuery,
     equipmentFlags = 0,
     globalEquipmentFlags = 0,
-  ): boolean {
+    obstacleQuery: NativeOutdoorObstacleQuery = () => 0,
+  ): NativeOutdoorContactAdvanceResult | undefined {
     const kinematics = step.nativeContactKinematics;
     if (!kinematics) throw new Error("Native outdoor contact requires retained motion kinematics.");
+    const previousYaw = this.contact.yaw;
     const candidate: [number, number, number] = [
       (this.contact.position[0] + nativeRacePositionDelta(step.nativeVelocity[0])) | 0,
       (this.contact.position[1] + nativeRacePositionDelta(step.nativeVelocity[1])) | 0,
       (this.contact.position[2] + nativeRacePositionDelta(step.nativeVelocity[2])) | 0,
     ];
     const normalized = normalizeNativeFixedPosition(this.fieldNumber, candidate[0], candidate[2]);
-    if (!normalized) return false;
+    if (!normalized) return undefined;
     candidate[0] = normalized.x;
     candidate[2] = normalized.z;
     this.fieldNumber = normalized.fieldNumber;
     const impulses = dampImpulses(this.contact.impulses, this.contact.specialState, kinematics.mass);
-    this.applyContact({
+    const contact = this.applyContact({
       position: candidate,
       yaw: step.nativeVehicle.yaw,
       commands: step.commands,
@@ -163,8 +186,57 @@ export class NativeOutdoorContact {
       impulses,
       runtimeFlags: step.nativeVehicle.runtimeFlags,
     });
+    const coordinates = [...nativeRacePositionCoordinates(this.contact.position), 1] as NativeRaceVector;
+    const inverseYaw = nativeRaceYawMatrix(
+      f(f(-(step.nativeVehicle.yaw << 16 >> 16) * this.authority.obstacleYawScale) / 32768),
+      this.authority.math,
+    );
+    const obstacleFlags = obstacleQuery(
+      this.fieldNumber,
+      coordinates,
+      inverseYaw,
+      f(coordinates[1] + 1),
+    );
+    const collisionFlags = (contact.flags | obstacleFlags) >>> 0;
+    const response = respondNativeRaceCollision({
+      position: this.contact.position,
+      velocity: step.nativeVelocity,
+      matrix: this.matrix,
+      inverse: this.inverse,
+      yaw: step.nativeVehicle.yaw,
+      previousYaw,
+      collisionFlags,
+      carFlags: 2,
+      positionIndex: 0,
+      sceneFlags: 0,
+      sceneKind: -1,
+    });
+    const rebound = normalizeNativeFixedPosition(
+      this.fieldNumber,
+      unwrapNativeFixedCoordinate(response.position[0]),
+      unwrapNativeFixedCoordinate(response.position[2]),
+    );
+    this.contact = {
+      ...this.contact,
+      position: rebound
+        ? [rebound.x, response.position[1], rebound.z]
+        : response.position,
+      yaw: response.yaw,
+    };
+    if (rebound) this.fieldNumber = rebound.fieldNumber;
     this.previousVelocity = kinematics.previousVelocity;
-    return true;
+    return {
+      contactFlags: contact.flags >>> 0,
+      obstacleFlags: obstacleFlags >>> 0,
+      collisionFlags,
+      velocity: response.velocity,
+      yaw: response.yaw,
+      browserYaw: -nativeYawRadians(response.yaw, this.authority.yawScale),
+      runtimeFlags: this.contact.runtimeFlags,
+      diagnosticRequested: response.diagnosticRequested,
+      impactRequests: [...contact.impactRequests, ...response.impactRequests],
+      soundRequests: contact.soundRequests,
+    };
   }
 
   pose(browserYaw: number): NativeOutdoorContactPose {
@@ -202,7 +274,7 @@ export class NativeOutdoorContact {
     readonly globalEquipmentFlags: number;
     readonly impulses: readonly number[];
     readonly runtimeFlags: number;
-  }): void {
+  }): ReturnType<typeof advanceNativeRaceContact> {
     const result = advanceNativeRaceContact({
       state: {
         ...this.contact,
@@ -214,9 +286,9 @@ export class NativeOutdoorContact {
       },
       equipmentFlags: input.equipmentFlags,
       globalEquipmentFlags: input.globalEquipmentFlags,
-      // Free-roam car/scene effect flags are not recovered. Keep their
-      // sound/impact/scene-command branches disabled rather than borrowing race defaults.
-      carFlags: 0,
+      // The browser owner here is the controlled car. Scene suppression remains
+      // neutral until a free-roam scene-flag producer is recovered.
+      carFlags: 2,
       sceneFlags: 0,
       sceneByte0B: 0,
       sceneCommands: [0, 0],
@@ -238,7 +310,13 @@ export class NativeOutdoorContact {
     this.surfaces = result.surfaces;
     this.normal = result.normal;
     this.auxiliaryY = result.points[0]?.[3];
+    return result;
   }
+}
+
+function unwrapNativeFixedCoordinate(value: number): number {
+  const wrapped = value & 0x0fffffff;
+  return wrapped >= 0x08000000 ? wrapped - 0x10000000 : wrapped;
 }
 
 function dampImpulses(

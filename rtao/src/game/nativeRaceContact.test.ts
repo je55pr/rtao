@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { produceNativeRaceContacts, type NativeRaceContactData, type NativeRaceContactInput } from './nativeRaceContact';
+import { nativeAuxiliaryContactState, produceNativeRaceContacts, type NativeRaceContactData, type NativeRaceContactInput } from './nativeRaceContact';
 import type { NativeRaceCollisionPoint as Point } from './nativeRaceCollision';
 
 // Synthetic probes/configuration: no proprietary executable or course input.
@@ -38,6 +38,19 @@ describe('native contact producer with explicit synthetic transform boundary', (
     expect(run({...value,state:{...value.state,referenceY:0}}).state.specialState).toBe(0);
   });
 
+  test('keeps auxiliary equality boundaries exact for ordinary and Big Tyre thresholds', () => {
+    const extraY = 10;
+    const ordinaryBoundary = Math.fround(Math.fround(extraY) - Math.fround(0.5));
+    expect(nativeAuxiliaryContactState(extraY, extraY, 0.5)).toBe(0);
+    expect(nativeAuxiliaryContactState(ordinaryBoundary, extraY, 0.5)).toBe(-1);
+    expect(nativeAuxiliaryContactState(Math.fround(ordinaryBoundary - 0.001), extraY, 0.5)).toBe(1);
+
+    const bigThreshold = Math.fround(1.35);
+    const bigBoundary = Math.fround(Math.fround(extraY) - bigThreshold);
+    expect(nativeAuxiliaryContactState(bigBoundary, extraY, bigThreshold)).toBe(-1);
+    expect(nativeAuxiliaryContactState(Math.fround(bigBoundary - 0.001), extraY, bigThreshold)).toBe(1);
+  });
+
   test('retains deep-contact impulse halving, synthetic surface and Water Ski vertical branches', () => {
     const base = input();
     const deepInput = {...base,state:{...base.state,referenceY:-1,impulses:[9,-10,0]}};
@@ -62,13 +75,14 @@ describe('native contact producer with explicit synthetic transform boundary', (
     expect(run(value,0,0).state.position[1]).toBe(0);
   });
 
-  test('equalizes impulses only after 65 unsupported updates and resets the counter on support', () => {
+  test('pulses unsupported falling recovery only after 65 updates and clears it on landing support', () => {
     const value = input();
     const airborne = {...value,state:{...value.state,support:[0,0,0],impulses:[9,-10,0],unsupportedTicks:64}};
     expect(run(airborne,-4).state).toMatchObject({unsupportedTicks:65,impulses:[9,-10,0],runtimeFlags:0});
     expect(run({...airborne,state:{...airborne.state,unsupportedTicks:65}},-4).state)
       .toMatchObject({unsupportedTicks:66,impulses:[0,0,0],runtimeFlags:1});
-    expect(run({...value,state:{...value.state,unsupportedTicks:100}}).state.unsupportedTicks).toBe(0);
+    expect(run({...value,state:{...value.state,unsupportedTicks:100}}).state)
+      .toMatchObject({unsupportedTicks:0,runtimeFlags:0});
   });
 
   test('exports adjustment command precedence only for equipment bit 8 and keeps signed yaw', () => {

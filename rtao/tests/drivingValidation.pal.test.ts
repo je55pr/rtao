@@ -22,7 +22,7 @@ import {
   type NativeRaceMatrix,
   type NativeRaceVector,
 } from "../src/game/nativeRaceMath";
-import { readNativeRaceObstaclePoints } from "../src/game/nativeRaceObstacle";
+import { queryNativeRaceObstaclePoints, readNativeRaceObstaclePoints } from "../src/game/nativeRaceObstacle";
 import {
   advanceNativeRaceVehicleVelocity,
   createNativeRaceVehicleState,
@@ -312,6 +312,7 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
       const fieldBytes = await opened.disc.readFile("FLD/223.BIN");
       const authority = readNativeDrivingMotionAuthority(executable);
       const collision = new NativeRaceCollisionSampler(fieldBytes);
+      const obstaclePoints = readNativeRaceObstaclePoints(fieldBytes);
       const run = () => {
         const motion = new NativeDrivingMotion(authority, -0.1);
         const contact = new NativeOutdoorContact(
@@ -337,15 +338,26 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
               native: contact.retainedContact,
             },
           });
-          expect(contact.advance(step, query)).toBe(true);
-          const pose = contact.pose(step.yaw);
+          const response = contact.advance(
+            step,
+            query,
+            0,
+            0,
+            (fieldNumber, position, inverseYaw, height) => fieldNumber === 223
+              ? queryNativeRaceObstaclePoints(obstaclePoints, position, inverseYaw, height, authority.obstacle)
+              : 0,
+          );
+          expect(response).toBeDefined();
+          motion.applyNativeContactResponse(response!.velocity, response!.yaw, response!.runtimeFlags);
+          const pose = contact.pose(response!.browserYaw);
           observations.push({
             tick,
             pose,
             support: [...contact.retainedContact.support],
             surfaceFlags: contact.retainedContact.surfaceFlags,
-            velocity: [...step.nativeVelocity],
-            yaw: step.nativeVehicle.yaw,
+            collisionFlags: response!.collisionFlags,
+            velocity: [...response!.velocity],
+            yaw: response!.yaw,
           });
         }
         return observations;

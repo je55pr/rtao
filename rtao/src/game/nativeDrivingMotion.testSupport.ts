@@ -43,6 +43,8 @@ export function syntheticNativeDrivingMotionAuthority(): NativeDrivingMotionAuth
       bodyForwardDivisor: 32768,
       bigTyreLift: Math.fround(0.85),
     },
+    obstacle: { minimumX: -1, maximumX: 1 },
+    obstacleYawScale: Math.fround(Math.PI),
     equipment: syntheticEquipment,
   };
 }

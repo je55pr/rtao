@@ -3,6 +3,7 @@ import { allWorldFieldNumbers, fieldNumberFromAddress } from "./worldTopology";
 import { DrivingWorld, FieldCollisionSampler, flatFieldCollision, nativeDrivingSurfaceFromCollisionFlags } from "./worldCollision";
 import type { CompiledFieldCollision } from "../formats/fieldCollision";
 import type { CompiledFieldMesh } from "../formats/fieldGeometry";
+import { nativeRaceIdentity, type NativeRaceVector } from "./nativeRaceMath";
 
 describe("world collision", () => {
   it("samples a reflected field surface", () => {
@@ -103,6 +104,34 @@ describe("world collision", () => {
 
     expect(world.drivingSurface(origin, { x: 960, y: 0, z: 0.2 })).toBe("snow");
     expect(world.drivingSurface(origin, { x: 960, y: 0, z: -0.2 })).toBe("ice");
+  });
+
+  it("adds only enabled slot-11 runtime obstacle groups to the authored outdoor mask", () => {
+    const world = new DrivingWorld();
+    const left: NativeRaceVector = [-0.5, 0, 0.5, 0];
+    const right: NativeRaceVector = [0.5, 0, 0.5, 0];
+    const position: NativeRaceVector = [0, 0, 0, 1];
+    const data = { minimumX: -1, maximumX: 1 };
+    world.setNativeOutdoorObstaclePoints(223, [left]);
+    const groups = [
+      { enabled: false, points: [left] },
+      { enabled: true, points: [right] },
+    ];
+    world.setNativeOutdoorObstacleRuntime(223, 10, groups);
+    expect(world.queryNativeObstacle(223, position, nativeRaceIdentity(), 1, data)).toBe(1);
+
+    world.setNativeOutdoorObstacleRuntime(223, 11, groups);
+    expect(world.queryNativeObstacle(223, position, nativeRaceIdentity(), 1, data)).toBe(3);
+
+    world.setNativeOutdoorObstacleRuntime(223, 11, [
+      { enabled: false, points: [left] },
+      { enabled: false, points: [right] },
+    ]);
+    expect(world.queryNativeObstacle(223, position, nativeRaceIdentity(), 1, data)).toBe(1);
+
+    world.setNativeOutdoorObstacleRuntime(223, 11,
+      Array.from({ length: 27 }, (_, index) => ({ enabled: index === 26, points: [right] })));
+    expect(world.queryNativeObstacle(223, position, nativeRaceIdentity(), 1, data)).toBe(1);
   });
 
   it("samples special-outdoor native collision without a texture or road guess", () => {

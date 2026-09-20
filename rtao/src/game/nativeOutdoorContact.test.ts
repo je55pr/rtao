@@ -113,7 +113,7 @@ describe("native outdoor contact recurrence", () => {
     const query = groundQuery(() => 0);
     contact.prime(query);
     const nextField = fieldNumberFromAddress(4, 4);
-    expect(contact.advance(retainedStep(32768, 0), query)).toBe(true);
+    expect(contact.advance(retainedStep(32768, 0), query)).toBeDefined();
     const pose = contact.pose(0);
     expect(pose.fieldNumber).toBe(nextField);
     expect(pose.position.x).toBeGreaterThan(1598);
@@ -139,7 +139,7 @@ describe("native outdoor contact recurrence", () => {
       values.reduce((sum, value, index) => sum + Math.abs(value - rest[index]!), 0);
     expect(distance(rebound)).toBeLessThan(distance(compressed));
   });
-  test("loses and reacquires support through the retained native recurrence", () => {
+  test("falls toward lower contact and lands through retained support history without a browser road snap", () => {
     const contact = runtime();
     const flat = groundQuery(() => 0);
     const absent = groundQuery(() => -50);
@@ -171,6 +171,54 @@ describe("native outdoor contact recurrence", () => {
     expect(step.surfaceResolved).toBe(true);
     expect(step.nativeContactKinematics).toBeDefined();
     expect(step.commands & 0x2000).toBe(0x2000);
-    expect(contact.advance(step, query)).toBe(true);
+    expect(contact.advance(step, query)).toBeDefined();
   });
+
+  test("routes a terrain-edge miss through native rollback instead of a browser halt", () => {
+    const contact = runtime();
+    const flat = groundQuery(() => 0);
+    const edge: NativeOutdoorContactQuery = (_field, point, _sector, index) => index === 3
+      ? { point, flags: -1, ceilingY: 10000 }
+      : { point: [point[0], 0, point[2], 0], flags: 0x550, ceilingY: 10000 };
+    contact.prime(flat);
+    const step = retainedStep(1000, 4000);
+    const result = contact.advance(step, edge);
+    expect(result).toBeDefined();
+    expect(result!.contactFlags & 1).toBe(1);
+    expect(result!.collisionFlags & 1).toBe(1);
+    expect(result!.velocity).toEqual([753, 0, 3751, 0]);
+    expect(result!.yaw).toBe(512);
+  });
+
+  test("retains native response state across repeated wall contacts and reverse recovery", () => {
+    const contact = runtime();
+    const query = groundQuery(() => 0);
+    const motion = new NativeDrivingMotion(authority, 0);
+    contact.prime(query);
+    const collisionYaws: number[] = [];
+    for (let tick = 0; tick < 3; tick += 1) {
+      const step = motion.step({
+        throttle: 1, steering: 0, surfaceIndex: undefined,
+        contact: { specialState: contact.specialState, propellerEnabled: false, native: contact.retainedContact },
+      });
+      const result = contact.advance(step, query, 0, 0, () => 1)!;
+      expect(result.collisionFlags & 15).toBe(1);
+      motion.applyNativeContactResponse(result.velocity, result.yaw, result.runtimeFlags);
+      collisionYaws.push(motion.nativeVehicle.yaw);
+    }
+    expect(collisionYaws).toEqual([512, 1024, 1536]);
+
+    let reversed = false;
+    for (let tick = 0; tick < 160; tick += 1) {
+      const step = motion.step({
+        throttle: -1, steering: 0, surfaceIndex: undefined,
+        contact: { specialState: contact.specialState, propellerEnabled: false, native: contact.retainedContact },
+      });
+      const result = contact.advance(step, query)!;
+      motion.applyNativeContactResponse(result.velocity, result.yaw, result.runtimeFlags);
+      if ((step.commands & 4) !== 0) reversed = true;
+    }
+    expect(reversed).toBe(true);
+  });
+
 });

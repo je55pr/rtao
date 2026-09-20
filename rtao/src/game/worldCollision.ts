@@ -6,6 +6,12 @@ import {
   NativeRaceCollisionSampler,
   type NativeRaceCollisionPoint,
 } from "./nativeRaceCollision";
+import {
+  queryNativeRaceObstaclePoints,
+  readNativeRaceObstaclePoints,
+  type NativeRaceObstacleData,
+} from "./nativeRaceObstacle";
+import type { NativeRaceMatrix, NativeRaceVector } from "./nativeRaceMath";
 
 export interface Vec3 {
   readonly x: number;
@@ -25,6 +31,11 @@ export interface ResolvedFootprint extends GroundSample {
   readonly auxiliaryY?: number;
   /** Browser bridge summary of ordinary wheel support; auxiliary contact can remain valid without it. */
   readonly hasGroundSupport: boolean;
+}
+
+export interface NativeOutdoorObstacleGroup {
+  readonly enabled: boolean;
+  readonly points: readonly NativeRaceVector[];
 }
 
 export type DrivingSurfaceKind = "paved-road" | "dry" | "dirt" | "wet" | "grass" | "snow" | "ice" | "other";
@@ -167,6 +178,8 @@ export class FieldCollisionSampler {
 export class DrivingWorld {
   private readonly fields = new Map<number, FieldCollisionSampler>();
   private readonly nativeFields = new Map<number, NativeRaceCollisionSampler>();
+  private readonly nativeObstaclePoints = new Map<number, readonly NativeRaceVector[]>();
+  private readonly nativeObstacleRuntime = new Map<number, { readonly slotValue: number; readonly groups: readonly NativeOutdoorObstacleGroup[] }>();
   private readonly surfaces = new Map<number, FieldDrivingSurfaceSampler>();
   private readonly specialOutdoorScenes = new Map<number, FieldCollisionSampler>();
   private readonly specialOutdoorSurfaces = new Map<number, FieldDrivingSurfaceSampler>();
@@ -175,9 +188,22 @@ export class DrivingWorld {
     this.fields.set(fieldNumber, new FieldCollisionSampler(deserializeCompiledCollision(bytes)));
   }
 
-  /** Retains authored PAL packet/plane collision for native outdoor contact. */
+  /** Retains authored PAL packet/plane collision and base obstacle records for native outdoor contact. */
   addNativeField(fieldNumber: number, fieldBytes: Uint8Array): void {
     this.nativeFields.set(fieldNumber, new NativeRaceCollisionSampler(fieldBytes));
+    this.nativeObstaclePoints.set(fieldNumber, readNativeRaceObstaclePoints(fieldBytes));
+  }
+
+  setNativeOutdoorObstaclePoints(fieldNumber: number, points: readonly NativeRaceVector[]): void {
+    this.nativeObstaclePoints.set(fieldNumber, points);
+  }
+
+  setNativeOutdoorObstacleRuntime(
+    fieldNumber: number,
+    slotValue: number,
+    groups: readonly NativeOutdoorObstacleGroup[],
+  ): void {
+    this.nativeObstacleRuntime.set(fieldNumber, { slotValue, groups: groups.slice(0, 26) });
   }
 
   hasNativeField(fieldNumber: number): boolean {
@@ -206,6 +232,29 @@ export class DrivingWorld {
       flags: hit.flags,
       ceilingY: hit.ceilingY,
     };
+  }
+
+  queryNativeObstacle(
+    fieldNumber: number,
+    position: NativeRaceVector,
+    inverseYaw: NativeRaceMatrix,
+    height: number,
+    data: NativeRaceObstacleData,
+  ): number {
+    let flags = queryNativeRaceObstaclePoints(
+      this.nativeObstaclePoints.get(fieldNumber) ?? [],
+      position,
+      inverseYaw,
+      height,
+      data,
+    );
+    const runtime = this.nativeObstacleRuntime.get(fieldNumber);
+    if (runtime?.slotValue === 11) {
+      for (const group of runtime.groups) {
+        if (group.enabled) flags |= queryNativeRaceObstaclePoints(group.points, position, inverseYaw, height, data);
+      }
+    }
+    return flags;
   }
 
   addCompiledField(fieldNumber: number, collision: CompiledFieldCollision): void {
