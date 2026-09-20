@@ -8,6 +8,7 @@ import {advanceNativeRaceVehicleVelocity,integrateNativeRacePosition,nativeRaceD
 import type {NativeRaceDriftPolicy} from './nativeRaceTraction';
 import {queryNativeRaceObstaclePoints,readNativeRaceObstacleData,type NativeRaceObstacleData} from './nativeRaceObstacle';
 import {respondNativeRaceCollision} from './nativeRaceCollisionResponse';
+import {advanceNativeFlightWingFlags,nativeSpecialAbilityFlags} from './nativeSpecialAbilityRuntime';
 
 export interface NativeRaceFrameData {
   readonly contact:NativeRaceContactData;
@@ -53,6 +54,8 @@ export interface NativeRaceFrameInput {
   readonly sceneTime:number;
   readonly raceModeByte:number;
   readonly commands:number;
+  /** Exact f0 returned by PAL helper 0x0021E208 for car+0xF0. Its formula is not reconstructed here. */
+  readonly flightWingVelocityScalar?:number;
   /** GP-selected callback, distinct from the car's +0x1FC schedule flag. */
   readonly highShiftSchedule:boolean;
   readonly obstaclePoints:readonly NativeRaceVector[];
@@ -98,13 +101,20 @@ export function advanceNativeRaceEquipmentYaw(commands:number,verticalControl:nu
 
 /** 0x21C920 through 0x21D4EC: ordinary active frame up to wheel animation.
  * Commands are explicitly supplied at the 0x21B840 ownership/navigation boundary.
- * Reset/debug and low 0x000C equipment paths remain rejected until separately verified. */
+ * Reset/debug scene paths remain rejected; Flight Wing requires the exact 0x21E208 scalar. */
 export function advanceNativeRaceFrame(input:NativeRaceFrameInput,data:NativeRaceFrameData,query:NativeRaceContactDependencies['query']) {
   const {state}=input;
-  if(input.sceneKind<0||input.sceneKind===28||input.sceneByte0B!==0||(input.sceneFlags&0x400)||(input.equipmentFlags&0x000c))
-    throw new RangeError('Unrecovered race frame reset/debug/scene/equipment path.');
-  if((input.sceneFlags&0x4a000)||!(state.carFlags&65535))return {state,sceneFlags:input.sceneFlags>>>0,contactFlags:0,obstacleFlags:0,
+  if(input.sceneKind<0||input.sceneKind===28||input.sceneByte0B!==0||(input.sceneFlags&0x400))
+    throw new RangeError('Unrecovered race frame reset/debug/scene path.');
+  if((input.sceneFlags&0x4a000)||!(state.carFlags&65535))return {state,equipmentFlags:input.equipmentFlags,sceneFlags:input.sceneFlags>>>0,contactFlags:0,obstacleFlags:0,
     diagnosticRequested:false,impactRequests:[],soundRequests:[],skipped:true};
+  let equipmentFlags=input.equipmentFlags;
+  if(equipmentFlags&(nativeSpecialAbilityFlags.flightWingFitted|nativeSpecialAbilityFlags.flightWingActive)) {
+    if(input.flightWingVelocityScalar===undefined) {
+      throw new RangeError('Flight Wing requires the exact PAL 0x0021E208 velocity-derived scalar.');
+    }
+    equipmentFlags=advanceNativeFlightWingFlags(equipmentFlags,input.flightWingVelocityScalar);
+  }
   const carFlags=state.carFlags&0xfeff,oldYaw=state.vehicle.yaw;
   const previousVelocity:NativeRaceVector=[state.velocity[0],(state.velocity[1]-89)|0,state.velocity[2],state.velocity[3]];
   const difference=state.velocity.map((n,i)=>(n-state.previousVelocity[i]!)|0) as unknown as NativeRaceVector;
@@ -113,19 +123,19 @@ export function advanceNativeRaceFrame(input:NativeRaceFrameInput,data:NativeRac
   const gravity=transformNativeRaceIntegerVector(state.inverse,[0,89,0,0]);
   let forward=localVelocity[2],equipmentBoostState=state.equipmentBoostState,vehicleFuel=state.vehicle.fuel;
   const equipmentSoundRequests:number[]=[];
-  if(input.equipmentFlags&0x2000) {
+  if(equipmentFlags&0x2000) {
     const boost=advanceNativeRaceBoostEquipment(input.sceneFlags,input.commands,carFlags,equipmentBoostState,vehicleFuel);
     equipmentBoostState=boost.state;vehicleFuel=boost.fuel;equipmentSoundRequests.push(...boost.soundRequests);
     forward=(forward+boost.forwardBonus)|0;
     if(forward>0xcf69)forward=0xcf69;
   }
-  if((input.equipmentFlags&0x40)&&state.contact.specialState!==0) {
+  if((equipmentFlags&0x40)&&state.contact.specialState!==0) {
     if(input.commands&4)forward=(forward-89)|0;
     else if(input.commands&1)forward=(forward+89)|0;
   }
   const drag=nativeRaceDrag(forward,localVelocity[0],input.equipment.mass,state.contact.specialState,input.raceModeByte,state.positionIndex);
   let verticalControl=state.verticalControl,vehicleState={...state.vehicle,fuel:vehicleFuel};
-  if(input.equipmentFlags&0x1000) {
+  if(equipmentFlags&0x1000) {
     const modifier=advanceNativeRaceEquipmentYaw(input.commands,verticalControl,vehicleState.yaw,drag.forward);
     verticalControl=modifier.verticalControl;vehicleState={...vehicleState,yaw:modifier.yaw};
   }
@@ -136,13 +146,13 @@ export function advanceNativeRaceFrame(input:NativeRaceFrameInput,data:NativeRac
   const drive=advanceNativeRaceVehicleVelocity({...vehicleState,runtimeFlags:0},input.equipment,{
     localForwardSpeed:drag.forward,localSideSpeed:drag.side,surfaceIndex:state.surfaces[0]!&7,
     driveContact:!!(state.contact.support[1]||state.contact.support[2]),contactAccelerationY:localDelta[1],
-    contactAllowsYaw:!!(state.contact.support[0]||state.contact.support[1]||(state.contact.specialState&&(input.equipmentFlags&0x100))),
+    contactAllowsYaw:!!(state.contact.support[0]||state.contact.support[1]||(state.contact.specialState&&(equipmentFlags&0x100))),
   },input.commands,input.sceneFlags,state.matrix,input.highShiftSchedule,input.driftPolicy??"retail");
   const position=integrateNativeRacePosition(state.contact.position,[drive.worldVelocity[0],drive.worldVelocity[1],drive.worldVelocity[2]]);
   const verticalProduct=Math.imul(verticalControl,drag.forward);
   const verticalImpulse=state.contact.specialState>0?Math.trunc(verticalProduct/256):Math.trunc(((verticalProduct+drag.forward)|0)/2048);
   const contact=advanceNativeRaceContact({state:{...state.contact,position,referenceY:state.coordinates[1],
-    yaw:drive.state.yaw,runtimeFlags:drive.state.runtimeFlags,impulses},equipmentFlags:input.equipmentFlags,
+    yaw:drive.state.yaw,runtimeFlags:drive.state.runtimeFlags,impulses},equipmentFlags,
     globalEquipmentFlags:input.globalEquipmentFlags,carFlags,sceneFlags:input.sceneFlags,sceneByte0B:0,sceneCommands:[0,0],
     // 0x21B3AC clears the caller's local-delta X when curvature is zero.
     localX:drive.state.curvature===0?0:localDelta[0],localZ:localDelta[2],responseZ:drag.forward,responseW:gravity[1],verticalImpulse,commands:input.commands},
@@ -153,7 +163,7 @@ export function advanceNativeRaceFrame(input:NativeRaceFrameInput,data:NativeRac
   const response=respondNativeRaceCollision({position:contact.state.position,velocity:drive.worldVelocity,matrix:contact.matrix,inverse:contact.inverse,
     yaw:drive.state.yaw,previousYaw:oldYaw,collisionFlags:contact.flags|obstacleFlags,carFlags,positionIndex:state.positionIndex,
     sceneFlags:input.sceneFlags,sceneKind:input.sceneKind});
-  const bodyMatrix=nativeRaceBodyMatrix(contact.state.support,input.equipmentFlags,data);
+  const bodyMatrix=nativeRaceBodyMatrix(contact.state.support,equipmentFlags,data);
   const schedule=(((input.sceneTime-0xe484)>>>0)>0x1944c?1:0)^((input.commands&16)?1:0);
   return {state:{...state,vehicle:{...drive.state,yaw:response.yaw,runtimeFlags:contact.state.runtimeFlags},
     contact:{...contact.state,position:response.position,yaw:response.yaw,referenceY:coordinates[1]},
@@ -162,6 +172,6 @@ export function advanceNativeRaceFrame(input:NativeRaceFrameInput,data:NativeRac
     distance:response.carFlags&0x200?state.distance:(state.distance+Math.abs(drive.state.nativeSpeed))|0,
     countdownByte:state.countdownByte?((state.countdownByte-1)<<24>>24):0,
     countdownHalf:state.countdownHalf?((state.countdownHalf-1)<<16>>16):0,equipmentBoostState,verticalControl,shiftScheduleFlag:schedule},
-    sceneFlags:response.sceneFlags,contactFlags:contact.flags,obstacleFlags,diagnosticRequested:response.diagnosticRequested,
+    equipmentFlags,sceneFlags:response.sceneFlags,contactFlags:contact.flags,obstacleFlags,diagnosticRequested:response.diagnosticRequested,
     impactRequests:[...contact.impactRequests,...response.impactRequests],soundRequests:[...equipmentSoundRequests,...contact.soundRequests],skipped:false};
 }

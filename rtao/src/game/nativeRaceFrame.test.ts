@@ -28,9 +28,39 @@ test('inactive cars skip contact and unrecovered frame paths fail explicitly',()
   const original=input(),inactive={...original,state:{...original.state,carFlags:0}};
   expect(advanceNativeRaceFrame(inactive,data,()=>{throw new Error('Should not query');})).toMatchObject({state:inactive.state,skipped:true});
   expect(()=>advanceNativeRaceFrame({...original,equipmentFlags:0x3000},data,query)).not.toThrow();
-  for(const change of [{equipmentFlags:4},{equipmentFlags:8},{equipmentFlags:0x0c},{sceneKind:28},{sceneFlags:0x400},{sceneByte0B:1}])
+  for(const change of [{sceneKind:28},{sceneFlags:0x400},{sceneByte0B:1}])
     expect(()=>advanceNativeRaceFrame({...original,...change},data,query)).toThrow('Unrecovered');
+  for(const equipmentFlags of [4,8,0x0c])
+    expect(()=>advanceNativeRaceFrame({...original,equipmentFlags},data,query)).toThrow(/0x0021E208/);
 });
+
+test('Flight Wing transitions before contact and uses active normal controls in that same frame',()=>{
+  const original=input();
+  const heldFitted=advanceNativeRaceFrame({...original,equipmentFlags:4,flightWingVelocityScalar:300,commands:0x8000},data,query);
+  const activated=advanceNativeRaceFrame({...original,equipmentFlags:4,flightWingVelocityScalar:300.0001,commands:0x8000},data,query);
+  const heldActive=advanceNativeRaceFrame({...original,equipmentFlags:8,flightWingVelocityScalar:300,commands:0x8000},data,query);
+  const retracted=advanceNativeRaceFrame({...original,equipmentFlags:8,flightWingVelocityScalar:299.9999,commands:0x8000},data,query);
+  expect(heldFitted.equipmentFlags).toBe(4);
+  expect(activated.equipmentFlags).toBe(8);
+  expect(heldActive.equipmentFlags).toBe(8);
+  expect(retracted.equipmentFlags).toBe(4);
+  expect(activated.state.matrix).not.toEqual(heldFitted.state.matrix);
+  expect(heldActive.state.matrix).toEqual(activated.state.matrix);
+  expect(retracted.state.matrix).toEqual(heldFitted.state.matrix);
+});
+test('Flight Wing active state suppresses responseW support and retraction restores it immediately',()=>{
+  const original=input();
+  const lowQuery:Parameters<typeof advanceNativeRaceFrame>[2]=p=>({point:[p[0],-1,p[2],0],flags:3,ceilingY:10000});
+  const fitted=advanceNativeRaceFrame({...original,equipmentFlags:4,flightWingVelocityScalar:300,commands:0},data,lowQuery);
+  const active=advanceNativeRaceFrame({...original,equipmentFlags:4,flightWingVelocityScalar:301,commands:0},data,lowQuery);
+  const retracted=advanceNativeRaceFrame({...original,equipmentFlags:8,flightWingVelocityScalar:299,commands:0},data,lowQuery);
+  expect(active.equipmentFlags).toBe(8);
+  expect(fitted.state.contact.impulses).toEqual([89,89,89]);
+  expect(active.state.contact.impulses).toEqual([0,0,0]);
+  expect(retracted.equipmentFlags).toBe(4);
+  expect(retracted.state.contact.impulses).toEqual(fitted.state.contact.impulses);
+});
+
 test('0x2000 boost consumes the native fuel field and preserves its signed cooldown state',()=>{
   expect(advanceNativeRaceBoostEquipment(4,8,2,0,40000)).toEqual({state:1,fuel:39900,forwardBonus:178,soundRequests:[16]});
   expect(advanceNativeRaceBoostEquipment(4,8,2,1,12050)).toEqual({state:2,fuel:11950,forwardBonus:44,soundRequests:[]});

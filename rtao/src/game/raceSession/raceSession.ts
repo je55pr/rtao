@@ -69,6 +69,8 @@ export interface OrdinaryRaceSessionCommand {
 export interface OrdinaryRaceSessionCarView {
   readonly entrant: OrdinaryRaceEntrant;
   readonly state: NativeRaceFrameState;
+  /** Current transient runtime flags; fitted Flight Wing may transition to active 0x0008. */
+  readonly equipmentFlags: number;
   readonly completedLaps: number;
   readonly finishGatePhase: number;
   readonly finishIndex: number | null;
@@ -110,8 +112,9 @@ export interface OrdinaryRaceResultHandoff {
   readonly waitingCarIndices: readonly number[];
 }
 
-interface RuntimeEntrant extends OrdinaryRaceSessionEntrantInput {
+interface RuntimeEntrant extends Omit<OrdinaryRaceSessionEntrantInput, "equipmentFlags"> {
   state: NativeRaceFrameState;
+  equipmentFlags: number;
   completedLaps: number;
   finishGatePhase: number;
   finishIndex: number | null;
@@ -190,12 +193,20 @@ export class OrdinaryRaceSession {
   private finishCount = 0;
   private resultApplied = false;
   private readonly frameAdvance: typeof advanceNativeRaceFrame;
+  private readonly flightWingVelocityScalar: ((velocity: NativeRaceVector) => number) | undefined;
 
   constructor(
     config: OrdinaryRaceSessionConfig,
-    dependencies: { readonly advanceFrame?: typeof advanceNativeRaceFrame } = {},
+    dependencies: {
+      readonly advanceFrame?: typeof advanceNativeRaceFrame;
+      /** Exact PAL helper 0x0021E208 result for the supplied car+0xF0 world-velocity vector. */
+      readonly flightWingVelocityScalar?: (velocity: NativeRaceVector) => number;
+    } = {},
   ) {
     validateConfig(config);
+    if (config.entrants.some((car) => (car.equipmentFlags & 0x000c) !== 0) && !dependencies.flightWingVelocityScalar) {
+      throw new RangeError("Flight Wing race runtime requires an exact PAL 0x0021E208 scalar provider.");
+    }
     this.activity = config.activity;
     this.finishGates = config.finishGates;
     this.frameData = config.frameData;
@@ -208,6 +219,7 @@ export class OrdinaryRaceSession {
     this.sceneFlags = config.countdown.sceneFlags >>> 0;
     this.updatesPerSecond = config.countdown.updatesPerSecond;
     this.frameAdvance = dependencies.advanceFrame ?? advanceNativeRaceFrame;
+    this.flightWingVelocityScalar = dependencies.flightWingVelocityScalar;
     this.cars = [...config.entrants]
       .sort((a, b) => a.entrant.carIndex - b.entrant.carIndex)
       .map((car) => ({
@@ -293,12 +305,16 @@ export class OrdinaryRaceSession {
         sceneTime: input.sceneTime,
         raceModeByte: this.raceModeByte,
         commands: command.commands,
+        flightWingVelocityScalar: (car.equipmentFlags & 0x000c) !== 0
+          ? this.flightWingVelocityScalar!(car.state.velocity)
+          : undefined,
         highShiftSchedule: true,
         obstaclePoints: car.obstaclePoints,
         driftPolicy: car.entrant.controlSource === "human-input" ? "symmetric" : "retail",
       }, this.frameData, this.query);
       this.sceneFlags = frame.sceneFlags;
       car.state = frame.state;
+      car.equipmentFlags = frame.equipmentFlags;
 
       const gate = advanceNativeRaceFinishGate(
         this.finishGates,
@@ -399,6 +415,7 @@ function viewOf(car: RuntimeEntrant): OrdinaryRaceSessionCarView {
   return {
     entrant: car.entrant,
     state: car.state,
+    equipmentFlags: car.equipmentFlags,
     completedLaps: car.completedLaps,
     finishGatePhase: car.finishGatePhase,
     finishIndex: car.finishIndex,
@@ -459,8 +476,8 @@ function validateCommand(command: OrdinaryRaceSessionCommand): void {
       playerCount += 1;
       if (index !== 0) throw new Error("Recovered ordinary-race player ownership requires car slot 0.");
     }
-    if ((car.equipmentFlags & 0x000c) !== 0 || (car.state.carFlags & 0x200) !== 0) {
-      throw new RangeError("Race session input enters an unrecovered equipment/reset or pre-finished path.");
+    if ((car.state.carFlags & 0x200) !== 0) {
+      throw new RangeError("Race session input enters an unrecovered reset or pre-finished path.");
     }
     validateNavigationPair(car.navigationOutput, car.navigationDistance);
   }

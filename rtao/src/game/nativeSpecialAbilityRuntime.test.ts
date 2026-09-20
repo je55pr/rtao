@@ -1,5 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
+  advanceNativeFlightWingFlags,
+  nativeFlightWingActivationThreshold,
   nativeFreeRoamSpecialAbilityFlags,
   nativeOptionConfigurationFlag,
   nativeOptionVariant,
@@ -70,6 +72,19 @@ describe("native special-ability runtime contract", () => {
       | nativeSpecialAbilityFlags.waterSki
       | nativeSpecialAbilityFlags.sticker,
     );
+  });
+
+  test("replays the strict PAL Flight Wing fitted/active threshold without inventing the helper scalar", () => {
+    const fitted = nativeSpecialAbilityFlags.flightWingFitted | nativeSpecialAbilityFlags.wingSet;
+    const active = nativeSpecialAbilityFlags.flightWingActive | nativeSpecialAbilityFlags.wingSet;
+    expect(advanceNativeFlightWingFlags(fitted, nativeFlightWingActivationThreshold)).toBe(fitted);
+    expect(advanceNativeFlightWingFlags(fitted, 300.0001)).toBe(active);
+    expect(advanceNativeFlightWingFlags(active, nativeFlightWingActivationThreshold)).toBe(active);
+    expect(advanceNativeFlightWingFlags(active, 299.9999)).toBe(fitted);
+    expect(advanceNativeFlightWingFlags(0x000c, 300.0001)).toBe(nativeSpecialAbilityFlags.flightWingActive);
+    expect(advanceNativeFlightWingFlags(0x000c, 299.9999)).toBe(nativeSpecialAbilityFlags.flightWingFitted);
+    expect(advanceNativeFlightWingFlags(0x000c, 300)).toBe(0x000c);
+    expect(() => advanceNativeFlightWingFlags(fitted, Number.NaN)).toThrow(/finite/);
   });
 
   test("fails closed on Flight Wing and out-of-census selectors", () => {

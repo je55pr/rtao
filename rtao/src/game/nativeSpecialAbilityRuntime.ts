@@ -15,8 +15,8 @@ export const nativeSpecialAbilitySystemBoundary = Object.freeze({
   persistence: "three persisted selector blocks; flags are derived runtime state",
   exclusivity: "one selector per category; categories 10 and 11 clear their own mutually-exclusive flag groups",
   freeRoamDriving: "Propeller and Water Ski only",
-  ordinaryRaceDriving: "Wing Set, Propeller, Jet Turbine and Water Ski",
-  contact: "Propeller and Water Ski; auxiliary transition audio is contact-state driven",
+  ordinaryRaceDriving: "Wing Set, Propeller, Jet Turbine and Water Ski; Flight Wing downstream behavior is gated on the unresolved 0x0021E208 scalar",
+  contact: "Propeller, Water Ski, and active Flight Wing support/orientation; auxiliary transition audio is contact-state driven",
   camera: "no proven special-equipment camera consumer",
   audio: "Jet Turbine race requests proven; horn selector consumer unresolved",
   visual: "wheel geometry proven; special-equipment accessories/options/sticker/meter presentation unresolved",
@@ -32,6 +32,33 @@ const ordinaryRaceReadyMask = nativeSpecialAbilityFlags.wingSet
   | nativeSpecialAbilityFlags.propeller
   | nativeSpecialAbilityFlags.jetTurbine
   | nativeSpecialAbilityFlags.waterSki;
+
+export const nativeFlightWingActivationThreshold = 300;
+
+/**
+ * PAL 0x21CFC4..0x21D05C. `velocityDerivedScalar` is the exact f0 returned by
+ * helper 0x0021E208; its formula remains unrecovered and is deliberately not
+ * approximated here. Equality preserves the current fitted/active state.
+ */
+export function advanceNativeFlightWingFlags(flags: number, velocityDerivedScalar: number): number {
+  if (!Number.isInteger(flags) || flags < 0 || flags > 0xffff) {
+    throw new RangeError(`Native equipment flags must be an unsigned halfword; got ${flags}.`);
+  }
+  if (!Number.isFinite(velocityDerivedScalar)) {
+    throw new RangeError("Flight Wing velocity-derived scalar must be finite.");
+  }
+  let next = flags;
+  if ((next & nativeSpecialAbilityFlags.flightWingFitted)
+    && velocityDerivedScalar > nativeFlightWingActivationThreshold) {
+    next = (next & ~nativeSpecialAbilityFlags.flightWingFitted) | nativeSpecialAbilityFlags.flightWingActive;
+    return next;
+  }
+  if ((next & nativeSpecialAbilityFlags.flightWingActive)
+    && velocityDerivedScalar < nativeFlightWingActivationThreshold) {
+    next = (next & ~nativeSpecialAbilityFlags.flightWingActive) | nativeSpecialAbilityFlags.flightWingFitted;
+  }
+  return next;
+}
 
 export function nativeSpecialPartsConfigurationFlag(selector: number): number {
   assertSelector("Special Parts", selector, 2);

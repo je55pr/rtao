@@ -50,6 +50,7 @@ const query: Parameters<typeof advanceNativeRaceFrame>[2] = (point) => ({
 
 const frameAdvance = ((input: NativeRaceFrameInput) => ({
   state: { ...input.state, coordinates: [input.commands, 0, 5, 1] },
+  equipmentFlags: input.equipmentFlags,
   sceneFlags: input.sceneFlags >>> 0,
   contactFlags: 0,
   obstacleFlags: 0,
@@ -157,12 +158,28 @@ function entrant(carIndex: number): OrdinaryRaceEntrant {
 function session(carCount: number, elapsedUpdates = 200): OrdinaryRaceSession {
   return new OrdinaryRaceSession(config(carCount, elapsedUpdates), { advanceFrame: frameAdvance });
 }describe("ordinary race session", () => {
-  test("accepts recovered 0x3000 equipment modifiers while retaining the low-bit gate", () => {
+  test("keeps recovered modifiers and requires the exact Flight Wing scalar provider", () => {
     const base = config(2);
     const supported = { ...base, entrants: base.entrants.map((car, index) => index === 1 ? { ...car, equipmentFlags: 0x3000 } : car) };
     expect(() => new OrdinaryRaceSession(supported, { advanceFrame: frameAdvance })).not.toThrow();
-    const unsupported = { ...base, entrants: base.entrants.map((car, index) => index === 1 ? { ...car, equipmentFlags: 0x0008 } : car) };
-    expect(() => new OrdinaryRaceSession(unsupported, { advanceFrame: frameAdvance })).toThrow(/unrecovered equipment/);
+    const wing = { ...base, entrants: base.entrants.map((car, index) => index === 0 ? { ...car, equipmentFlags: 0x0004 } : car) };
+    expect(() => new OrdinaryRaceSession(wing)).toThrow(/0x0021E208/);
+
+    let scalar = 300.0001;
+    const race = new OrdinaryRaceSession(wing, { flightWingVelocityScalar: () => scalar });
+    const idle = (car: Parameters<Parameters<OrdinaryRaceSession["step"]>[0]["commandSource"]>[0]) => ({
+      commands: 0,
+      navigationOutput: 1,
+      navigationDistance: car.entrant.carIndex,
+    });
+    race.step({ sceneTime: 0, shortFinalPhase: false, commandSource: idle });
+    expect(race.entrant(0).equipmentFlags).toBe(0x0008);
+    scalar = 300;
+    race.step({ sceneTime: 1, shortFinalPhase: false, commandSource: idle });
+    expect(race.entrant(0).equipmentFlags).toBe(0x0008);
+    scalar = 299.9999;
+    race.step({ sceneTime: 2, shortFinalPhase: false, commandSource: idle });
+    expect(race.entrant(0).equipmentFlags).toBe(0x0004);
   });
   test("builds the evidenced post-grid ordinary-car snapshot without entering reset paths", () => {
     const player: OrdinaryRaceEntrant = {
