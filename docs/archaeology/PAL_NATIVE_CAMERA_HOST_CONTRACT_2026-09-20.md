@@ -39,6 +39,9 @@ car fields are supplied. `0x0021D6A0` then owns packed car-position translation;
 `nativeCameraWorldMatrix` intentionally accepts only an already-decoded native
 translation. `nativeCameraFinalOutput` consumes the resulting full `W` plus the
 mutable descriptor offset/focal/pitch/yaw/slip fields to produce eye/forward/focal.
+`materializeNativeCameraFinalOutput` composes those recovered stages only when
+all required PAL world inputs and decoded native translation are supplied, and
+associates the resulting final output with the same controller snapshot.
 `nativeCameraFrameFromStateForRenderer` still returns no frame until that
 producer chain has actually run; `selectNativeCameraRenderPose` therefore keeps
 the current live host fallback explicit. `replaceNativeCameraController`

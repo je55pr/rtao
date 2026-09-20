@@ -31,8 +31,9 @@ export interface NativeCameraRendererBoundary<TProjection = unknown> {
    */
   readonly toRenderPoint: (point: NativeCameraVector) => NativeCameraVector;
   /**
-   * Renderer-owned projection state. The retained chase archaeology does not
-   * yet prove the output-builder projection values used by the browser.
+   * Renderer-owned projection state. Native focal/clip/viewport families are
+   * recovered, but display-mode selection and shifted-center application still
+   * belong to an explicit host renderer adapter.
    */
   readonly projection: TProjection;
 }
