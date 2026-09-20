@@ -1530,6 +1530,10 @@ function peachRaceCommandMask(): number {
   const steering = raceInput.axis("driveSteering");
   if (throttle > 0) commands |= 1;
   if (throttle < 0) commands |= 2;
+  // PAL command 0x08 is the recovered Jet Turbine trigger. The frame itself
+  // owns the 0x2000 equipment/scene/fuel gates, so holding Boost is inert
+  // without a fitted turbine.
+  if (raceInput.action("boost").held) commands |= 0x08;
   // Preserve PAL physical command semantics. Race presentation already
   // reflects native X/yaw into browser coordinates.
   if (steering < 0) commands |= 0x8000;

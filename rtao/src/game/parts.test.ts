@@ -15,11 +15,13 @@ import {
 } from "./parts";
 
 describe("development parts catalogue", () => {
-  test("provides several immediately selectable parts in every original category", () => {
+  test("covers the complete recovered category 7..14 selector census", () => {
     expect(partCategoryOrder).toHaveLength(14);
-    expect(partCategoryOrder.reduce((total, category) => total + developmentPartCatalogue[category].length, 0)).toBe(60);
+    expect(partCategoryOrder.reduce((total, category) => total + developmentPartCatalogue[category].length, 0)).toBe(84);
+    expect(["wheels", "lights", "wing", "special", "options", "stickers", "horns", "meters"].map(
+      (category) => developmentPartCatalogue[category as keyof typeof developmentPartCatalogue].length,
+    )).toEqual([15, 3, 2, 3, 9, 2, 15, 11]);
     for (const category of partCategoryOrder) {
-      expect(developmentPartCatalogue[category].length, category).toBeGreaterThanOrEqual(3);
       expect(developmentPartCatalogue[category][0]?.id).toBe(defaultPartLoadout[category]);
     }
   });
@@ -92,5 +94,30 @@ describe("development parts catalogue", () => {
     selectors[11] = 4;
     const recovered = applyKnownNativeEquipmentSelectors(defaultPartLoadout, selectors);
     expect(recovered.options).toBe("billboard");
+  });
+
+  test("maps every recovered category 7..14 item while gating unrecovered presentation", () => {
+    const census = [
+      [7, ["Normal", "Mesh", "Spoke 1", "Spoke 2", "Flush 1", "Spoke 3", "Flush 2", "Spoke 4", "Spoke 5", "Spoke 6", "Flush 3", "Flush 4", "Flush 5", "Spoke 7", "Spoke 666"]],
+      [8, ["Headlights", "Fog Lights", "Beam Lights"]],
+      [9, ["None", "Wing Set"]],
+      [10, ["None", "Propeller", "Jet Turbine"]],
+      [11, ["None", "Water Ski", "Flight Wing", "Police Light", "Peach Town Sign", "Fuji City Sign", "Sandpolis Sign", "White Mountain Sign", "Papaya Island Sign"]],
+      [12, ["None", "Sticker"]],
+      [13, ["Normal Horn", "Air Horn", "Echo Air Horn", "Bus Horn", "Bicycle Bell", "Venus Horn", "Chicken Horn", "Fantasy Horn", "Trumpet Horn", "Christmas Horn", "Duck Horn", "Space Horn", "Horse Horn", "Baby Horn", "Train Horn"]],
+      [14, ["Normal Meter", "Chronometer", "Rainbow Meter", "Space Meter", "Triangle Meter", "Love Sick Meter", "Life Meter", "Cherry Meter", "Duck Meter", "Devil Meter", "Digital Meter"]],
+    ] as const;
+    for (const [category, names] of census) {
+      expect(names.map((_, selector) => knownNativePart(category, selector)?.name)).toEqual(names);
+    }
+    for (let selector = 0; selector <= 14; selector += 1) {
+      expect(knownNativePart(7, selector)?.appearance?.nativeWheelSelector).toBe(selector);
+    }
+    for (const category of [8, 9, 10, 11, 12, 13, 14]) {
+      for (const definition of developmentPartCatalogue[partCategoryOrder[category - 1]!]) {
+        expect(definition.appearance, definition.name).toBeUndefined();
+      }
+    }
+    expect(aggregatePartPerformance(equipPart(defaultPartLoadout, "special", "jet-turbine")).acceleration).toBe(1);
   });
 });

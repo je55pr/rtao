@@ -26,11 +26,10 @@ describe("HG2 car containers", () => {
     expect([...texture.rgba]).toEqual([255, 0, 0, 255, 0, 255, 0, 255]);
   });
 
-  test("maps native wheel selector byte +6 to WHEEL.BIN section selector+1", () => {
-    expect(nativeWheelSectionIndex(0)).toBe(1);
-    expect(nativeWheelSectionIndex(1)).toBe(2);
-    expect(nativeWheelSectionIndex(2)).toBe(3);
-    expect(nativeWheelSectionIndex(14)).toBe(15);
+  test("maps every native wheel selector byte +6 to WHEEL.BIN section selector+1", () => {
+    for (let selector = 0; selector <= 14; selector += 1) {
+      expect(nativeWheelSectionIndex(selector), `selector ${selector}`).toBe(selector + 1);
+    }
     expect(() => nativeWheelSectionIndex(15)).toThrow(RangeError);
   });
 });

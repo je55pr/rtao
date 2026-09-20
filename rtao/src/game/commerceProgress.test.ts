@@ -44,6 +44,22 @@ describe("recovered PAL commerce state", () => {
     ]);
   });
 
+  test("awards each fitted sign's exact native Cake rate per 1,000 driven units", () => {
+    const expectedCake = [10, 20, 30, 40, 50];
+    for (let sponsorIndex = 0; sponsorIndex < expectedCake.length; sponsorIndex += 1) {
+      const commerce = new RecoveredCommerceState(0);
+      commerce.addAdvertisingDistanceUnits(sponsorIndex, 1_000);
+      expect(commerce.redeemAdvertisingCake(sponsorIndex)).toMatchObject({
+        status: "credited",
+        sponsorIndex,
+        distanceAfter: 0,
+        redeemedBlocks: 1,
+        cakeAwarded: expectedCake[sponsorIndex],
+        cakeAfter: expectedCake[sponsorIndex],
+      });
+    }
+  });
+
   test("accumulates sponsor distance and redeems complete 1,000-unit blocks with the native rate", () => {
     const commerce = new RecoveredCommerceState(1_000);
     expect(commerce.addAdvertisingDistanceUnits(2, 999)).toBe(true);

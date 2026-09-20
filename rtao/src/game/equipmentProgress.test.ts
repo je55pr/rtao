@@ -89,7 +89,7 @@ describe("recovered native equipment selectors", () => {
 
     const liveLoadout = applyKnownNativeEquipmentSelectors(defaultPartLoadout, equipment.selectorEntries()[0] ?? []);
     expect(liveLoadout.wheels).toBe("mesh-wheel");
-    expect(aggregatePartsAppearance(liveLoadout).wheelStyle).toBe("mesh");
+    expect(aggregatePartsAppearance(liveLoadout).nativeWheelSelector).toBe(1);
 
     const saved = createRecoveredDialogueStateSave(ownership, "2026-09-04T18:00:00.000Z", commerce, equipment);
     const restoredOwnership = new DialogueRuntimeState();
@@ -101,8 +101,28 @@ describe("recovered native equipment selectors", () => {
     expect(restoredEquipment.selectedItem(0, 7)).toBe(1);
     const reloadedLoadout = applyKnownNativeEquipmentSelectors(defaultPartLoadout, restoredEquipment.selectorEntries()[0] ?? []);
     expect(reloadedLoadout.wheels).toBe("mesh-wheel");
-    expect(aggregatePartsAppearance(reloadedLoadout).wheelStyle).toBe("mesh");
+    expect(aggregatePartsAppearance(reloadedLoadout).nativeWheelSelector).toBe(1);
   });
+  test("fits every recovered category 7..14 selector coordinate", async () => {
+    const { DialogueRuntimeState } = await import("../formats/dialogue");
+    const selectorCounts = new Map<number, number>([
+      [7, 15], [8, 3], [9, 2], [10, 3], [11, 9], [12, 2], [13, 15], [14, 11],
+    ]);
+    for (const [category, count] of selectorCounts) {
+      const ownership = new DialogueRuntimeState();
+      const equipment = new RecoveredEquipmentState();
+      for (let selector = 1; selector < count; selector += 1) {
+        ownership.setIndexedFlag(category, selector);
+        expect(fitOwnedNativeEquipmentPart(ownership, equipment, 0, category, selector), `${category}:${selector}`).toBe("fitted");
+        expect(equipment.selectedItem(0, category)).toBe(selector);
+      }
+      if (count > 1) {
+        expect(fitOwnedNativeEquipmentPart(ownership, equipment, 0, category, 0), `${category}:0`).toBe("fitted");
+        expect(equipment.selectedItem(0, category)).toBe(0);
+      }
+    }
+  });
+
   test("rejects malformed selector blocks and out-of-range coordinates", () => {
     const state = new RecoveredEquipmentState();
     expect(state.restoreSelectors([[0], [0], [0]])).toBe(false);

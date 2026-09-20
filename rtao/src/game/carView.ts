@@ -178,13 +178,13 @@ export class Q62CarModel extends THREE.Group {
   }
 
   /**
-   * Applies the temporary browser-port parts preview. These deliberately simple
-   * meshes make every cosmetic category observable while the original accessory
-   * asset formats and RPG ownership rules are still being reconstructed.
+   * Applies the browser presentation projection for the fitted loadout.
+   * Recovered WHEEL.BIN selectors use exact native geometry. Other accessory
+   * fields stay at baseline unless a separately proven presentation supplies them.
    */
   setPartsAppearance(appearance: CarPartsAppearance): void {
     this.clearPartsAccessories();
-    const mappedSelector = nativeWheelSelectorForStyle(appearance.wheelStyle);
+    const mappedSelector = appearance.nativeWheelSelector ?? nativeWheelSelectorForStyle(appearance.wheelStyle);
     if (this.nativeWheelAssets && mappedSelector !== undefined && mappedSelector !== this.nativeWheelSelector) {
       this.nativeWheelSelector = mappedSelector;
       this.rebuildWheels();
@@ -192,8 +192,8 @@ export class Q62CarModel extends THREE.Group {
     // Big Tyre has an executable-selected authored TIRE.BIN path; never apply the
     // older development wheelScale approximation on top of it.
     if (!this.usesNativeBigTyre) for (const spinner of this.wheelSpinners) spinner.scale.setScalar(appearance.wheelScale);
-    // Exact WHEEL.BIN geometry replaces the old browser-only caps for the mapped
-    // Normal/Mesh/Spoke selectors. Unmapped Dish remains an explicit dev preview.
+    // Exact WHEEL.BIN geometry owns all recovered category-7 selectors.
+    // The cap fallback is retained only for non-native development appearances.
     if (!this.nativeWheelAssets || mappedSelector === undefined) this.addWheelCaps(appearance.wheelStyle, appearance.wheelScale);
     this.addHeadlights(appearance.lightColor);
     this.addWing(appearance.wing);
