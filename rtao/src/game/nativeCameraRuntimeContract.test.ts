@@ -3,6 +3,7 @@ import {
   applyNativeCameraLifecycle,
   createNativeCameraRuntimeContractState,
   nativeCameraFrameForRenderer,
+  nativeCameraFrameFromStateForRenderer,
   reflectNativeCameraPointX,
   withNativeCameraFinalOutput,
 } from "./nativeCameraRuntimeContract";
@@ -20,6 +21,21 @@ describe("native camera runtime contract", () => {
     const resolved = withNativeCameraFinalOutput(initial, output);
     expect(resolved.controller).toBe(initial.controller);
     expect(resolved.finalOutput).toBe(output);
+  });
+
+  test("controller-only state does not fabricate a renderer frame", () => {
+    const initial = createNativeCameraRuntimeContractState(0);
+    let conversions = 0;
+    const frame = nativeCameraFrameFromStateForRenderer(initial, {
+      toRenderPoint: (point) => {
+        conversions += 1;
+        return point;
+      },
+      projection: { rendererOwned: true },
+    });
+
+    expect(frame).toBeUndefined();
+    expect(conversions).toBe(0);
   });
 
   test("maps final native output through one renderer reflection boundary", () => {

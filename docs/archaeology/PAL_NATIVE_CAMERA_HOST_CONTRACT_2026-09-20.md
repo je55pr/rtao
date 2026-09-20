@@ -31,7 +31,9 @@ The state envelope contains:
 
 No native final output is fabricated when only controller state is available.
 This prevents the retained `0.001` follow recurrence from silently becoming
-browser world-space motion again.
+browser world-space motion again. `nativeCameraFrameFromStateForRenderer`
+returns no frame in that state, so a caller must choose an explicit host
+fallback rather than implicitly reinterpreting controller data as final output.
 ## Final output and renderer boundary
 
 Native camera arithmetic must finish in PAL/native scene coordinates. Only
@@ -123,10 +125,11 @@ rather than to tune the fallbacks to resemble PAL.
 ## Verification
 
 The CI-safe regression for this boundary is
-`rtao/src/game/nativeCameraRuntimeContract.test.ts`. It checks that final
-output cannot be confused with controller state, reflection happens exactly
-once at the renderer boundary, projection remains opaque host data, and host
-scene invalidation does not mutate native controller state.
+`rtao/src/game/nativeCameraRuntimeContract.test.ts`. It checks that controller-
+only state produces no native renderer frame, final output cannot be confused
+with controller state, reflection happens exactly once at the renderer
+boundary, projection remains opaque host data, and host scene invalidation does
+not mutate native controller state.
 
 The PAL-backed authority test also pins the ordinary call into `0x00220458`, the two projection-pair stores at `0x002207e8/+8`, and the builder's `output + 0x100` block. Those structural witnesses do not by themselves identify a Three.js eye/target/FOV mapping, so the fallback retirement conditions above remain unchanged.
 

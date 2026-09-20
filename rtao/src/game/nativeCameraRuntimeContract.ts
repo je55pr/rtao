@@ -117,6 +117,20 @@ export function nativeCameraFrameForRenderer<TProjection>(
     projection: boundary.projection,
   };
 }
+
+/**
+ * Produces a native-backed renderer frame only when the native output-builder
+ * has supplied final output. Controller/follow state is deliberately not used
+ * as a substitute, leaving the caller free to select an explicit host fallback.
+ */
+export function nativeCameraFrameFromStateForRenderer<TProjection>(
+  state: NativeCameraRuntimeContractState,
+  boundary: NativeCameraRendererBoundary<TProjection>,
+): NativeCameraRenderFrame<TProjection> | undefined {
+  return state.finalOutput === undefined
+    ? undefined
+    : nativeCameraFrameForRenderer(state.finalOutput, boundary);
+}
 /**
  * Common reflected-X boundary used by HG2 field/course presentation.
  * The origin is supplied by the scene adapter rather than hidden in camera
