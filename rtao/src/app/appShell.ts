@@ -134,6 +134,25 @@ const appShellHtml = `
           <div><dt>Residents</dt><dd id="resident-count">—</dd></div>
         </dl>
         <dl class="debug-rows" id="debug-live-rows"></dl>
+        <section class="debug-cheats" aria-label="Developer cheats">
+          <p class="debug-cheats-title">DEBUG CHEATS</p>
+          <div class="debug-cheat-row">
+            <select id="debug-city-teleport" aria-label="Debug city teleport"></select>
+            <button class="quiet-button" id="debug-city-go" type="button">Teleport city</button>
+          </div>
+          <div class="debug-cheat-row debug-field-teleport">
+            <input id="debug-field-number" type="number" min="0" max="999" step="1" value="223" aria-label="FLD number">
+            <input id="debug-field-x" type="number" step="10" value="800" aria-label="Field X">
+            <input id="debug-field-z" type="number" step="10" value="800" aria-label="Field Z">
+            <button class="quiet-button" id="debug-field-go" type="button">Teleport FLD</button>
+          </div>
+          <div class="debug-cheat-grid">
+            <button class="quiet-button" id="debug-cake" type="button">Set 100,000 Cake</button>
+            <button class="quiet-button" id="debug-all-parts" type="button">Own every part</button>
+            <button class="quiet-button" id="debug-all-warps" type="button">Unlock all Warp cities</button>
+            <button class="quiet-button" id="debug-testing-kit" type="button">Grant testing kit</button>
+          </div>
+        </section>
         <div class="debug-overlay-actions">
           <button class="quiet-button" id="debug-copy" type="button">Copy for bug report</button>
           <button class="quiet-button" id="debug-hide" type="button">Hide</button>

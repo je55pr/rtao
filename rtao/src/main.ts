@@ -7,6 +7,7 @@ import { NativeEngineAudioRuntime } from "./audio/nativeEngineAudio";
 import { NativeRadioRuntime, nativeRadioTickMilliseconds } from "./audio/nativeRadioRuntime";
 import { NativeSfxRuntime, type NativeSfxEvent } from "./audio/nativeSfx";
 import { installAppShell } from "./app/appShell";
+import { grantAllDebugParts, setDebugCake, unlockAllDebugWarps } from "./app/debugCheats";
 import { diagnosticsReportText, FrameRateSampler, liveDiagnosticsRows } from "./app/debugDiagnostics";
 import { DeterministicCaptureController } from "./app/deterministicCaptureController";
 import { requiredElement } from "./app/dom";
@@ -581,6 +582,16 @@ inputSettings.subscribe(() => {
 requiredElement<HTMLButtonElement>("debug-hide").addEventListener("click", () => setDebugOverlayVisible(false));
 requiredElement<HTMLButtonElement>("debug-copy").addEventListener("click", () => {
   void copyDiagnosticsReport();
+});
+requiredElement<HTMLButtonElement>("debug-cake").addEventListener("click", () => debugSetCake());
+requiredElement<HTMLButtonElement>("debug-all-parts").addEventListener("click", () => debugGrantAllParts());
+requiredElement<HTMLButtonElement>("debug-all-warps").addEventListener("click", () => debugUnlockAllWarps());
+requiredElement<HTMLButtonElement>("debug-testing-kit").addEventListener("click", () => debugGrantTestingKit());
+requiredElement<HTMLButtonElement>("debug-city-go").addEventListener("click", () => {
+  void debugTeleportCity().catch((error) => debugCheatFeedback(error instanceof Error ? error.message : String(error)));
+});
+requiredElement<HTMLButtonElement>("debug-field-go").addEventListener("click", () => {
+  void debugTeleportField().catch((error) => debugCheatFeedback(error instanceof Error ? error.message : String(error)));
 });
 
 semanticInput.subscribe(handleDialogueInput);
@@ -1909,6 +1920,98 @@ function refreshDebugOverlay(): void {
   }));
 }
 
+function debugCheatFeedback(message: string): void {
+  const feedback = requiredElement<HTMLElement>("debug-feedback");
+  feedback.hidden = false;
+  feedback.textContent = message;
+}
+
+function refreshDebugCheatControls(): void {
+  const city = requiredElement<HTMLSelectElement>("debug-city-teleport");
+  city.replaceChildren();
+  const destinations = overworldCatalogue?.authoredAreas.filter((area) => area.areaIndex >= 1 && area.areaIndex <= 9) ?? [];
+  if (destinations.length === 0) {
+    const option = document.createElement("option");
+    option.textContent = "Load a game first";
+    option.value = "";
+    city.append(option);
+  } else {
+    for (const area of destinations) {
+      const option = document.createElement("option");
+      option.value = String(area.areaIndex);
+      option.textContent = `${area.areaIndex} · ${area.name}`;
+      city.append(option);
+    }
+  }
+  const progressReady = !!playerDialogueState && !!playerCommerceState;
+  requiredElement<HTMLButtonElement>("debug-cake").disabled = !playerCommerceState;
+  requiredElement<HTMLButtonElement>("debug-all-parts").disabled = !playerDialogueState;
+  requiredElement<HTMLButtonElement>("debug-all-warps").disabled = !playerDialogueState;
+  requiredElement<HTMLButtonElement>("debug-testing-kit").disabled = !progressReady;
+  requiredElement<HTMLButtonElement>("debug-city-go").disabled = !isDriving || destinations.length === 0;
+  requiredElement<HTMLButtonElement>("debug-field-go").disabled = !isDriving;
+}
+
+function debugSetCake(): void {
+  if (!playerCommerceState) return debugCheatFeedback("Load the game before granting Cake.");
+  setDebugCake(playerCommerceState);
+  queueRecoveredProgressSave();
+  refreshGameHud(drivingGame?.controller.state);
+  debugCheatFeedback("Cake set to 100,000 and queued for save.");
+}
+
+function debugGrantAllParts(): void {
+  if (!playerDialogueState) return debugCheatFeedback("Load the game before granting parts.");
+  const granted = grantAllDebugParts(playerDialogueState);
+  queueRecoveredProgressSave();
+  debugCheatFeedback(granted ? `Granted ${granted} mapped parts. Q's Factory can fit them now.` : "Every mapped part is already owned.");
+}
+
+function debugUnlockAllWarps(): void {
+  if (!playerDialogueState) return debugCheatFeedback("Load the game before unlocking Warp.");
+  const unlocked = unlockAllDebugWarps(playerDialogueState);
+  queueRecoveredProgressSave();
+  refreshPauseWarpState();
+  debugCheatFeedback(unlocked ? `Unlocked ${unlocked} Warp destinations.` : "All Warp destinations are already unlocked.");
+}
+
+function debugGrantTestingKit(): void {
+  if (!playerDialogueState || !playerCommerceState) return debugCheatFeedback("Load the game before granting the testing kit.");
+  setDebugCake(playerCommerceState);
+  const parts = grantAllDebugParts(playerDialogueState);
+  const warps = unlockAllDebugWarps(playerDialogueState);
+  queueRecoveredProgressSave();
+  refreshPauseWarpState();
+  refreshGameHud(drivingGame?.controller.state);
+  debugCheatFeedback(`Testing kit granted: 100,000 Cake, ${parts} new parts, ${warps} new Warp destinations.`);
+}
+
+async function debugTeleportCity(): Promise<void> {
+  const areaIndex = Number.parseInt(requiredElement<HTMLSelectElement>("debug-city-teleport").value, 10);
+  if (!Number.isInteger(areaIndex)) throw new Error("Choose a city destination first.");
+  await warpToCity(areaIndex, { hasWarpRegistration: (candidate) => candidate === areaIndex });
+  debugCheatFeedback(`Teleported to authored area ${areaIndex} without changing Warp registration.`);
+}
+
+async function debugTeleportField(): Promise<void> {
+  if (!drivingGame || !isDriving || !drivingWorld) throw new Error("Start driving before using raw FLD teleport.");
+  const fieldNumber = Number.parseInt(requiredElement<HTMLInputElement>("debug-field-number").value, 10);
+  const x = Number.parseFloat(requiredElement<HTMLInputElement>("debug-field-x").value);
+  const z = Number.parseFloat(requiredElement<HTMLInputElement>("debug-field-z").value);
+  if (!Number.isInteger(fieldNumber) || fieldNumber < 0 || fieldNumber > 999 || !Number.isFinite(x) || !Number.isFinite(z)) {
+    throw new Error("FLD teleport needs a 0..999 field number and finite X/Z coordinates.");
+  }
+  await ensureWorldFieldLoaded(fieldNumber);
+  if (!loadedWorldFieldNumbers.has(fieldNumber)) throw new Error(`FLD/${String(fieldNumber).padStart(3, "0")} is not available in this install.`);
+  drivingGame.enterArea(fieldNumber, { x, z });
+  interactionContactTracker.update(contactInteractionTargets(drivingGame.controller.state).map((target) => target.key));
+  requiredElement<HTMLElement>("viewer-title").textContent = `FLD/${String(fieldNumber).padStart(3, "0")}`;
+  sceneFade.flash();
+  lastPrefetchedWorldField = fieldNumber;
+  void ensureNearbyWorldFields(fieldNumber).catch((error) => console.warn("Debug teleport prefetch failed.", error));
+  debugCheatFeedback(`Teleported to FLD/${String(fieldNumber).padStart(3, "0")} at ${x.toFixed(1)}, ${z.toFixed(1)}.`);
+}
+
 function setDebugOverlayVisible(visible: boolean): void {
   if (debugOverlayVisible === visible) return;
   debugOverlayVisible = visible;
@@ -1918,6 +2021,7 @@ function setDebugOverlayVisible(visible: boolean): void {
   if (visible) {
     debugFrameRate.reset();
     refreshDebugOverlay();
+    refreshDebugCheatControls();
     debugOverlayFrame = requestAnimationFrame(sampleDebugOverlayFrame);
   } else if (debugOverlayFrame) {
     cancelAnimationFrame(debugOverlayFrame);
@@ -2946,7 +3050,15 @@ function chooseShopInteriorDialogue(index: number): void {
 
 async function warpToRegisteredCity(areaIndex: number): Promise<void> {
   const registrationState = currentWarpRegistrationState();
-  if (!playerDialogueState || !registrationState || !overworldCatalogue) throw new Error("Recovered Warp state is unavailable.");
+  if (!registrationState) throw new Error("Recovered Warp state is unavailable.");
+  await warpToCity(areaIndex, registrationState);
+}
+
+async function warpToCity(
+  areaIndex: number,
+  registrationState: Pick<DialogueRuntimeState, "hasWarpRegistration">,
+): Promise<void> {
+  if (!playerDialogueState || !overworldCatalogue) throw new Error("Recovered Warp state is unavailable.");
   if (!drivingGame || !isDriving) throw new Error("Warp travel requires an active outdoor driving session.");
 
   await runRegisteredCityWarp(areaIndex, registrationState, overworldCatalogue.authoredAreas, async (destination) => {
