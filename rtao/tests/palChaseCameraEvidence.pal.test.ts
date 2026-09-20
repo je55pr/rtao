@@ -34,6 +34,7 @@ suite('verified PAL chase-camera executable evidence',()=>{
   const rs=(instruction:number)=>(instruction>>>21)&0x1f;
   const rt=(instruction:number)=>(instruction>>>16)&0x1f;
   const signedImmediate=(instruction:number)=>(instruction<<16)>>16;
+  const unsignedImmediate=(instruction:number)=>instruction&0xffff;
   const jumpTarget=(address:number,instruction:number)=>(
     ((address+4)&0xf0000000)|((instruction&0x03ffffff)<<2)
   )>>>0;
@@ -115,6 +116,125 @@ suite('verified PAL chase-camera executable evidence',()=>{
     expect(rs(projectionOutput)).toBe(18);
     expect(rt(projectionOutput)).toBe(16);
     expect(signedImmediate(projectionOutput)).toBe(0x100);
+  });
+
+  it('pins mutable descriptor rotations feeding the final transform builder',()=>{
+    const descriptorAngles=word(0x22035c);
+    expect(opcode(descriptorAngles)).toBe(9);
+    expect(rs(descriptorAngles)).toBe(20);
+    expect(rt(descriptorAngles)).toBe(5);
+    expect(signedImmediate(descriptorAngles)).toBe(0x14);
+
+    const rotationCall=word(0x22037c);
+    expect(opcode(rotationCall)).toBe(3);
+    expect(jumpTarget(0x22037c,rotationCall)).toBe(0x208580);
+
+    const plus16=word(0x208598),plus1a=word(0x20859c);
+    const plus18=word(0x2085a4),plus14=word(0x2085ac);
+    expect(opcode(plus16)).toBe(0x25);
+    expect(rs(plus16)).toBe(3);
+    expect(signedImmediate(plus16)).toBe(2);
+    expect(opcode(plus1a)).toBe(0x25);
+    expect(rs(plus1a)).toBe(3);
+    expect(signedImmediate(plus1a)).toBe(6);
+    expect(opcode(plus18)).toBe(0x21);
+    expect(rs(plus18)).toBe(3);
+    expect(signedImmediate(plus18)).toBe(4);
+    expect(opcode(plus14)).toBe(0x21);
+    expect(rs(plus14)).toBe(3);
+    expect(signedImmediate(plus14)).toBe(0);
+
+    const yawCombine=word(0x2085a8);
+    expect(opcode(yawCombine)).toBe(0);
+    expect(rs(yawCombine)).toBe(2);
+    expect(rt(yawCombine)).toBe(7);
+    expect(yawCombine&0x3f).toBe(0x21);
+  });
+
+  it('pins the recovered final-output projection and renderer handoff constants',()=>{
+    expect(float32(0x3d5984)).toBeCloseTo(0.8,7);
+    expect(float32(0x3d5988)).toBeCloseTo(0.53,7);
+    expect(float32(0x3d598c)).toBeCloseTo(0.47,7);
+    const frustum=[
+      [-320,-112,1.5,1],[320,-112,1.5,1],[-320,112,700,1],
+      [320,112,700,1],[0,-112,1.5,1],[-107,112,700,1],[107,112,700,1],
+    ];
+    frustum.forEach((vector,index)=>vector.forEach((value,lane)=>
+      expect(float32(0x2a2290+index*16+lane*4)).toBeCloseTo(value,5)));
+
+    const dmaLui=word(0x2276f4),dmaOri=word(0x2276fc);
+    expect(opcode(dmaLui)).toBe(0xf);
+    expect(rt(dmaLui)).toBe(3);
+    expect(unsignedImmediate(dmaLui)).toBe(0x3000);
+    expect(opcode(dmaOri)).toBe(0xd);
+    expect(rs(dmaOri)).toBe(3);
+    expect(rt(dmaOri)).toBe(3);
+    expect(unsignedImmediate(dmaOri)).toBe(8);
+
+    const vifLui=word(0x2276f8),vifOri=word(0x227704);
+    expect(opcode(vifLui)).toBe(0xf);
+    expect(rt(vifLui)).toBe(4);
+    expect(unsignedImmediate(vifLui)).toBe(0x6c08);
+    expect(opcode(vifOri)).toBe(0xd);
+    expect(rs(vifOri)).toBe(4);
+    expect(rt(vifOri)).toBe(4);
+    expect(unsignedImmediate(vifOri)).toBe(4);
+  });
+
+  it('pins the native camera-world helper inputs and matrix-builder chain',()=>{
+    const source=word(0x21eae8);
+    expect(opcode(source)).toBe(9);
+    expect(rs(source)).toBe(17);
+    expect(rt(source)).toBe(5);
+    expect(signedImmediate(source)).toBe(0x10);
+
+    const mode=word(0x21eb58);
+    expect(opcode(mode)).toBe(0x23);
+    expect(rs(mode)).toBe(18);
+    expect(rt(mode)).toBe(2);
+    expect(signedImmediate(mode)).toBe(0x1c);
+
+    const offset50=word(0x21eb80);
+    expect(opcode(offset50)).toBe(0x31);
+    expect(rs(offset50)).toBe(17);
+    expect(signedImmediate(offset50)).toBe(0x50);
+
+    const slip=word(0x21edb8),relativeYaw=word(0x21edbc);
+    expect(opcode(slip)).toBe(0x25);
+    expect(rs(slip)).toBe(18);
+    expect(signedImmediate(slip)).toBe(0x1a);
+    expect(opcode(relativeYaw)).toBe(0x25);
+    expect(rs(relativeYaw)).toBe(18);
+    expect(signedImmediate(relativeYaw)).toBe(0x16);
+
+    for(const [address,target] of [
+      [0x21ee30,0x275830],
+      [0x21eeb8,0x2086c0],
+      [0x21eec4,0x2086c0],
+      [0x21eee4,0x208738],
+    ] as const){
+      const call=word(address);
+      expect(opcode(call)).toBe(3);
+      expect(jumpTarget(address,call)).toBe(target);
+    }
+
+    const stackSecondary=word(0x21fa3c);
+    expect(opcode(stackSecondary)).toBe(9);
+    expect(rs(stackSecondary)).toBe(29);
+    expect(rt(stackSecondary)).toBe(20);
+    expect(signedImmediate(stackSecondary)).toBe(0x40);
+
+    const primary=word(0x21fa6c),secondary=word(0x21fa74);
+    expect(opcode(primary)).toBe(0);
+    expect(rs(primary)).toBe(29);
+    expect(rt(primary)).toBe(0);
+    expect((primary>>>11)&0x1f).toBe(6);
+    expect(primary&0x3f).toBe(0x2d);
+    expect(opcode(secondary)).toBe(0);
+    expect(rs(secondary)).toBe(20);
+    expect(rt(secondary)).toBe(0);
+    expect((secondary>>>11)&0x1f).toBe(7);
+    expect(secondary&0x3f).toBe(0x2d);
   });
 
   it('decodes the selected collision query and transform rebuild call',()=>{

@@ -10,8 +10,12 @@ import {
 export type NativeCameraVector = NativeChaseVector;
 
 export interface NativeCameraFinalOutput {
-  readonly position: NativeCameraVector;
-  readonly target: NativeCameraVector;
+  /** Output +0x170 native camera-world translation column. */
+  readonly eye: NativeCameraVector;
+  /** Output +0x180 native +Z-forward direction. */
+  readonly forward: NativeCameraVector;
+  /** Output +0x18C focal parameter copied from camera state +0x10. */
+  readonly focal: number;
 }
 
 export interface NativeCameraRenderPose {
@@ -123,10 +127,15 @@ export function nativeCameraFrameForRenderer<TProjection>(
   output: NativeCameraFinalOutput,
   boundary: NativeCameraRendererBoundary<TProjection>,
 ): NativeCameraRenderFrame<TProjection> {
+  const target: NativeCameraVector = [
+    output.eye[0] + output.forward[0],
+    output.eye[1] + output.forward[1],
+    output.eye[2] + output.forward[2],
+  ];
   return {
     pose: {
-      position: boundary.toRenderPoint(output.position),
-      target: boundary.toRenderPoint(output.target),
+      position: boundary.toRenderPoint(output.eye),
+      target: boundary.toRenderPoint(target),
     },
     projection: boundary.projection,
   };
@@ -154,11 +163,16 @@ export function selectNativeCameraRenderPose(
   if (state.finalOutput === undefined) {
     return { source: "host-fallback", pose: hostFallback };
   }
+  const target: NativeCameraVector = [
+    state.finalOutput.eye[0] + state.finalOutput.forward[0],
+    state.finalOutput.eye[1] + state.finalOutput.forward[1],
+    state.finalOutput.eye[2] + state.finalOutput.forward[2],
+  ];
   return {
     source: "native-final-output",
     pose: {
-      position: toRenderPoint(state.finalOutput.position),
-      target: toRenderPoint(state.finalOutput.target),
+      position: toRenderPoint(state.finalOutput.eye),
+      target: toRenderPoint(target),
     },
   };
 }

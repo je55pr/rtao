@@ -13,12 +13,12 @@ The gate has three deliberately separate parts:
   update-by-update with the executable's original `0x0021B1C0` vehicle call,
   while `NativeDrivingMotion` is independently compared with that same scalar
   composition using the explicit playable `symmetric` drift policy;
-- chase camera: the retained executable-backed preset/yaw/slip/lag/recenter
-  contract is covered by deterministic tests. Live browser rendering currently
-  uses an explicitly host-owned chase framing fallback because the recovered
-  `0.001` recurrence is not proven to be final world-space camera output. An
-  optional measured PAL output trace is still required before replacing that
-  presentation fallback with a native output-builder projection.
+- chase camera: executable-backed tests now cover preset/slip/recenter state,
+  both `0x0021EAC8` lag pairs and camera-world matrices, `0x00220458`
+  eye/forward/focal output, both recovered projection families, projection
+  centers and the renderer DMA/VIF handoff. Live browser framing remains only
+  until each host mode supplies the exact PAL car-record inputs consumed by
+  `0x0021EAC8`; the recovered lag pairs are orientation state, not camera eye.
 
 Original executable, disc and camera-capture inputs remain local. No retail
 payload is required or permitted in Git.
@@ -171,40 +171,11 @@ bit 4's effect but the upstream outdoor command producer is not yet recovered.
 Developer Shift/RB boost remains a browser traversal aid outside native motion
 state and therefore cannot multiply recovered yaw.
 
-The production ordinary chase path retains a PAL preset, native vehicle
-yaw/slip and the recovered float32 per-invocation lag recurrence through
-`nativeChaseCamera.ts`. Free-roam advances that controller state on the same
-50 Hz fixed ticks as native vehicle motion after converting the browser's
-reflected vehicle position back to PAL/native handedness; ordinary races feed
-their native simulation coordinates directly. The controller no longer accepts
-a browser `yawSign`, and host field/area transitions no longer clear native lag
-without a recovered PAL reset event. Live standard-world and ordinary-race rendering route through
-`selectNativeCameraRenderPose`, which selects native final output only when a
-real output-builder producer has populated it and otherwise returns the exact
-host fallback. No such producer exists yet, so live rendering still uses the
-explicitly host-owned `browserChaseCamera` / `ordinaryRaceChaseCamera` framing
-because the retained follow-helper state is not proven to be final
-output-builder position. The unchanged Three.js world/race projection values
-are now isolated in `hostCameraProjection.ts` and explicitly marked
-`authority: "host-policy"`; initial aspect and viewport `width / height` updates
-are isolated there too. None are evidence for `0x002207e8` semantics.
-Special-outdoor rendering remains directly on the host fallback because no
-native scene/output reflection contract is established for that path. The
-handoff also does not prove the upstream initial preset selector,
-so `browserOrdinaryChasePresetIndex` keeps the current record-0 choice
-explicitly host-side rather than declaring it a native default.
+The production ordinary chase controller retains the mutable PAL descriptor fields and two executable-backed lag pairs in `nativeChaseCamera.ts`; it no longer carries a fabricated camera position or target. `nativeCameraWorldTransform.ts` implements the recovered `0x0021EAC8` lag/orientation helper when supplied car `+0x10/+0x50/+0x58/+0x1D4`, while `0x0021D6A0` remains the separate packed-position translation stage. `nativeCameraFinalOutput.ts` consumes the full native `W` and mutable descriptor local offset/focal/pitch/relative-yaw/slip to produce eye/+Z-forward/focal, and exposes the recovered normalized perspective/GS viewport/depth families. Live standard-world and ordinary-race rendering still route through `selectNativeCameraRenderPose` and deterministically choose their existing host fallback because those exact car-record inputs, packed translation and upstream pitch/display-mode selectors are not yet bridged from host simulation state. The race contact matrix is not used as a substitute for the camera-specific helper matrix. Special-outdoor remains directly on host framing because its native camera scene path is not recovered.
 
-The state/output/renderer/obstruction/lifecycle boundary is frozen in
-`PAL_NATIVE_CAMERA_HOST_CONTRACT_2026-09-20.md` and represented by
-`nativeCameraRuntimeContract.ts`. End-to-end PAL output-builder parity remains
-bounded by the optional measured camera trace above. Preset fields whose render
-meaning is not proven, the timed recenter angle and slip state are retained
-without inventing projection effects. `browserChaseCameraSafety.ts` remains an
-explicitly host-only height-clearance adapter; it is not the native
-`gp-0x3e60` obstruction loop. The recovered semantic `Change View` action
-likewise has no browser binding until that binding is independently proven.
+The state/output/renderer/obstruction/lifecycle boundary is frozen in `PAL_NATIVE_CAMERA_HOST_CONTRACT_2026-09-20.md`. Remaining camera integration gaps are now narrow: source the exact helper car fields for each live mode; resolve the runtime selector/meaning of the two recovered display-scale modes and shifted projection centers; provide the native `gp-0x3e60` obstruction query; and recover the upstream initial preset selector. `hostCameraProjection.ts`, `browserChaseCamera.ts` and `browserChaseCameraSafety.ts` remain explicitly host-owned until those seams close. The recovered semantic `Change View` action likewise has no browser binding until independently proven.
 
-Cross-mode regression coverage additionally locks the integration seams rather than introducing a third motion model: `nativeDrivingCrossMode.test.ts` drives `NativeDrivingMotion` and the ordinary-race scalar consumer from identical recovered equipment/contact inputs and requires exact vehicle/velocity parity, then verifies that free-roam and races advance the same native-space chase-camera recurrence before any renderer reflection. Ordinary race launch paths snapshot one complete saved selector block; direct race entry and Q's Factory therefore no longer diverge on player equipment, while unresolved categories 7..14 remain excluded from scalar handling.
+Cross-mode regression coverage locks the integration seams rather than introducing a third motion model: `nativeDrivingCrossMode.test.ts` requires free-roam and ordinary-race motion to agree on recovered vehicle/velocity behavior and requires their camera controllers to consume identical native slip/recenter inputs before renderer presentation. Ordinary race launch paths snapshot one complete saved selector block; direct race entry and Q's Factory therefore no longer diverge on player equipment, while unresolved categories 7..14 remain excluded from scalar handling.
 
 The broader gate remains:
 

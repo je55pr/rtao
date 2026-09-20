@@ -679,19 +679,14 @@ export class BrowserDrivingGame {
   };
 
   private advanceCamera(state: CarState, snap: boolean): void {
-    // Keep advancing the recovered native camera state for evidence-backed
-    // yaw/slip/recenter behavior, but do not project its unproven 0.001 lag
-    // recurrence directly into browser world-space coordinates.
+    // Keep advancing proven controller slip/recenter state. The recovered
+    // camera-world lag pairs are advanced only once exact 0x21EAC8 car-record
+    // inputs are available; browser chase geometry remains the explicit fallback.
     this.cameraRuntimeState = replaceNativeCameraController(
       this.cameraRuntimeState,
       advanceNativeChaseCamera(
         this.cameraRuntimeState.controller,
         {
-          // DrivingWorld exposes reflected render coordinates. Undo only the
-          // established host reflection here so native camera state never mixes
-          // browser handedness into PAL yaw/follow arithmetic.
-          position: [fieldExtent - state.position.x, state.position.y, state.position.z],
-          nativeYaw: state.nativeYaw,
           nativeSlip: state.nativeSlipAngle,
         },
       ),

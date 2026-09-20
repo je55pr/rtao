@@ -84,13 +84,13 @@ describe("native driving cross-mode integration", () => {
     }
   });
 
-  test("free-roam and race advance one native chase-camera recurrence before presentation", () => {
+  test("free-roam and race retain identical native controller inputs before presentation", () => {
     let free = createNativeChaseCameraState(0);
     let race = createNativeChaseCameraState(0);
     const samples = [
-      { position: [600, 2, 300] as const, nativeYaw: 0x0000, nativeSlip: 0 },
-      { position: [601, 2.2, 302] as const, nativeYaw: 0x1800, nativeSlip: -120 },
-      { position: [603, 2.1, 305] as const, nativeYaw: 0x3000, nativeSlip: 80 },
+      { nativeSlip: 0 },
+      { nativeSlip: -120 },
+      { nativeSlip: 80 },
     ];
     for (const sample of samples) {
       free = advanceNativeChaseCamera(free, sample);

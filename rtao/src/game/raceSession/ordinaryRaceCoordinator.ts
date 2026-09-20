@@ -52,10 +52,8 @@ export function ordinaryRaceChaseCamera(car: OrdinaryRaceSessionCarView): RaceCa
   const [x, y, z] = pose.position;
   const forwardX = Math.sin(pose.yaw);
   const forwardZ = Math.cos(pose.yaw);
-  // Host presentation fallback. The retained PAL camera contract proves the
-  // preset/yaw inputs, but not that its 0.001 recurrence is final world-space
-  // position output. Keep the stable browser framing until a numeric PAL trace
-  // closes that output-builder boundary.
+  // Explicit host fallback until the recovered 0x0021EAC8 camera-world
+  // transform is reproduced. Do not substitute the race contact matrix for it.
   return {
     position: [x - forwardX * 10, y + 4.8, z - forwardZ * 10],
     target: [x + forwardX * 16, y + 1, z + forwardZ * 16],
@@ -125,14 +123,6 @@ export class OrdinaryRaceCoordinator {
       advanceNativeChaseCamera(
         this.cameraRuntimeState.controller,
         {
-          // Race simulation coordinates are already PAL/native. Reflection is a
-          // renderer concern and must not alter native follow/yaw state.
-          position: [
-            car.state.coordinates[0],
-            car.state.coordinates[1],
-            car.state.coordinates[2],
-          ],
-          nativeYaw: car.state.vehicle.yaw,
           nativeSlip: car.state.vehicle.slipAngle,
         },
       ),

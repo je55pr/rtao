@@ -13,12 +13,14 @@ import {
 describe("native camera runtime contract", () => {
   test("keeps final native output separate from retained controller state", () => {
     const initial = createNativeCameraRuntimeContractState(0);
-    expect(initial.controller.ready).toBe(false);
+    expect(initial.controller.lagX).toEqual({ value: 0, velocity: 0 });
+    expect(initial.controller.lagZ).toEqual({ value: 0, velocity: 0 });
     expect(initial.finalOutput).toBeUndefined();
 
     const output = {
-      position: [100, 5, 200] as const,
-      target: [110, 2, 220] as const,
+      eye: [100, 5, 200] as const,
+      forward: [10, -3, 20] as const,
+      focal: 500,
     };
     const resolved = withNativeCameraFinalOutput(initial, output);
     expect(resolved.controller).toBe(initial.controller);
@@ -43,10 +45,11 @@ describe("native camera runtime contract", () => {
   test("advancing controller ownership invalidates stale final output", () => {
     const initial = createNativeCameraRuntimeContractState(0);
     const resolved = withNativeCameraFinalOutput(initial, {
-      position: [100, 5, 200],
-      target: [110, 2, 220],
+      eye: [100, 5, 200],
+      forward: [10, -3, 20],
+      focal: 500,
     });
-    const nextController = { ...resolved.controller, ready: true };
+    const nextController = { ...resolved.controller, slipInput: 7 };
     const advanced = replaceNativeCameraController(resolved, nextController);
 
     expect(advanced.controller).toBe(nextController);
@@ -65,8 +68,9 @@ describe("native camera runtime contract", () => {
     });
 
     const resolved = withNativeCameraFinalOutput(initial, {
-      position: [100, 5, 200],
-      target: [110, 2, 220],
+      eye: [100, 5, 200],
+      forward: [10, -3, 20],
+      focal: 500,
     });
     expect(
       selectNativeCameraRenderPose(
@@ -85,8 +89,9 @@ describe("native camera runtime contract", () => {
 
   test("maps final native output through one renderer reflection boundary", () => {
     const output = {
-      position: [100, 5, 200] as const,
-      target: [110, 2, 220] as const,
+      eye: [100, 5, 200] as const,
+      forward: [10, -3, 20] as const,
+      focal: 500,
     };
     const projection = { rendererOwned: "opaque" as const };
     const frame = nativeCameraFrameForRenderer(output, {
@@ -102,17 +107,17 @@ describe("native camera runtime contract", () => {
   });
   test("native lifecycle changes invalidate final output without inventing a snap", () => {
     const output = {
-      position: [100, 5, 200] as const,
-      target: [110, 2, 220] as const,
+      eye: [100, 5, 200] as const,
+      forward: [10, -3, 20] as const,
+      focal: 500,
     };
     const initial = createNativeCameraRuntimeContractState(0);
     let state = withNativeCameraFinalOutput(
       {
         controller: {
           ...initial.controller,
-          position: [12, 3, 4],
-          lagVelocity: [0.2, -0.1, 0.05],
-          ready: true,
+          lagX: { value: 12, velocity: 0.2 },
+          lagZ: { value: 4, velocity: -0.1 },
         },
       },
       output,
@@ -120,9 +125,8 @@ describe("native camera runtime contract", () => {
 
     state = applyNativeCameraLifecycle(state, { kind: "native-lag-reset" });
     expect(state.finalOutput).toBeUndefined();
-    expect(state.controller.ready).toBe(true);
-    expect(state.controller.position).toEqual([12, 3, 4]);
-    expect(state.controller.lagVelocity).toEqual([0, 0, 0]);
+    expect(state.controller.lagX).toEqual({ value: 12, velocity: 0 });
+    expect(state.controller.lagZ).toEqual({ value: 4, velocity: 0 });
 
     state = withNativeCameraFinalOutput(state, output);
     state = applyNativeCameraLifecycle(state, { kind: "native-recenter" });
@@ -141,8 +145,9 @@ describe("native camera runtime contract", () => {
   test("host discontinuity invalidates presentation only", () => {
     const initial = createNativeCameraRuntimeContractState(0);
     const output = {
-      position: [100, 5, 200] as const,
-      target: [110, 2, 220] as const,
+      eye: [100, 5, 200] as const,
+      forward: [10, -3, 20] as const,
+      focal: 500,
     };
     const resolved = withNativeCameraFinalOutput(initial, output);
     const invalidated = applyNativeCameraLifecycle(

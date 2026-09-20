@@ -2,19 +2,20 @@
 
 ## Scope
 
-This note combines the retained ordinary chase-camera archaeology into the
-runtime boundary that a future native output-builder implementation must obey.
-It does not change live camera presentation and deliberately adds no camera
-distance, lift, blend, FOV, clipping, recenter or obstruction tuning.
+This note combines the retained ordinary chase-camera archaeology with the
+2026-09-20 final-output recovery. The native output builder is now implemented
+for consumers that can supply the recovered world matrix; no browser distance,
+lift or blend constants are promoted into native behavior.
 
 The primary authority remains
 `PAL_CHASE_CAMERA_RUNTIME_2026-09-19.md` and its machine-readable
 `docs/evidence/camera/2026-09-19/pal-chase-camera-contract.json`.
 
-The executable proves separate controller/state, output-builder and obstruction
-stages. The browser must keep those stages separate too. In particular,
-`NativeChaseCameraState.position` is retained follow-helper state; it is not
-automatically a final world-space camera eye position.
+The executable proves separate controller/state, camera-world helper,
+output-builder and obstruction stages. The browser must keep those stages
+separate too. The earlier `NativeChaseCameraState.position/target` abstraction
+has been retired: `0x0021EAC8` owns two per-player lag pairs that shape camera
+orientation, while final eye/forward exists only after `0x00220458`.
 
 ## Runtime state contract
 
@@ -23,23 +24,25 @@ The active TypeScript seam is
 
 The state envelope contains:
 
-- the recovered `NativeChaseCameraState`, including preset, lag velocity,
-  native slip input and timed recenter state;
-- an optional `NativeCameraFinalOutput`, containing only final native-space
-  camera position and target after an output-builder implementation resolves
-  them.
+- the recovered `NativeChaseCameraState`, including copied/mutable descriptor
+  local offset `+0x00`, focal `+0x10`, pitch `+0x14`, timed relative-yaw
+  `+0x16`, retained `+0x18`, slip `+0x1A`, mode flags `+0x1C`, and the separate
+  per-player `+0x00/+0x04` and `+0x08/+0x0C` lag pairs;
+- an optional `NativeCameraFinalOutput`, containing the recovered native eye
+  (`output +0x170`), +Z-forward vector (`+0x180`) and focal parameter (`+0x18C`).
 
 No native final output is fabricated when only controller state is available.
-This prevents the retained `0.001` follow recurrence from silently becoming
-browser world-space motion again. `nativeCameraFrameFromStateForRenderer`
-returns no frame in that state, while `selectNativeCameraRenderPose` reports an
-explicit `host-fallback` selection instead of implicitly reinterpreting
-controller data as final output. Ordinary standard-world driving and ordinary
-races now route their live camera choice through that selector; because no
-native output-builder producer exists yet, rendered framing is unchanged.
-`replaceNativeCameraController` also discards any previous final output whenever
-the controller advances, preventing a pose resolved for an older controller
-snapshot from leaking into a later frame.
+This prevents the retained `0.001` lag-pair recurrence from silently becoming
+browser world-space motion again. `advanceNativeCameraWorldTransform`
+implements the recovered `0x0021EAC8` lag/orientation transition when its PAL
+car fields are supplied. `0x0021D6A0` then owns packed car-position translation;
+`nativeCameraWorldMatrix` intentionally accepts only an already-decoded native
+translation. `nativeCameraFinalOutput` consumes the resulting full `W` plus the
+mutable descriptor offset/focal/pitch/yaw/slip fields to produce eye/forward/focal.
+`nativeCameraFrameFromStateForRenderer` still returns no frame until that
+producer chain has actually run; `selectNativeCameraRenderPose` therefore keeps
+the current live host fallback explicit. `replaceNativeCameraController`
+discards stale final output whenever controller state advances.
 
 ## Final output and renderer boundary
 
@@ -57,19 +60,21 @@ after that final pose exists may the host convert it to renderer coordinates.
 established HG2 relation `renderX = origin - nativeX`. The origin is supplied
 by the scene adapter rather than hidden inside camera arithmetic.
 
-This contract intentionally does not name the Three.js FOV, near plane, far
-plane or aspect as PAL camera values. The retained executable ranges identify
-the transform builder at `0x00220458` and projection-pair setter at
-`0x002207e8`, but current evidence does not establish a browser-equivalent
-projection mapping. Existing renderer projection values therefore remain host
-presentation policy until separately recovered.
+The final recovery identifies `0x002207e8` as a projection-center pair, not
+FOV/clip state. `nativeCameraProjectionContract` carries focal/512, perspective
+Z coefficients `1.0000457763671875` and `-3.0000686645507812`, exact native near
+`1.5` / far `65536`, GS viewport scales, reverse-depth scale/bias, the two decoded
+display-scale families, and center pairs `(2048,2048)`, `(2048,1992)`,
+`(2048,2104)`. Live Three.js projection remains host-owned only because the
+runtime selector for the two unlabelled display-scale modes is not yet wired;
+shifted centers also require an off-axis/custom projection rather than only
+FOV/aspect.
 
-The same rule removes the need for a native camera implementation to receive a
-browser `yawSign`: reflection belongs after final native output, not inside
-native yaw/preset arithmetic. The production controller now enforces this rule:
-free-roam converts its reflected host vehicle position back to native before
-camera arithmetic, while ordinary races pass their native simulation position
-directly.
+The same rule removes the need for a browser `yawSign`: all controller,
+camera-world and output-builder math remains in PAL/native coordinates.
+`nativeCameraFrameForRenderer` converts the recovered eye and host convenience
+target `eye + forward` only after native output is complete, so handedness is
+reflected exactly once.
 ## Obstruction query boundary
 
 The native obstruction loop at `0x0021ef20` calls the selected scene
@@ -93,7 +98,7 @@ non-native.
 
 Only recovered state transitions are allowed to mutate native controller state:
 
-- `native-lag-reset` clears recovered lag velocity without inventing a snap;
+- `native-lag-reset` clears both recovered lag-pair velocities without snapping their retained values;
 - `native-recenter` enters the recovered timed recenter callback state;
 - `native-preset-select` selects an explicit recovered preset and resets lag
   as the existing native helper does.
@@ -107,26 +112,27 @@ proves a corresponding PAL camera reset/rebase transition.
 The live fallbacks remain necessary, but their retirement conditions are now
 narrow and explicit:
 
-- `browserChaseCamera.ts` distance/lift/blend framing stays until
-  `0x00220458` final native position/target semantics are recovered or a
-  measured PAL output trace proves an equivalent implementation. Once that
-  exists, its geometry, smoothing and `rebaseBrowserChaseCamera` can be
-  removed from driving presentation.
-- `ordinaryRaceChaseCamera` stays for the same final-output gap. It should be
-  removed with the free-roam framing fallback, not independently tuned.
+- `browserChaseCamera.ts` distance/lift/blend framing stays only until each
+  live driving mode can supply the exact `0x0021EAC8` car inputs
+  (`+0x10/+0x50/+0x58/+0x1D4`) to `advanceNativeCameraWorldTransform`.
+  `0x00220458` eye/forward semantics are no longer a gap; once the input bridge
+  is connected, browser geometry, smoothing and `rebaseBrowserChaseCamera` can
+  be deleted rather than tuned.
+- `ordinaryRaceChaseCamera` remains the same explicit fallback. The retained
+  race contact matrix is not substituted for the camera-specific
+  `0x0021EAC8` matrix merely because both are native transforms.
 - `applyBrowserChaseObstructionSafety` stays as host-only readability safety
   until the native `gp-0x3e60` obstruction query can be supplied with the
   correct scene-collision semantics. It must not be folded into native state.
 - `browserOrdinaryChasePresetIndex = 0` stays until the upstream initial
   preset selector is recovered. The ten preset records themselves are native;
   selecting record zero as the initial browser view is not yet proven native.
-- Three.js perspective/FOV/near/far setup remains renderer policy until the
-  executable projection-pair/output-builder mapping is recovered. The current
-  world/race values live only in `hostCameraProjection.ts` and carry explicit
-  `authority: "host-policy"` provenance. Initial aspect and live/capture viewport
-  aspect (`width / height`) are isolated there as host presentation policy too.
-  None of these are native constants, and they are not a reason to retain
-  browser chase geometry after native final pose recovery.
+- the native projection mapping is now recovered: focal, two display-scale
+  families, near `1.5`, far `65536`, and the three center pairs are represented
+  by `nativeCameraProjectionContract`. Live Three.js projection stays on
+  `hostCameraProjection.ts` only until the runtime meaning/selection of the two
+  display-scale modes is connected; shifted centers require an off-axis/custom
+  matrix rather than a simple PerspectiveCamera FOV.
 - OrbitControls world/field overview cameras are developer/navigation
   presentation, not part of the driving-camera replacement and are unaffected.
 
@@ -142,7 +148,12 @@ with controller state, reflection happens exactly once at the renderer
 boundary, projection remains opaque host data, and host scene invalidation does
 not mutate native controller state.
 
-The PAL-backed authority test also pins the ordinary call into `0x00220458`, the two projection-pair stores at `0x002207e8/+8`, and the builder's `output + 0x100` block. Those structural witnesses do not by themselves identify a Three.js eye/target/FOV mapping, so the fallback retirement conditions above remain unchanged.
+The PAL-backed authority test pins the `0x0021EAC8` source/mode/offset/yaw
+loads, its normalize/basis/yaw call chain, both matrices passed to
+`0x00220458`, projection scale constants/frustum vectors, the center-pair
+stores, and the DMA/VIF renderer handoff. CI-safe numeric tests additionally
+lock the preset-0 identity-world eye/forward oracle and both recovered projection
+families without embedding retail payload.
 
 The existing camera authority gates remain:
 
