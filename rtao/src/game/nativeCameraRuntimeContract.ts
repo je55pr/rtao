@@ -37,6 +37,11 @@ export interface NativeCameraRenderFrame<TProjection = unknown> {
   readonly projection: TProjection;
 }
 
+export interface NativeCameraRenderSelection {
+  readonly source: "native-final-output" | "host-fallback";
+  readonly pose: NativeCameraRenderPose;
+}
+
 export interface NativeCameraObstructionProbe {
   readonly point: NativeCameraVector;
 }
@@ -85,6 +90,15 @@ export function withNativeCameraFinalOutput(
   return { ...state, finalOutput };
 }
 
+/** A final output belongs to one controller snapshot and is stale after it advances. */
+export function replaceNativeCameraController(
+  state: NativeCameraRuntimeContractState,
+  controller: NativeChaseCameraState,
+): NativeCameraRuntimeContractState {
+  if (state.controller === controller && state.finalOutput === undefined) return state;
+  return { controller };
+}
+
 export function applyNativeCameraLifecycle(
   state: NativeCameraRuntimeContractState,
   event: NativeCameraLifecycleEvent,
@@ -130,6 +144,23 @@ export function nativeCameraFrameFromStateForRenderer<TProjection>(
   return state.finalOutput === undefined
     ? undefined
     : nativeCameraFrameForRenderer(state.finalOutput, boundary);
+}
+
+export function selectNativeCameraRenderPose(
+  state: NativeCameraRuntimeContractState,
+  toRenderPoint: (point: NativeCameraVector) => NativeCameraVector,
+  hostFallback: NativeCameraRenderPose,
+): NativeCameraRenderSelection {
+  if (state.finalOutput === undefined) {
+    return { source: "host-fallback", pose: hostFallback };
+  }
+  return {
+    source: "native-final-output",
+    pose: {
+      position: toRenderPoint(state.finalOutput.position),
+      target: toRenderPoint(state.finalOutput.target),
+    },
+  };
 }
 /**
  * Common reflected-X boundary used by HG2 field/course presentation.

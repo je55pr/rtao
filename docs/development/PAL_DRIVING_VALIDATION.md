@@ -178,10 +178,15 @@ yaw/slip and the recovered float32 per-invocation lag recurrence through
 reflected vehicle position back to PAL/native handedness; ordinary races feed
 their native simulation coordinates directly. The controller no longer accepts
 a browser `yawSign`, and host field/area transitions no longer clear native lag
-without a recovered PAL reset event. Live rendering still uses the explicitly
-host-owned `browserChaseCamera` / `ordinaryRaceChaseCamera` framing because
-the retained follow-helper state is not proven to be final output-builder
-position. The handoff also does not prove the upstream initial preset selector,
+without a recovered PAL reset event. Live standard-world and ordinary-race rendering route through
+`selectNativeCameraRenderPose`, which selects native final output only when a
+real output-builder producer has populated it and otherwise returns the exact
+host fallback. No such producer exists yet, so live rendering still uses the
+explicitly host-owned `browserChaseCamera` / `ordinaryRaceChaseCamera` framing
+because the retained follow-helper state is not proven to be final
+output-builder position. Special-outdoor rendering remains directly on the host
+fallback because no native scene/output reflection contract is established for
+that path. The handoff also does not prove the upstream initial preset selector,
 so `browserOrdinaryChasePresetIndex` keeps the current record-0 choice
 explicitly host-side rather than declaring it a native default.
 

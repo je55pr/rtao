@@ -19,11 +19,14 @@ import {
   nativeDeepAuxiliarySurface,
   type NativeAuxiliaryContactState,
 } from "./nativeRaceContact";
+import { advanceNativeChaseCamera } from "./nativeChaseCamera";
 import {
-  advanceNativeChaseCamera,
-  createNativeChaseCameraState,
-  type NativeChaseCameraState,
-} from "./nativeChaseCamera";
+  createNativeCameraRuntimeContractState,
+  reflectNativeCameraPointX,
+  replaceNativeCameraController,
+  selectNativeCameraRenderPose,
+  type NativeCameraRuntimeContractState,
+} from "./nativeCameraRuntimeContract";
 import {
   advanceBrowserChaseCamera,
   rebaseBrowserChaseCamera,
@@ -543,8 +546,8 @@ export class BrowserDrivingGame {
   private running = false;
   private paused = false;
   private inputOverride: DriveInput | undefined;
-  private chaseCameraState: NativeChaseCameraState =
-    createNativeChaseCameraState(browserOrdinaryChasePresetIndex);
+  private cameraRuntimeState: NativeCameraRuntimeContractState =
+    createNativeCameraRuntimeContractState(browserOrdinaryChasePresetIndex);
   private browserChaseCameraState: BrowserChaseCameraState = {
     position: [0, 0, 0], target: [0, 0, 0], ready: false,
   };
@@ -578,7 +581,7 @@ export class BrowserDrivingGame {
     this.controls.reset();
     this.unsubscribeControls = this.input.subscribe(this.handleControlEvent);
     const state = this.controller.state;
-    this.chaseCameraState = createNativeChaseCameraState(browserOrdinaryChasePresetIndex);
+    this.cameraRuntimeState = createNativeCameraRuntimeContractState(browserOrdinaryChasePresetIndex);
     this.browserChaseCameraState = { position: [0, 0, 0], target: [0, 0, 0], ready: false };
     this.advanceCamera(state, true);
     this.view.startDriving(this.car, state.fieldNumber, state.position, state.yaw);
@@ -679,16 +682,19 @@ export class BrowserDrivingGame {
     // Keep advancing the recovered native camera state for evidence-backed
     // yaw/slip/recenter behavior, but do not project its unproven 0.001 lag
     // recurrence directly into browser world-space coordinates.
-    this.chaseCameraState = advanceNativeChaseCamera(
-      this.chaseCameraState,
-      {
-        // DrivingWorld exposes reflected render coordinates. Undo only the
-        // established host reflection here so native camera state never mixes
-        // browser handedness into PAL yaw/follow arithmetic.
-        position: [fieldExtent - state.position.x, state.position.y, state.position.z],
-        nativeYaw: state.nativeYaw,
-        nativeSlip: state.nativeSlipAngle,
-      },
+    this.cameraRuntimeState = replaceNativeCameraController(
+      this.cameraRuntimeState,
+      advanceNativeChaseCamera(
+        this.cameraRuntimeState.controller,
+        {
+          // DrivingWorld exposes reflected render coordinates. Undo only the
+          // established host reflection here so native camera state never mixes
+          // browser handedness into PAL yaw/follow arithmetic.
+          position: [fieldExtent - state.position.x, state.position.y, state.position.z],
+          nativeYaw: state.nativeYaw,
+          nativeSlip: state.nativeSlipAngle,
+        },
+      ),
     );
     this.browserChaseCameraState = advanceBrowserChaseCamera(
       this.browserChaseCameraState,
@@ -700,10 +706,17 @@ export class BrowserDrivingGame {
   private applyState(state: CarState): void {
     this.car.setNativeBodyMatrix(state.nativeBodyMatrix);
     this.car.setWheelState(state.steeringAngle, state.wheelSpin);
-    const hostPose = {
+    const fallbackPose = {
       position: this.browserChaseCameraState.position,
       target: this.browserChaseCameraState.target,
     };
+    const hostPose = state.location.kind === "standard-world"
+      ? selectNativeCameraRenderPose(
+          this.cameraRuntimeState,
+          (point) => reflectNativeCameraPointX(point, fieldExtent),
+          fallbackPose,
+        ).pose
+      : fallbackPose;
     const chase = applyBrowserChaseObstructionSafety(hostPose, (point) =>
       state.location.kind === "special-outdoor"
         ? this.world.sampleSpecialOutdoorHighest(state.location.areaCode, point)

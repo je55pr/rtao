@@ -32,8 +32,15 @@ The state envelope contains:
 No native final output is fabricated when only controller state is available.
 This prevents the retained `0.001` follow recurrence from silently becoming
 browser world-space motion again. `nativeCameraFrameFromStateForRenderer`
-returns no frame in that state, so a caller must choose an explicit host
-fallback rather than implicitly reinterpreting controller data as final output.
+returns no frame in that state, while `selectNativeCameraRenderPose` reports an
+explicit `host-fallback` selection instead of implicitly reinterpreting
+controller data as final output. Ordinary standard-world driving and ordinary
+races now route their live camera choice through that selector; because no
+native output-builder producer exists yet, rendered framing is unchanged.
+`replaceNativeCameraController` also discards any previous final output whenever
+the controller advances, preventing a pose resolved for an older controller
+snapshot from leaking into a later frame.
+
 ## Final output and renderer boundary
 
 Native camera arithmetic must finish in PAL/native scene coordinates. Only

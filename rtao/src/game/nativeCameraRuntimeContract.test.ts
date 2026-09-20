@@ -5,6 +5,8 @@ import {
   nativeCameraFrameForRenderer,
   nativeCameraFrameFromStateForRenderer,
   reflectNativeCameraPointX,
+  replaceNativeCameraController,
+  selectNativeCameraRenderPose,
   withNativeCameraFinalOutput,
 } from "./nativeCameraRuntimeContract";
 
@@ -36,6 +38,49 @@ describe("native camera runtime contract", () => {
 
     expect(frame).toBeUndefined();
     expect(conversions).toBe(0);
+  });
+
+  test("advancing controller ownership invalidates stale final output", () => {
+    const initial = createNativeCameraRuntimeContractState(0);
+    const resolved = withNativeCameraFinalOutput(initial, {
+      position: [100, 5, 200],
+      target: [110, 2, 220],
+    });
+    const nextController = { ...resolved.controller, ready: true };
+    const advanced = replaceNativeCameraController(resolved, nextController);
+
+    expect(advanced.controller).toBe(nextController);
+    expect(advanced.finalOutput).toBeUndefined();
+  });
+
+  test("selects the exact host fallback until final output exists", () => {
+    const initial = createNativeCameraRuntimeContractState(0);
+    const fallback = {
+      position: [9, 8, 7] as const,
+      target: [6, 5, 4] as const,
+    };
+    expect(selectNativeCameraRenderPose(initial, (point) => point, fallback)).toEqual({
+      source: "host-fallback",
+      pose: fallback,
+    });
+
+    const resolved = withNativeCameraFinalOutput(initial, {
+      position: [100, 5, 200],
+      target: [110, 2, 220],
+    });
+    expect(
+      selectNativeCameraRenderPose(
+        resolved,
+        (point) => reflectNativeCameraPointX(point, 1600),
+        fallback,
+      ),
+    ).toEqual({
+      source: "native-final-output",
+      pose: {
+        position: [1500, 5, 200],
+        target: [1490, 2, 220],
+      },
+    });
   });
 
   test("maps final native output through one renderer reflection boundary", () => {

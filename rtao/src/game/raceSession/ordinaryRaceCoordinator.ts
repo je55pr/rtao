@@ -1,9 +1,12 @@
 import type { RaceCameraPose, RacePose, RaceView } from "../raceView";
+import { advanceNativeChaseCamera } from "../nativeChaseCamera";
 import {
-  advanceNativeChaseCamera,
-  createNativeChaseCameraState,
-  type NativeChaseCameraState,
-} from "../nativeChaseCamera";
+  createNativeCameraRuntimeContractState,
+  reflectNativeCameraPointX,
+  replaceNativeCameraController,
+  selectNativeCameraRenderPose,
+  type NativeCameraRuntimeContractState,
+} from "../nativeCameraRuntimeContract";
 import { browserOrdinaryChasePresetIndex } from "../browserChaseCameraSafety";
 import { stepOrdinaryRaceAi, type NativeRaceAiMemory } from "../raceAi";
 import type { OrdinaryRaceSessionCarView, OrdinaryRaceSessionStepResult } from "./raceSession";
@@ -60,8 +63,8 @@ export function ordinaryRaceChaseCamera(car: OrdinaryRaceSessionCarView): RaceCa
 }
 export class OrdinaryRaceCoordinator {
   private readonly ai = new Map<number, AiRuntimeState>();
-  private cameraState: NativeChaseCameraState =
-    createNativeChaseCameraState(browserOrdinaryChasePresetIndex);
+  private cameraRuntimeState: NativeCameraRuntimeContractState =
+    createNativeCameraRuntimeContractState(browserOrdinaryChasePresetIndex);
 
   constructor(readonly runtime: OrdinaryRaceRuntime) {
     for (const initial of runtime.initialCommands) {
@@ -98,10 +101,13 @@ export class OrdinaryRaceCoordinator {
     }
     const player = poses.find((entry) => entry.carIndex === 0);
     if (!player) throw new Error("Ordinary race presentation has no player car 0.");
-    // Native camera state is still advanced for retained contract coverage,
-    // but browser rendering uses the host fallback until PAL output parity is
-    // proven with a numeric camera trace.
-    view.setCameraPose(ordinaryRaceChaseCamera(this.runtime.session.entrant(0)));
+    const fallback = ordinaryRaceChaseCamera(this.runtime.session.entrant(0));
+    const camera = selectNativeCameraRenderPose(
+      this.cameraRuntimeState,
+      (point) => reflectNativeCameraPointX(point, 1600),
+      fallback,
+    );
+    view.setCameraPose(camera.pose);
     view.renderOnce();
   }
 
@@ -114,19 +120,22 @@ export class OrdinaryRaceCoordinator {
 
   private advancePlayerCamera(): void {
     const car = this.runtime.session.entrant(0);
-    this.cameraState = advanceNativeChaseCamera(
-      this.cameraState,
-      {
-        // Race simulation coordinates are already PAL/native. Reflection is a
-        // renderer concern and must not alter native follow/yaw state.
-        position: [
-          car.state.coordinates[0],
-          car.state.coordinates[1],
-          car.state.coordinates[2],
-        ],
-        nativeYaw: car.state.vehicle.yaw,
-        nativeSlip: car.state.vehicle.slipAngle,
-      },
+    this.cameraRuntimeState = replaceNativeCameraController(
+      this.cameraRuntimeState,
+      advanceNativeChaseCamera(
+        this.cameraRuntimeState.controller,
+        {
+          // Race simulation coordinates are already PAL/native. Reflection is a
+          // renderer concern and must not alter native follow/yaw state.
+          position: [
+            car.state.coordinates[0],
+            car.state.coordinates[1],
+            car.state.coordinates[2],
+          ],
+          nativeYaw: car.state.vehicle.yaw,
+          nativeSlip: car.state.vehicle.slipAngle,
+        },
+      ),
     );
   }
 
