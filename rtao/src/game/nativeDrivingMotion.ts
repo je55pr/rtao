@@ -27,10 +27,12 @@ export interface NativeDrivingMotionAuthority {
   readonly yawScale: number;
   equipment(selectors: readonly number[]): NativeRaceEquipment;
 }
+export type NativeDrivingSurfaceIndex = 0 | 1 | 2 | 3 | 4 | 5;
+
 export interface NativeDrivingMotionInput {
   readonly throttle: number;
   readonly steering: number;
-  readonly surfaceKind: DrivingSurfaceKind;
+  readonly surfaceIndex: NativeDrivingSurfaceIndex | undefined;
   readonly contact: {
     readonly driveContact: boolean;
     readonly accelerationY: number;
@@ -112,8 +114,8 @@ export class NativeDrivingMotion {
     const inverse = inverseNativeRaceMatrix(matrix);
     const localVelocity = transformNativeRaceIntegerVector(inverse, this.velocity);
     const drag = nativeRaceDrag(localVelocity[2], localVelocity[0], this.equipment.mass, 0, 0, 0);
-    const surface = nativeSurface(input.surfaceKind);
-    const equipment = surface.resolved
+    const surfaceResolved = input.surfaceIndex !== undefined;
+    const equipment = surfaceResolved
       ? this.equipment
       : neutralUnresolvedSurfaceEquipment(this.equipment);
     const commands = nativeDrivingCommands(input, this.vehicle);
@@ -123,7 +125,7 @@ export class NativeDrivingMotion {
       {
         localForwardSpeed: drag.forward,
         localSideSpeed: drag.side,
-        surfaceIndex: surface.index,
+        surfaceIndex: input.surfaceIndex ?? 0,
         driveContact: input.contact.driveContact,
         contactAccelerationY: input.contact.accelerationY,
         contactAllowsYaw: input.contact.allowsYaw,
@@ -152,7 +154,7 @@ export class NativeDrivingMotion {
       steeringFraction: this.vehicle.steeringAccumulator / 32,
       nativeVelocity: this.velocity,
       nativeVehicle: this.vehicle,
-      surfaceResolved: surface.resolved,
+      surfaceResolved,
     };
   }
 }
@@ -175,14 +177,14 @@ function nativeDrivingCommands(input: NativeDrivingMotionInput, vehicle: NativeR
   return commands;
 }
 
-function nativeSurface(surfaceKind: DrivingSurfaceKind): { index: number; resolved: boolean } {
-  if (surfaceKind === "paved-road" || surfaceKind === "dry") return { index: 0, resolved: true };
-  if (surfaceKind === "dirt") return { index: 1, resolved: true };
-  if (surfaceKind === "wet") return { index: 2, resolved: true };
-  if (surfaceKind === "grass") return { index: 3, resolved: true };
-  if (surfaceKind === "snow") return { index: 4, resolved: true };
-  if (surfaceKind === "ice") return { index: 5, resolved: true };
-  return { index: 0, resolved: false };
+export function nativeDrivingSurfaceIndex(surfaceKind: DrivingSurfaceKind): NativeDrivingSurfaceIndex | undefined {
+  if (surfaceKind === "paved-road" || surfaceKind === "dry") return 0;
+  if (surfaceKind === "dirt") return 1;
+  if (surfaceKind === "wet") return 2;
+  if (surfaceKind === "grass") return 3;
+  if (surfaceKind === "snow") return 4;
+  if (surfaceKind === "ice") return 5;
+  return undefined;
 }
 
 function neutralUnresolvedSurfaceEquipment(equipment: NativeRaceEquipment): NativeRaceEquipment {

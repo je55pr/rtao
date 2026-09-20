@@ -67,7 +67,7 @@ describe("native driving cross-mode integration", () => {
       const freeRoam = motion.step({
         throttle: 1,
         steering,
-        surfaceKind: "dry",
+        surfaceIndex: 0,
         contact: { driveContact: true, accelerationY: 89, allowsYaw: true },
       });
 

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { CompiledFieldCollision } from "../formats/fieldCollision";
 import { ArcadeCarController } from "./drivingGame";
-import { nativeDrivingFixedStepSeconds } from "./nativeDrivingMotion";
+import { nativeDrivingFixedStepSeconds, nativeDrivingSurfaceIndex } from "./nativeDrivingMotion";
 import { syntheticNativeDrivingMotionAuthority } from "./nativeDrivingMotion.testSupport";
 import { allWorldFieldNumbers } from "./worldTopology";
 import { DrivingWorld, flatFieldCollision, type DrivingSurfaceKind, type ResolvedFootprint, type Vec3 } from "./worldCollision";
@@ -63,6 +63,21 @@ function controller(world: DrivingWorld): ArcadeCarController {
 }
 
 const drive = { throttle: 1, steering: 0, boost: false } as const;
+const nativeSurfaceCases = [
+  { kind: "dry", flags: 0x550, index: 0, tyreSelector: 3 },
+  { kind: "dirt", flags: 0x111, index: 1, tyreSelector: 8 },
+  { kind: "wet", flags: 0x002, index: 2, tyreSelector: 6 },
+  { kind: "grass", flags: 0x313, index: 3, tyreSelector: 8 },
+  { kind: "snow", flags: 0x444, index: 4, tyreSelector: 10 },
+  { kind: "ice", flags: 0x455, index: 5, tyreSelector: 9 },
+] as const;
+
+function collisionSurfaceWorld(surfaceFlags: number): DrivingWorld {
+  const world = new DrivingWorld();
+  for (const field of allWorldFieldNumbers()) world.addCompiledField(field, flatFieldCollision(0, surfaceFlags));
+  return world;
+}
+
 describe("recovered driving integration", () => {
   test("advances deterministically at the recovered 50 Hz fixed step", () => {
     const a = controller(flatWorld());
@@ -95,6 +110,42 @@ describe("recovered driving integration", () => {
     expect(crossed).toBe(true);
   });
 
+  test.each(nativeSurfaceCases)("feeds sustained $kind contact into native tyre slot $index", ({ kind, flags, index, tyreSelector }) => {
+    const world = collisionSurfaceWorld(flags);
+    const normal = controller(world);
+    const equipped = controller(world);
+    equipped.setNativeTyreSelector(tyreSelector);
+    expect(normal.state.surfaceKind).toBe(kind);
+    expect(nativeDrivingSurfaceIndex(normal.state.surfaceKind)).toBe(index);
+    for (let frame = 0; frame < 90; frame += 1) {
+      const input = { throttle: 1, steering: frame < 20 ? 0 : 1, boost: false } as const;
+      normal.update(nativeDrivingFixedStepSeconds, input);
+      equipped.update(nativeDrivingFixedStepSeconds, input);
+    }
+    expect(equipped.state.surfaceKind).toBe(kind);
+    expect([equipped.state.speed, equipped.state.yaw, equipped.state.nativeSlipAngle, equipped.state.distanceTravelled])
+      .not.toEqual([normal.state.speed, normal.state.yaw, normal.state.nativeSlipAngle, normal.state.distanceTravelled]);
+  });
+
+  test.each(nativeSurfaceCases)("keeps special-outdoor $kind contact on native tyre slot $index", ({ kind, flags, index, tyreSelector }) => {
+    const world = flatWorld();
+    world.addCompiledSpecialOutdoor(16, flatFieldCollision(0, flags));
+    const normal = controller(world);
+    const equipped = controller(world);
+    normal.enterSpecialOutdoor(16, { x: 800, z: 800 });
+    equipped.enterSpecialOutdoor(16, { x: 800, z: 800 });
+    equipped.setNativeTyreSelector(tyreSelector);
+    expect(nativeDrivingSurfaceIndex(normal.state.surfaceKind)).toBe(index);
+    for (let frame = 0; frame < 90; frame += 1) {
+      const input = { throttle: 1, steering: frame < 20 ? 0 : 1, boost: false } as const;
+      normal.update(nativeDrivingFixedStepSeconds, input);
+      equipped.update(nativeDrivingFixedStepSeconds, input);
+    }
+    expect(equipped.state.surfaceKind).toBe(kind);
+    expect([equipped.state.speed, equipped.state.yaw, equipped.state.nativeSlipAngle, equipped.state.distanceTravelled])
+      .not.toEqual([normal.state.speed, normal.state.yaw, normal.state.nativeSlipAngle, normal.state.distanceTravelled]);
+  });
+
   test("rejects browser timing that would rescale native update arithmetic", () => {
     const car = controller(flatWorld());
     expect(() => car.update(1 / 60, drive)).toThrow("PAL 50 Hz fixed step");
@@ -121,15 +172,37 @@ describe("recovered driving integration", () => {
     car.update(nativeDrivingFixedStepSeconds, drive);
     expect(car.state.location).toEqual({ kind: "special-outdoor", areaCode: 64 });
   });
-  test("drives through an X sector seam without losing the existing collision bridge", () => {
-    const car = controller(flatWorld());
-    car.teleport(223, { x: 1598, y: 0, z: 800 }, Math.PI / 2);
-    for (let frame = 0; frame < 120; frame += 1) {
-      car.update(nativeDrivingFixedStepSeconds, { ...drive, boost: true });
+  test("carries the recovered surface class across an ordinary field seam", () => {
+    const world = new DrivingWorld();
+    for (const field of allWorldFieldNumbers()) {
+      world.addCompiledField(field, flatFieldCollision(0, field === 223 ? 0x550 : 0x455));
     }
-    expect(car.state.fieldNumber).not.toBe(223);
-    expect(car.state.position.x).toBeGreaterThanOrEqual(0);
-    expect(car.state.position.x).toBeLessThanOrEqual(1600);
+    const normal = controller(world);
+    const studless = controller(world);
+    normal.teleport(223, { x: 1598, y: 0, z: 800 }, Math.PI / 2);
+    studless.teleport(223, { x: 1598, y: 0, z: 800 }, Math.PI / 2);
+    studless.setNativeTyreSelector(9);
+    let crossed = false;
+    for (let frame = 0; frame < 120; frame += 1) {
+      const input = { ...drive, boost: true };
+      normal.update(nativeDrivingFixedStepSeconds, input);
+      studless.update(nativeDrivingFixedStepSeconds, input);
+      if (normal.state.fieldNumber !== 223) {
+        expect(studless.state.position).toEqual(normal.state.position);
+        expect(normal.state.surfaceKind).toBe("ice");
+        expect(studless.state.surfaceKind).toBe("ice");
+        crossed = true;
+        break;
+      }
+    }
+    expect(crossed).toBe(true);
+    for (let frame = 0; frame < 30; frame += 1) {
+      normal.update(nativeDrivingFixedStepSeconds, drive);
+      studless.update(nativeDrivingFixedStepSeconds, drive);
+    }
+    expect(normal.state.surfaceKind).toBe("ice");
+    expect(studless.state.surfaceKind).toBe("ice");
+    expect(studless.state.distanceTravelled).not.toBe(normal.state.distanceTravelled);
   });
 
   test("backs out of an invalid shoreline footprint instead of permanently freezing", () => {

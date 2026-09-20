@@ -10,8 +10,8 @@ describe("browser/PAL driving handedness bridge", () => {
     const left = new NativeDrivingMotion(authority, 0);
     const right = new NativeDrivingMotion(authority, 0);
 
-    const leftStep = left.step({ throttle: 1, steering: -1, surfaceKind: "paved-road", contact });
-    const rightStep = right.step({ throttle: 1, steering: 1, surfaceKind: "paved-road", contact });
+    const leftStep = left.step({ throttle: 1, steering: -1, surfaceIndex: 0, contact });
+    const rightStep = right.step({ throttle: 1, steering: 1, surfaceIndex: 0, contact });
 
     expect(leftStep.commands & 0xa000).toBe(0x8000);
     expect(rightStep.commands & 0xa000).toBe(0x2000);
@@ -34,8 +34,8 @@ describe("browser/PAL driving handedness bridge", () => {
     };
 
     for (let frame = 0; frame < 180; frame += 1) {
-      const leftStep = left.step({ throttle: 1, steering: -1, surfaceKind: "paved-road", contact });
-      const rightStep = right.step({ throttle: 1, steering: 1, surfaceKind: "paved-road", contact });
+      const leftStep = left.step({ throttle: 1, steering: -1, surfaceIndex: 0, contact });
+      const rightStep = right.step({ throttle: 1, steering: 1, surfaceIndex: 0, contact });
       totalLeftYaw += unwrapDelta(leftStep.yaw, previousLeftYaw);
       totalRightYaw += unwrapDelta(rightStep.yaw, previousRightYaw);
       previousLeftYaw = leftStep.yaw;
@@ -49,12 +49,12 @@ describe("browser/PAL driving handedness bridge", () => {
     const authority = syntheticNativeDrivingMotionAuthority();
     const left = new NativeDrivingMotion(authority, 0);
     const right = new NativeDrivingMotion(authority, 0);
-    let leftStep = left.step({ throttle: 1, steering: -1, surfaceKind: "paved-road", contact });
-    let rightStep = right.step({ throttle: 1, steering: 1, surfaceKind: "paved-road", contact });
+    let leftStep = left.step({ throttle: 1, steering: -1, surfaceIndex: 0, contact });
+    let rightStep = right.step({ throttle: 1, steering: 1, surfaceIndex: 0, contact });
 
     for (let frame = 1; frame < 40; frame += 1) {
-      leftStep = left.step({ throttle: 1, steering: -1, surfaceKind: "paved-road", contact });
-      rightStep = right.step({ throttle: 1, steering: 1, surfaceKind: "paved-road", contact });
+      leftStep = left.step({ throttle: 1, steering: -1, surfaceIndex: 0, contact });
+      rightStep = right.step({ throttle: 1, steering: 1, surfaceIndex: 0, contact });
     }
 
     expect(leftStep.yaw).toBeGreaterThan(0);

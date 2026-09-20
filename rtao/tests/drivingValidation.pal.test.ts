@@ -344,7 +344,7 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
           const browser = motion.step({
             throttle,
             steering,
-            surfaceKind: "paved-road",
+            surfaceIndex: 0,
             contact: { driveContact: true, accelerationY: 89, allowsYaw: true },
           });
           const label = `${equipmentCase.label} tick ${tick}`;

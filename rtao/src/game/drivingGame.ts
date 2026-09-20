@@ -2,6 +2,7 @@ import type { Q62CarModel } from "./carView";
 import {
   NativeDrivingMotion,
   nativeDrivingFixedStepSeconds,
+  nativeDrivingSurfaceIndex,
   type NativeDrivingMotionAuthority,
 } from "./nativeDrivingMotion";
 import { nativeTyreContactThreshold } from "./nativeTyrePerformance";
@@ -195,13 +196,10 @@ export class ArcadeCarController {
     const old = this.mutable;
     const throttle = clamp(input.throttle, -1, 1);
     const steering = clamp(input.steering, -1, 1);
-    const contactSurfaceKind = old.location.kind === "special-outdoor"
-      ? this.world.specialOutdoorDrivingSurface(old.location.areaCode, old.position, old.position.y)
-      : this.world.drivingSurface(old.fieldNumber, old.position, old.position.y);
     const motion = this.motion.step({
       throttle,
       steering,
-      surfaceKind: contactSurfaceKind,
+      surfaceIndex: nativeDrivingSurfaceIndex(old.surfaceKind),
       contact: {
         // Free-roam still uses the browser footprint bridge, not PAL's seven-
         // probe support solver. 89 is PAL's recovered gravity quantum and is
