@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { applyNativeDrivingEquipment, nativePlayerEquipmentSelectors } from "./nativeDrivingEquipment";
+import { nativeSpecialAbilityFlags } from "./nativeSpecialAbilityRuntime";
 
 function target(values: number[]) {
   return {
@@ -9,8 +10,7 @@ function target(values: number[]) {
     setNativeTransmissionSelector: (value: number) => { values[4] = value; },
     setNativeSteeringSelector: (value: number) => { values[5] = value; },
     setNativeBrakeSelector: (value: number) => { values[6] = value; },
-    setNativeSpecialSelector: (value: number) => { values[10] = value; },
-    setNativeOptionSelector: (value: number) => { values[11] = value; },
+    setNativeSpecialAbilityFlags: (value: number) => { values[15] = value; },
   };
 }
 
@@ -19,6 +19,7 @@ describe("native driving equipment bridge", () => {
     const applied: number[] = [];
     applyNativeDrivingEquipment(target(applied), undefined);
     expect(applied.slice(1, 7)).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(applied[15]).toBe(0);
   });
   test("passes recovered categories 1..6 without browser tuning", () => {
     const applied: number[] = [];
@@ -29,17 +30,21 @@ describe("native driving equipment bridge", () => {
     expect(applied.slice(1, 7)).toEqual(selectors.slice(1, 7));
   });
 
-  test("forwards the proven Propeller and Water Ski selectors without promoting other option semantics", () => {
+  test("derives the proven Propeller and Water Ski free-roam flags through the shared ability contract", () => {
     const applied: number[] = [];
     applyNativeDrivingEquipment(target(applied), {
       selectedItem: (_loadout, category) => category === 10 || category === 11 ? 1 : 0,
     });
-    expect(applied[10]).toBe(1);
-    expect(applied[11]).toBe(1);
+    expect(applied[15]).toBe(nativeSpecialAbilityFlags.propeller | nativeSpecialAbilityFlags.waterSki);
+
+    applyNativeDrivingEquipment(target(applied), {
+      selectedItem: (_loadout, category) => category === 11 ? 2 : 0,
+    });
+    expect(applied[15]).toBe(0);
   });
 
   test("snapshots the same complete player loadout used by ordinary races", () => {
-    const selectors = Array.from({ length: 15 }, (_unused, category) => category + 1);
+    const selectors = [0, 11, 5, 4, 3, 2, 1, 8, 2, 1, 2, 8, 1, 14, 10];
     const snapshot = nativePlayerEquipmentSelectors({
       selectedItem: (_loadout, category) => selectors[category] ?? 0,
     });

@@ -192,13 +192,14 @@ describe("recovered driving integration", () => {
       { x: 800, y: 0, z: 552 },
       0,
     );
-    let sawShallow = false, sawDeep = false;
+    let sawShallow = false, sawDeep = false, sawShallowPulse = false;
     let previousPosition = car.state.position;
     let previousDistance = car.state.distanceTravelled;
     for (let frame = 0; frame < 600; frame += 1) {
       car.update(nativeDrivingFixedStepSeconds, drive);
       sawShallow ||= car.state.contactSpecialState === -1;
       sawDeep ||= car.state.contactSpecialState === 1;
+      sawShallowPulse ||= car.state.contactSpecialState === -1 && (car.state.contactRuntimeFlags & 0x40) !== 0;
       const moved = Math.hypot(
         car.state.position.x - previousPosition.x,
         car.state.position.z - previousPosition.z,
@@ -209,19 +210,21 @@ describe("recovered driving integration", () => {
       if (sawDeep && car.state.position.z > 568) break;
     }
     expect(sawShallow).toBe(true);
+    expect(sawShallowPulse).toBe(true);
     expect(sawDeep).toBe(true);
     expect(car.state.surfaceKind).toBe("dry");
     expect(car.state.nativeContactSurfaceFlags & 7).toBe(1);
     const deepZ = car.state.position.z;
     const deepDistance = car.state.distanceTravelled;
 
-    let sawShallowOnExit = false, sawOrdinaryOnExit = false;
+    let sawShallowOnExit = false, sawOrdinaryOnExit = false, sawExitPulse = false;
     for (let frame = 0; frame < 800; frame += 1) {
       const before = car.state;
       car.update(nativeDrivingFixedStepSeconds, { throttle: -1, steering: 0, boost: false });
       if (car.state.contactSpecialState === -1) sawShallowOnExit = true;
       if (sawShallowOnExit && car.state.contactSpecialState === 0) {
         sawOrdinaryOnExit = true;
+        sawExitPulse = (car.state.contactRuntimeFlags & 0x40) !== 0;
         break;
       }
       const moved = Math.hypot(
@@ -232,6 +235,7 @@ describe("recovered driving integration", () => {
     }
     expect(sawShallowOnExit).toBe(true);
     expect(sawOrdinaryOnExit).toBe(true);
+    expect(sawExitPulse).toBe(true);
     expect(car.state.position.z).toBeLessThan(deepZ);
     expect(car.state.distanceTravelled).toBeGreaterThan(deepDistance);
   });
@@ -298,6 +302,83 @@ describe("recovered driving integration", () => {
     }
     expect(reverse.state.position.z).toBeLessThan(startZ);
     expect(reverse.state.distanceTravelled).toBeGreaterThan(0);
+  });
+
+  test("keeps sustained deep-water slowdown active without Water Ski", () => {
+    const dryWorld = new DrivingWorld();
+    dryWorld.addCompiledField(223, flatFieldCollision(0));
+    const waterWorld = new DrivingWorld();
+    waterWorld.addCompiledField(223, auxiliaryBarrierCollision(0, 0.8));
+    const dry = new ArcadeCarController(
+      dryWorld,
+      syntheticNativeDrivingMotionAuthority(),
+      223,
+      { x: 800, y: 0, z: 800 },
+      0,
+    );
+    const water = new ArcadeCarController(
+      waterWorld,
+      syntheticNativeDrivingMotionAuthority(),
+      223,
+      { x: 800, y: 0, z: 800 },
+      0,
+    );
+
+    let stayedDeep = true;
+    for (let frame = 0; frame < 240; frame += 1) {
+      dry.update(nativeDrivingFixedStepSeconds, drive);
+      water.update(nativeDrivingFixedStepSeconds, drive);
+      stayedDeep &&= water.state.contactSpecialState === 1;
+    }
+
+    expect(stayedDeep).toBe(true);
+    expect(water.state.contactHasGroundSupport).toBe(true);
+    expect(water.state.nativeContactSurfaceFlags & 7).toBe(1);
+    expect(water.state.distanceTravelled).toBeLessThan(dry.state.distanceTravelled);
+  });
+
+  test("applies and removes Water Ski live from selector-backed free-roam ability state", () => {
+    const world = new DrivingWorld();
+    world.addCompiledField(223, auxiliaryOnlyCollision(0.8));
+    const car = new ArcadeCarController(
+      world,
+      syntheticNativeDrivingMotionAuthority(),
+      223,
+      { x: 800, y: 0, z: 800 },
+      0,
+    );
+    let waterSkiSelector = 0;
+    const equipment = {
+      selectedItem: (_loadout: number, category: number) => {
+        if (category === 10) return 1;
+        if (category === 11) return waterSkiSelector;
+        return 0;
+      },
+    };
+    const runUnsupported = () => {
+      for (let frame = 0; frame < 120; frame += 1) {
+        car.update(nativeDrivingFixedStepSeconds, { throttle: 1, steering: 1, boost: false });
+      }
+    };
+    const reset = () => car.teleport(223, { x: 800, y: 0, z: 800 }, 0);
+
+    applyNativeDrivingEquipment(car, equipment);
+    reset();
+    runUnsupported();
+    expect(car.state.distanceTravelled).toBeGreaterThan(0);
+    expect(Math.abs(car.state.yaw)).toBe(0);
+
+    waterSkiSelector = 1;
+    applyNativeDrivingEquipment(car, equipment);
+    reset();
+    runUnsupported();
+    expect(Math.abs(car.state.yaw)).toBeGreaterThan(0);
+
+    waterSkiSelector = 0;
+    applyNativeDrivingEquipment(car, equipment);
+    reset();
+    runUnsupported();
+    expect(Math.abs(car.state.yaw)).toBe(0);
   });
 
   test("keeps unresolved browser surfaces neutral instead of inventing a native surface code", () => {

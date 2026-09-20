@@ -122,7 +122,7 @@ const partDefinitions: readonly PartDefinition[] = [
   part("special", "jet-turbine", "Jet Turbine", "A compact turbine test attachment.", { acceleration: 1.05 }, { special: "turbine" }),
 
   part("options", "no-option", "No Option", "No optional roof equipment fitted.", undefined, { option: "none" }),
-  part("options", "water-ski", "Water Ski", "The original water-driving option; propulsion remains unreconstructed."),
+  part("options", "water-ski", "Water Ski", "Restores steering authority while unsupported in auxiliary water contact; it adds no propulsion."),
   part("options", "flight-wing", "Flight Wing", "The original flight option used with a jet turbine.", undefined, { wing: "flight" }),
   part("options", "police-light", "Police Light", "The original red and blue roof light bar.", undefined, { option: "police" }),
   part("options", "billboard", "Peach Town Sign", "The original café advertising sign fitted by Peach Town Owner.", undefined, { option: "billboard" }),

@@ -178,6 +178,11 @@ export class ArcadeCarController {
       | (fittedFlags & nativeSpecialAbilityFlags.waterSki);
   }
 
+  setNativeSpecialAbilityFlags(flags: number): void {
+    const contactAbilityMask = nativeSpecialAbilityFlags.propeller | nativeSpecialAbilityFlags.waterSki;
+    this.nativeSpecialContactEquipmentFlags = flags & contactAbilityMask;
+  }
+
   private auxiliaryContact(
     referenceY: number,
     auxiliaryY: number | undefined,
@@ -582,6 +587,8 @@ export class BrowserDrivingGame {
   setNativeSpecialSelector(selector: number): void { this.controller.setNativeSpecialSelector(selector); }
 
   setNativeOptionSelector(selector: number): void { this.controller.setNativeOptionSelector(selector); }
+
+  setNativeSpecialAbilityFlags(flags: number): void { this.controller.setNativeSpecialAbilityFlags(flags); }
 
   setPaused(paused: boolean): void {
     if (this.paused === paused) return;

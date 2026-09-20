@@ -6,6 +6,7 @@ import {
   nativeEquipmentCategoryCount,
   RecoveredEquipmentState,
 } from "./equipmentProgress";
+import { nativeFreeRoamSpecialAbilityFlags, nativeSpecialAbilityFlags } from "./nativeSpecialAbilityRuntime";
 
 describe("recovered native equipment selectors", () => {
   test("stores one byte per category in each of the three persisted loadouts", () => {
@@ -27,6 +28,38 @@ describe("recovered native equipment selectors", () => {
     expect(state.selectedItem(0, 11)).toBe(4);
     expect(applyRecoveredEquipmentHostAction(state, ownerReward)).toBe(false);
     expect(applyRecoveredEquipmentHostAction(state, action(DialogueActionOpcode.NumericChoice, [11, 4, 9]))).toBe(false);
+  });
+
+  test("fits, unequips and reloads Water Ski as selector-backed ability state", async () => {
+    const { DialogueRuntimeState } = await import("../formats/dialogue");
+    const { createRecoveredDialogueStateSave, restoreRecoveredDialogueStateSave } = await import("./dialogueProgress");
+    const { RecoveredCommerceState } = await import("./commerceProgress");
+    const equipment = new RecoveredEquipmentState();
+    const ownership = {
+      indexedFlagCount: (category: number, item: number) => category === 11 && item === 1 ? 1 : 0,
+    };
+    const freeRoamFlags = () => nativeFreeRoamSpecialAbilityFlags(equipment.selectorEntries()[0] ?? []);
+
+    expect(fitOwnedNativeEquipmentPart(ownership, equipment, 0, 11, 1)).toBe("fitted");
+    expect(equipment.selectedItem(0, 11)).toBe(1);
+    expect(freeRoamFlags()).toBe(nativeSpecialAbilityFlags.waterSki);
+
+    expect(fitOwnedNativeEquipmentPart(ownership, equipment, 0, 11, 0)).toBe("fitted");
+    expect(equipment.selectedItem(0, 11)).toBe(0);
+    expect(freeRoamFlags()).toBe(0);
+
+    expect(fitOwnedNativeEquipmentPart(ownership, equipment, 0, 11, 1)).toBe("fitted");
+    const saved = createRecoveredDialogueStateSave(
+      new DialogueRuntimeState(), "2026-09-20T10:00:00.000Z", new RecoveredCommerceState(), equipment,
+    );
+    const restored = new RecoveredEquipmentState();
+    restoreRecoveredDialogueStateSave(
+      saved, new DialogueRuntimeState(), new RecoveredCommerceState(), restored,
+    );
+    expect(restored.selectedItem(0, 11)).toBe(1);
+    expect(nativeFreeRoamSpecialAbilityFlags(restored.selectorEntries()[0] ?? []))
+      .toBe(nativeSpecialAbilityFlags.waterSki);
+    expect(restored.revision).toBe(0);
   });
 
 
