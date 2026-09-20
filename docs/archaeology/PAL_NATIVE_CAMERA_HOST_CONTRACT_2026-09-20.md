@@ -121,8 +121,10 @@ narrow and explicit:
   preset selector is recovered. The ten preset records themselves are native;
   selecting record zero as the initial browser view is not yet proven native.
 - Three.js perspective/FOV/near/far setup remains renderer policy until the
-  executable projection-pair/output-builder mapping is recovered. It is not a
-  reason to retain browser chase geometry after native final pose recovery.
+  executable projection-pair/output-builder mapping is recovered. The current
+  world/race values live only in `hostCameraProjection.ts` and carry explicit
+  `authority: "host-policy"` provenance. They are not native constants and are
+  not a reason to retain browser chase geometry after native final pose recovery.
 - OrbitControls world/field overview cameras are developer/navigation
   presentation, not part of the driving-camera replacement and are unaffected.
 

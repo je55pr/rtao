@@ -7,6 +7,7 @@ import type { SkyTextureSet } from "../formats/skyTexture";
 import { choroCoinRenderPosition } from "./choroCoinProgress";
 import type { CaptureSize, CarVisualCaptureScene, FieldOverviewCaptureScene, WorldOverviewCaptureScene } from "./captureScenes";
 import type { BrowserChasePose } from "./browserChaseCameraSafety";
+import { browserWorldCameraProjectionFallback } from "./hostCameraProjection";
 import { renderPng } from "./renderCapture";
 import { fieldExtent, relativeRenderTranslation } from "./worldTopology";
 import { authenticFieldVisibilityProfile, hg2TimeUnits, outdoorAtmosphere, type OutdoorVisibilityMode, visibilityProfile } from "./fieldLighting";
@@ -263,7 +264,12 @@ interface WorldActorRenderState {
 export class WorldView {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
-  private readonly camera = new THREE.PerspectiveCamera(54, 1, 1, 40_000);
+  private readonly camera = new THREE.PerspectiveCamera(
+    browserWorldCameraProjectionFallback.verticalFovDegrees,
+    1,
+    browserWorldCameraProjectionFallback.near,
+    browserWorldCameraProjectionFallback.far,
+  );
   private readonly controls: OrbitControls;
   private readonly resizeObserver: ResizeObserver;
   private readonly worldGroup = new THREE.Group();

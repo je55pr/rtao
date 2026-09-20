@@ -184,9 +184,12 @@ real output-builder producer has populated it and otherwise returns the exact
 host fallback. No such producer exists yet, so live rendering still uses the
 explicitly host-owned `browserChaseCamera` / `ordinaryRaceChaseCamera` framing
 because the retained follow-helper state is not proven to be final
-output-builder position. Special-outdoor rendering remains directly on the host
-fallback because no native scene/output reflection contract is established for
-that path. The handoff also does not prove the upstream initial preset selector,
+output-builder position. The unchanged Three.js world/race projection values
+are now isolated in `hostCameraProjection.ts` and explicitly marked
+`authority: "host-policy"`; they are not evidence for `0x002207e8` semantics.
+Special-outdoor rendering remains directly on the host fallback because no
+native scene/output reflection contract is established for that path. The
+handoff also does not prove the upstream initial preset selector,
 so `browserOrdinaryChasePresetIndex` keeps the current record-0 choice
 explicitly host-side rather than declaring it a native default.
 

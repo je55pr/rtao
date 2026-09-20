@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { browserRaceCameraProjectionFallback } from "../hostCameraProjection";
 import { renderPng } from "../renderCapture";
 import { RaceCourseModel, type RaceCoursePresentationStats } from "./courseModel";
 
@@ -93,7 +94,12 @@ export class RaceEntrantLayer extends THREE.Group {
 export class RaceView {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
-  readonly camera = new THREE.PerspectiveCamera(54, 1, 1, 20_000);
+  readonly camera = new THREE.PerspectiveCamera(
+    browserRaceCameraProjectionFallback.verticalFovDegrees,
+    1,
+    browserRaceCameraProjectionFallback.near,
+    browserRaceCameraProjectionFallback.far,
+  );
   readonly entrants = new RaceEntrantLayer();
   private readonly resizeObserver: ResizeObserver;
   private course?: RaceCourseModel;
