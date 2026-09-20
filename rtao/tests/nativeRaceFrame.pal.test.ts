@@ -22,6 +22,10 @@ function inputFor(elf:Uint8Array,state:NativeRaceFrameState):NativeRaceFrameInpu
   return {state,equipment:readNativeRaceEquipment(elf,[0,0,0,0,0,0,0]),equipmentFlags:0,globalEquipmentFlags:0,
     sceneFlags:4,sceneKind:0,sceneByte0B:0,sceneTime:0,raceModeByte:0,commands:1,highShiftSchedule:true,obstaclePoints:[]};
 }
+function palComparableFrameResult(result:ReturnType<typeof advanceNativeRaceFrame>) {
+  const {equipmentFlags:_equipmentFlags,...palOwned}=result;
+  return palOwned;
+}
 describe.skipIf(!executablePath)('PAL assembled ordinary vehicle frame',()=>{
   test('1024 complete update cases match independently executed gravity, drive, support, orientation and response across surface slots 0-7',()=>{
     const elf=new Uint8Array(readFileSync(executablePath!)),data=readNativeRaceFrameData(elf),oracle=palRaceFrameOracle(elf);
@@ -42,7 +46,9 @@ describe.skipIf(!executablePath)('PAL assembled ordinary vehicle frame',()=>{
         commands:[0,1,8,0x20,0x40,0x2000,0x8000,0x2008,0x8008,0x60,0xa000][i%11]!,
         obstaclePoints:[[0,2,0,-2] as const]};
       const query:Parameters<typeof advanceNativeRaceFrame>[2]=(p,_sector,index)=>({point:[p[0],Math.fround((index%3-1)/8),p[2],0],flags:i%17===0?-1:3,ceilingY:10000});
-      expect(advanceNativeRaceFrame(input,data,query),`case ${i}`).toEqual(oracle.run(input,query));
+      const actual=advanceNativeRaceFrame(input,data,query);
+      expect(actual.equipmentFlags,`case ${i} equipment flags`).toBe(input.equipmentFlags);
+      expect(palComparableFrameResult(actual),`case ${i}`).toEqual(oracle.run(input,query));
     }
   },60000);
 
@@ -71,7 +77,8 @@ describe.skipIf(!executablePath)('PAL assembled ordinary vehicle frame',()=>{
           const input={...inputFor(elf,actual),commands,sceneFlags,sceneTime:tick,obstaclePoints:points};
           const expected=oracle.run({...input,state:native});
           const next=advanceNativeRaceFrame(input,data,p=>sampler.query(p));
-          expect(next,`course ${course} tick ${tick} command ${commands}`).toEqual(expected);
+          expect(next.equipmentFlags,`course ${course} tick ${tick} equipment flags`).toBe(input.equipmentFlags);
+          expect(palComparableFrameResult(next),`course ${course} tick ${tick} command ${commands}`).toEqual(expected);
           actual=next.state;native=expected.state;sceneFlags=expected.sceneFlags;
           if(expected.contactFlags||expected.obstacleFlags)collisionUpdates++;
           if([0,179,239,359,419,479,599].includes(tick))checkpoints.push({tick,commands,state:expected.state,
