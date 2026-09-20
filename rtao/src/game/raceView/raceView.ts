@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { browserRaceCameraProjectionFallback } from "../hostCameraProjection";
+import { browserRaceCameraProjectionFallback, hostCameraViewportAspect } from "../hostCameraProjection";
 import { renderPng } from "../renderCapture";
 import { RaceCourseModel, type RaceCoursePresentationStats } from "./courseModel";
 
@@ -96,7 +96,7 @@ export class RaceView {
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(
     browserRaceCameraProjectionFallback.verticalFovDegrees,
-    1,
+    browserRaceCameraProjectionFallback.initialAspect,
     browserRaceCameraProjectionFallback.near,
     browserRaceCameraProjectionFallback.far,
   );
@@ -150,7 +150,7 @@ export class RaceView {
   async capturePng(size: RaceCaptureSize, pose: RaceCameraPose = this.cameraPose): Promise<Blob> {
     validateCaptureSize(size);
     const camera = this.camera.clone();
-    camera.aspect = size.width / size.height;
+    camera.aspect = hostCameraViewportAspect(size.width, size.height);
     camera.updateProjectionMatrix();
     applyRaceCameraPose(camera, pose);
     return await renderPng(this.renderer, size.width, size.height, () => {
@@ -172,7 +172,7 @@ export class RaceView {
     const width = Math.max(1, this.host.clientWidth);
     const height = Math.max(1, this.host.clientHeight);
     this.renderer.setSize(width, height, false);
-    this.camera.aspect = width / height;
+    this.camera.aspect = hostCameraViewportAspect(width, height);
     this.camera.updateProjectionMatrix();
   }
 }

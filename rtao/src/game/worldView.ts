@@ -7,7 +7,7 @@ import type { SkyTextureSet } from "../formats/skyTexture";
 import { choroCoinRenderPosition } from "./choroCoinProgress";
 import type { CaptureSize, CarVisualCaptureScene, FieldOverviewCaptureScene, WorldOverviewCaptureScene } from "./captureScenes";
 import type { BrowserChasePose } from "./browserChaseCameraSafety";
-import { browserWorldCameraProjectionFallback } from "./hostCameraProjection";
+import { browserWorldCameraProjectionFallback, hostCameraViewportAspect } from "./hostCameraProjection";
 import { renderPng } from "./renderCapture";
 import { fieldExtent, relativeRenderTranslation } from "./worldTopology";
 import { authenticFieldVisibilityProfile, hg2TimeUnits, outdoorAtmosphere, type OutdoorVisibilityMode, visibilityProfile } from "./fieldLighting";
@@ -266,7 +266,7 @@ export class WorldView {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(
     browserWorldCameraProjectionFallback.verticalFovDegrees,
-    1,
+    browserWorldCameraProjectionFallback.initialAspect,
     browserWorldCameraProjectionFallback.near,
     browserWorldCameraProjectionFallback.far,
   );
@@ -1217,7 +1217,7 @@ export class WorldView {
     const width = Math.max(1, this.host.clientWidth);
     const height = Math.max(1, this.host.clientHeight);
     this.renderer.setSize(width, height, false);
-    this.camera.aspect = width / height;
+    this.camera.aspect = hostCameraViewportAspect(width, height);
     this.camera.updateProjectionMatrix();
   }
 }
@@ -1436,7 +1436,7 @@ function captureCamera(
   target: THREE.Vector3,
 ): THREE.PerspectiveCamera {
   const camera = source.clone();
-  camera.aspect = size.width / size.height;
+  camera.aspect = hostCameraViewportAspect(size.width, size.height);
   camera.position.copy(position);
   camera.updateProjectionMatrix();
   camera.lookAt(target);

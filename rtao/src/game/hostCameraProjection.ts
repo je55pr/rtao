@@ -1,6 +1,7 @@
 export interface HostCameraProjectionFallback {
   readonly authority: "host-policy";
   readonly verticalFovDegrees: number;
+  readonly initialAspect: number;
   readonly near: number;
   readonly far: number;
 }
@@ -12,6 +13,7 @@ export interface HostCameraProjectionFallback {
 export const browserWorldCameraProjectionFallback: HostCameraProjectionFallback = Object.freeze({
   authority: "host-policy",
   verticalFovDegrees: 54,
+  initialAspect: 1,
   near: 1,
   far: 40_000,
 });
@@ -19,6 +21,12 @@ export const browserWorldCameraProjectionFallback: HostCameraProjectionFallback 
 export const browserRaceCameraProjectionFallback: HostCameraProjectionFallback = Object.freeze({
   authority: "host-policy",
   verticalFovDegrees: 54,
+  initialAspect: 1,
   near: 1,
   far: 20_000,
 });
+
+/** Viewport aspect is host presentation policy, not decoded PAL projection state. */
+export function hostCameraViewportAspect(width: number, height: number): number {
+  return width / height;
+}

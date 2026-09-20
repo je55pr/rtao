@@ -186,7 +186,8 @@ explicitly host-owned `browserChaseCamera` / `ordinaryRaceChaseCamera` framing
 because the retained follow-helper state is not proven to be final
 output-builder position. The unchanged Three.js world/race projection values
 are now isolated in `hostCameraProjection.ts` and explicitly marked
-`authority: "host-policy"`; they are not evidence for `0x002207e8` semantics.
+`authority: "host-policy"`; initial aspect and viewport `width / height` updates
+are isolated there too. None are evidence for `0x002207e8` semantics.
 Special-outdoor rendering remains directly on the host fallback because no
 native scene/output reflection contract is established for that path. The
 handoff also does not prove the upstream initial preset selector,
