@@ -44,9 +44,10 @@ The retained Peach north-road probe crosses FLD/223 -> FLD/221 under ordinary un
 motion while remaining paved and ground-supported. A payload-free FLD/223 shoreline witness at
 car position `(578.781840, 20.5, 1317.168633)` has ordinary ground at 20.5 and the front-centre
 auxiliary plane at 21.5. Normal tyres therefore enter recovered deep state `+1`; Big Tyre's
-1.35 threshold yields shallow state `-1`. Water Ski does not alter motion there because wheel
-support is still present, matching its recovered unsupported-contact steering role rather than
-inventing propulsion. Static Wet remains intentionally unexercised because the complete census
+1.35 threshold yields shallow state `-1`. Water Ski follows the recovered `0x0100` deep-auxiliary
+vertical-response branch there: its first divergence from the ordinary car is Y-only while X/Z,
+yaw, speed and driven distance remain identical, so the witness does not invent Propeller-style
+propulsion. Subsequent support history may diverge from that vertical response. Static Wet remains intentionally unexercised because the complete census
 contains zero selector-2 field or special-outdoor triangles.
 
 Run the regression from `rtao` with the local PAL image:
