@@ -69,18 +69,18 @@ describe("native chase-camera runtime", () => {
     expect("target" in next).toBe(false);
   });
 
-  test("reset clears lag velocities without snapping retained lag values", () => {
+  test("reset clears all four recovered lag-block words", () => {
     const state = {
       ...createNativeChaseCameraState(0),
       lagX: { value: 1.25, velocity: 0.2 },
       lagZ: { value: -2.5, velocity: -0.3 },
     };
     const reset = resetNativeChaseLag(state);
-    expect(reset.lagX).toEqual({ value: 1.25, velocity: 0 });
-    expect(reset.lagZ).toEqual({ value: -2.5, velocity: 0 });
+    expect(reset.lagX).toEqual({ value: 0, velocity: 0 });
+    expect(reset.lagZ).toEqual({ value: 0, velocity: 0 });
   });
 
-  test("preset selection is explicit and clears recovered lag velocities", () => {
+  test("preset selection is explicit and clears the recovered lag block", () => {
     const state = {
       ...createNativeChaseCameraState(0),
       lagX: { value: 0.4, velocity: 0.1 },
@@ -90,8 +90,8 @@ describe("native chase-camera runtime", () => {
     const selected = selectNativeChasePreset(state, 1);
     expect(selected.presetIndex).toBe(1);
     expect(selected.pitchAngle).toBe(0);
-    expect(selected.lagX).toEqual({ value: 0.4, velocity: 0 });
-    expect(selected.lagZ).toEqual({ value: -0.2, velocity: 0 });
+    expect(selected.lagX).toEqual({ value: 0, velocity: 0 });
+    expect(selected.lagZ).toEqual({ value: 0, velocity: 0 });
     expect(selected.slipInput).toBe(0);
   });
 

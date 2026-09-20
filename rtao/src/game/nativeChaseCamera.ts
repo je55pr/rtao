@@ -122,11 +122,12 @@ export function stepNativeChaseLag(
   };
 }
 
+/** Controller +0x08 == 0 clears all four words in the per-player lag block. */
 export function resetNativeChaseLag(state: NativeChaseCameraState): NativeChaseCameraState {
   return {
     ...state,
-    lagX: { value: state.lagX.value, velocity: 0 },
-    lagZ: { value: state.lagZ.value, velocity: 0 },
+    lagX: { value: 0, velocity: 0 },
+    lagZ: { value: 0, velocity: 0 },
   };
 }
 

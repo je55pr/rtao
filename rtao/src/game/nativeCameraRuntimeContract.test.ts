@@ -125,8 +125,8 @@ describe("native camera runtime contract", () => {
 
     state = applyNativeCameraLifecycle(state, { kind: "native-lag-reset" });
     expect(state.finalOutput).toBeUndefined();
-    expect(state.controller.lagX).toEqual({ value: 12, velocity: 0 });
-    expect(state.controller.lagZ).toEqual({ value: 4, velocity: 0 });
+    expect(state.controller.lagX).toEqual({ value: 0, velocity: 0 });
+    expect(state.controller.lagZ).toEqual({ value: 0, velocity: 0 });
 
     state = withNativeCameraFinalOutput(state, output);
     state = applyNativeCameraLifecycle(state, { kind: "native-recenter" });

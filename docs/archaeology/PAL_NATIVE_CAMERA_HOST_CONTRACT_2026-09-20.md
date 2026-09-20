@@ -104,10 +104,11 @@ output is selected. Obstruction belongs before renderer reflection.
 
 Only recovered state transitions are allowed to mutate native controller state:
 
-- `native-lag-reset` clears both recovered lag-pair velocities without snapping their retained values;
+- `native-lag-reset` matches the controller-`+0x08 == 0` path by clearing all
+  four words in the per-player lag block, both values and both velocities;
 - `native-recenter` enters the recovered timed recenter callback state;
-- `native-preset-select` selects an explicit recovered preset and resets lag
-  as the existing native helper does.
+- `native-preset-select` selects an explicit recovered preset and applies that
+  same full lag-block reset as the native view-change path.
 
 A separate `host-output-invalidate` event discards only a previously resolved
 final presentation output. It does not alter native controller state. Ordinary

@@ -83,6 +83,9 @@ test("retained PAL fixed-step lag and recenter traces stay numeric and bounded",
     [0x7f, 0],
     [0x80, 0],
   ]);
+  expect(contract.resetAndRecenter.reset).toBe(
+    "ordinary update with controller +0x08 == 0 clears four per-player lag words at 0x017d41b0 + player*0x10 before returning",
+  );
   expect(contract.resetAndRecenter.boundary).toContain("No single native boolean");
   expect(contract.obstruction.querySlot).toBe("gp-0x3e60");
   expect(contract.obstruction.probeOffsets).toEqual([
