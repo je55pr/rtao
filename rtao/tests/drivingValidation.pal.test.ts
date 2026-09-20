@@ -19,6 +19,7 @@ import {
   inverseNativeRaceMatrix,
   nativeRaceIdentity,
   nativeRaceYawMatrix,
+  readNativeRaceMathData,
   transformNativeRaceIntegerVector,
   type NativeRaceMatrix,
   type NativeRaceVector,
@@ -205,7 +206,17 @@ function palScalarMotionStep(
   };
 }
 
-test("camera trace schema feeds the production native chase-camera seam", () => {
+test("camera trace schema requires recovered final-output producer inputs", () => {
+  const math = {
+    rotationCoefficients: [
+      Math.fround(1 / 362_880),
+      Math.fround(-1 / 5_040),
+      Math.fround(1 / 120),
+      Math.fround(-1 / 6),
+    ],
+    normalYThreshold: 0.5,
+    normalYIncrement: 0.1,
+  };
   const trace = parsePalCameraTrace(JSON.stringify({
     schema: 1,
     tolerance: 1e-12,
@@ -213,14 +224,28 @@ test("camera trace schema feeds the production native chase-camera seam", () => 
       label: "synthetic-schema-smoke",
       tick: 0,
       nativeVehicle: { position: [10, 2, 20], nativeYaw: 0, nativeSlip: 0, presetIndex: 0 },
+      cameraWorld: { sourceVector: [0, 1, 0, 0], offset50: 0, offset58: 0, translation: [10, 2, 20] },
+      palCamera: { position: [0, 0, 0], target: [0, 0, 1] },
+    }],
+  }));
+  const observed = nativeCameraObservations(trace, math);
+  expect(observed).toHaveLength(1);
+  expect(observed[0]?.position.every(Number.isFinite)).toBe(true);
+  expect(observed[0]?.target.every(Number.isFinite)).toBe(true);
+
+  const legacy = parsePalCameraTrace(JSON.stringify({
+    schema: 1,
+    tolerance: 1e-12,
+    samples: [{
+      label: "legacy-vehicle-only",
+      tick: 0,
+      nativeVehicle: { position: [10, 2, 20], nativeYaw: 0, nativeSlip: 0, presetIndex: 0 },
       palCamera: { position: [10, 4, 13], target: [10, 2, 20] },
     }],
   }));
-  expect(() => assertBrowserCameraTraceMatchesPal(
-    nativeCameraObservations(trace),
-    palCameraObservations(trace),
-    trace.tolerance,
-  )).not.toThrow();
+  expect(() => nativeCameraObservations(legacy, math)).toThrow(
+    "lacks recovered cameraWorld producer inputs",
+  );
 });
 
 describe.skipIf(!binPath)("PAL driving validation sequences", () => {
@@ -600,10 +625,14 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
 });
 
 describe.skipIf(!cameraTracePath)("PAL chase-camera observations", () => {
-  test("native chase runtime is compared against the optional measured PAL camera trace", () => {
+  test("native final-output producer is compared against the optional measured PAL camera trace", () => {
+    if (!executablePath) {
+      throw new Error("RTA_PAL_CAMERA_TRACE requires RTA_PAL_EXECUTABLE for recovered camera math constants.");
+    }
     const trace = parsePalCameraTrace(readFileSync(cameraTracePath!, "utf8"));
+    const math = readNativeRaceMathData(new Uint8Array(readFileSync(executablePath)));
     expect(() => assertBrowserCameraTraceMatchesPal(
-      nativeCameraObservations(trace),
+      nativeCameraObservations(trace, math),
       palCameraObservations(trace),
       trace.tolerance,
     )).not.toThrow();

@@ -29,7 +29,7 @@ From `rtao/`:
 
 ```text
 set RTA_PAL_BIN=<local PAL BIN path>
-set RTA_PAL_EXECUTABLE=<optional matching extracted SLES_513.56 path>
+set RTA_PAL_EXECUTABLE=<optional matching extracted SLES_513.56 path; required with RTA_PAL_CAMERA_TRACE>
 set RTA_PAL_CAMERA_TRACE=<optional local camera JSON path>
 npm run test:pal:driving
 ```
@@ -108,7 +108,14 @@ camera outputs. Point it at a JSON file with this copyright-safe numeric schema:
         "nativeYaw": 0,
         "nativeSlip": 0,
         "presetIndex": 0,
-        "resetLag": false
+        "resetLag": false,
+        "pitchTarget": 896
+      },
+      "cameraWorld": {
+        "sourceVector": [0, 1, 0, 0],
+        "offset50": 0,
+        "offset58": 0,
+        "translation": [100, 2, 200]
       },
       "palCamera": {
         "position": [100, 4, 193],
@@ -119,17 +126,24 @@ camera outputs. Point it at a JSON file with this copyright-safe numeric schema:
 }
 ```
 
-Those numbers are schema examples only, not PAL evidence. The retained runtime
-contract is the current camera authority; a future local output trace should
-contain only measured numeric observations and labels, never executable, disc,
-screenshot, texture, audio or other retail payload data.
+Those numbers are schema examples only, not PAL evidence. Schema 1 remains
+parse-compatible with older vehicle-only traces, but final-output comparison now
+requires `cameraWorld`: the recovered `0x0021EAC8` source vector/offsets plus an
+already-decoded native translation for the separate `0x0021D6A0` stage. A
+vehicle position/yaw/slip sample by itself is intentionally rejected rather than
+being reinterpreted as camera output. `pitchTarget` is optional and represents
+an already-resolved native `+0x14` target; omitting it retains the descriptor's
+current pitch. `RTA_PAL_EXECUTABLE` is required with a camera trace so the gate
+uses the matching executable-backed native math coefficients.
 
-The optional output test feeds each retained native vehicle position/yaw/slip
-sample through the same `advanceNativeChaseCamera` runtime used by ordinary
-free-roam and races, then compares that result with `palCamera`. No measured
-end-to-end PAL output trace is retained in Git yet, so this second gate remains
-conditional on `RTA_PAL_CAMERA_TRACE` rather than treating the browser projection
-as proven output-builder parity.
+The optional output test advances descriptor/controller state, materializes the
+recovered camera-world and final-output producer stages, and compares native eye
+plus `eye + forward` with `palCamera`. A future local output trace should contain
+only measured numeric observations and labels, never executable, disc,
+screenshot, texture, audio or other retail payload data. No measured end-to-end
+PAL output trace is retained in Git yet, so this second gate remains conditional
+on `RTA_PAL_CAMERA_TRACE` and does not promote browser projection policy to
+native semantics.
 
 ## Boundary
 
