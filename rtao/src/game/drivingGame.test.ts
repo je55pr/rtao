@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { CompiledFieldCollision } from "../formats/fieldCollision";
-import { ArcadeCarController } from "./drivingGame";
+import { ArcadeCarController, BrowserDrivingGame } from "./drivingGame";
 import { applyNativeDrivingEquipment } from "./nativeDrivingEquipment";
 import { nativeDrivingFixedStepSeconds, nativeDrivingSurfaceIndex } from "./nativeDrivingMotion";
 import type { NativeRaceCollisionPoint } from "./nativeRaceCollision";
@@ -100,6 +100,38 @@ describe("recovered driving integration", () => {
     expect(world.footprintCalls).toBe(0);
     expect(car.state.position.x).toBeCloseTo(700, 5);
     expect(car.state.position.z).toBeCloseTo(700, 5);
+  });
+
+  test("runs explicit relocation seeding before the relocated state is rendered", () => {
+    const events: string[] = [];
+    type DrivingGameArgs = ConstructorParameters<typeof BrowserDrivingGame>;
+    const view = {
+      updateDriving: (fieldNumber: number) => events.push(`view:${fieldNumber}`),
+      updateSpecialOutdoorDriving: () => events.push("view:special"),
+    } as unknown as DrivingGameArgs[1];
+    const car = {
+      setNativeBodyMatrix: () => undefined,
+      setWheelState: () => undefined,
+    } as unknown as DrivingGameArgs[2];
+    const input = {
+      createScope: () => ({ reset: () => undefined }),
+    } as unknown as DrivingGameArgs[4];
+    const game = new BrowserDrivingGame(
+      new NativeOnlyWorld(),
+      view,
+      car,
+      (state) => events.push(`state:${state.fieldNumber}`),
+      input,
+      syntheticNativeDrivingMotionAuthority(),
+    );
+
+    game.enterArea(113, { x: 700, z: 700 }, (state) => {
+      events.push(`seed:${state.fieldNumber}`);
+      expect(state.position.x).toBeCloseTo(700, 5);
+      expect(state.position.z).toBeCloseTo(700, 5);
+    });
+
+    expect(events).toEqual(["seed:113", "view:113", "state:113"]);
   });
 
   test("primes already-equipped Big Tyre with its native lift and shoreline threshold", () => {

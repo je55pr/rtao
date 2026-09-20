@@ -1789,6 +1789,10 @@ function contactInteractionTargets(state: CarState): OverworldInteractionTarget[
     : residentTargets;
 }
 
+function seedInteractionContact(state: CarState): void {
+  interactionContactTracker.update(contactInteractionTargets(state).map((target) => target.key));
+}
+
 function overworldInteractionUiBusy(): boolean {
   return Boolean(activeDialogue || qFactorySession || shopInteriorSession || shopInteriorPreviewInteraction
     || shopInteriorPreviewLoading || qFactoryLoading || pauseMenuOpen || peachRaceCoordinator);
@@ -2003,8 +2007,7 @@ async function debugTeleportField(): Promise<void> {
   }
   await ensureWorldFieldLoaded(fieldNumber);
   if (!loadedWorldFieldNumbers.has(fieldNumber)) throw new Error(`FLD/${String(fieldNumber).padStart(3, "0")} is not available in this install.`);
-  drivingGame.enterArea(fieldNumber, { x, z });
-  interactionContactTracker.update(contactInteractionTargets(drivingGame.controller.state).map((target) => target.key));
+  drivingGame.enterArea(fieldNumber, { x, z }, seedInteractionContact);
   requiredElement<HTMLElement>("viewer-title").textContent = `FLD/${String(fieldNumber).padStart(3, "0")}`;
   sceneFade.flash();
   lastPrefetchedWorldField = fieldNumber;
@@ -3070,9 +3073,8 @@ async function warpToCity(
       const game = drivingGame;
       if (!game || !isDriving) throw new Error("The outdoor driving session ended while Warp was loading.");
       closePauseMenu();
-      game.enterSpecialOutdoor(intent.areaCode, entry.position);
+      game.enterSpecialOutdoor(intent.areaCode, entry.position, seedInteractionContact);
       playerDialogueState!.currentAreaIndex = destination.areaIndex;
-      interactionContactTracker.update(contactInteractionTargets(game.controller.state).map((target) => target.key));
       requiredElement<HTMLElement>("viewer-title").textContent = destination.name;
       sceneFade.flash();
       lastPrefetchedWorldField = undefined;
@@ -3092,9 +3094,8 @@ async function warpToCity(
     if (!game || !isDriving) throw new Error("The outdoor driving session ended while Warp was loading.");
 
     closePauseMenu();
-    game.enterArea(fieldNumber, entry.position);
+    game.enterArea(fieldNumber, entry.position, seedInteractionContact);
     playerDialogueState!.currentAreaIndex = destination.areaIndex;
-    interactionContactTracker.update(contactInteractionTargets(game.controller.state).map((target) => target.key));
     requiredElement<HTMLElement>("viewer-title").textContent = destination.name;
     sceneFade.flash();
     lastPrefetchedWorldField = fieldNumber;

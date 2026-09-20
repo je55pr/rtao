@@ -630,15 +630,25 @@ export class BrowserDrivingGame {
     this.onNativeEngineState?.(this.controller.state, this.running && !paused);
   }
 
-  enterArea(fieldNumber: number, position: { readonly x: number; readonly z: number }): void {
+  enterArea(
+    fieldNumber: number,
+    position: { readonly x: number; readonly z: number },
+    beforeRender?: (state: CarState) => void,
+  ): void {
     this.controls.reset();
     this.controller.enterArea(fieldNumber, position);
+    beforeRender?.(this.controller.state);
     this.reinitializeCameraForScene();
   }
 
-  enterSpecialOutdoor(areaCode: number, position: { readonly x: number; readonly z: number }): void {
+  enterSpecialOutdoor(
+    areaCode: number,
+    position: { readonly x: number; readonly z: number },
+    beforeRender?: (state: CarState) => void,
+  ): void {
     this.controls.reset();
     this.controller.enterSpecialOutdoor(areaCode, position);
+    beforeRender?.(this.controller.state);
     this.reinitializeCameraForScene();
   }
 
