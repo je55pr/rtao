@@ -76,7 +76,12 @@ support clamps `0..8192`, and the unsupported recovery pulse. With
 original `FLD/223.BIN` and `FLD/221.BIN`: it rechecks the retained Peach
 shoreline normal-vs-Big-Tyre state split and drives the native contact runtime
 across the retained FLD/223 -> FLD/221 seam without browser footprint fallback.
-Special-outdoor scenes remain on their separately tested compatibility path.
+The 2026-09-20 local PAL pass confirmed the odd-row stagger explicitly: the
+source-side FLD/223 point is approximately `(960.2, 0.2)`, which crosses into
+the retained target-side FLD/221 point near `(160.2, 1599.8)`. The executable
+authority was read directly from the same PAL disc image, so no separately
+exported executable was required. Special-outdoor scenes remain on their
+separately tested compatibility path.
 
 ## Camera authority and optional output trace
 

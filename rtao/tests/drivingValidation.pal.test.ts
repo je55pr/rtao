@@ -397,14 +397,17 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
       expect(bigTyre.pose(0).bodyMatrix[13]! - ordinary.pose(0).bodyMatrix[13]!)
         .toBeCloseTo(authority.body.bigTyreLift, 7);
 
-      const seamX = 160.2;
-      const seamZ = 1599.8;
+      // The retained Peach -> countryside witness lands in FLD/221 at
+      // local (160.2, 1599.8). FLD/223 is on the staggered odd row, so its
+      // source-side render X is +800: (960.2, 0.2). Drive north (browser yaw PI).
+      const seamX = 960.2;
+      const seamZ = 0.2;
       const seed = world.queryNativeContact(
         223,
         [Math.fround(1600 - seamX), 10000, Math.fround(seamZ), 0],
       );
       expect(seed.flags).toBeGreaterThanOrEqual(0);
-      const motion = new NativeDrivingMotion(authority, 0);
+      const motion = new NativeDrivingMotion(authority, Math.PI);
       const contact = new NativeOutdoorContact(
         authority,
         223,
@@ -413,6 +416,8 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
       );
       contact.prime(query);
       let crossed = false;
+      const visitedFields = new Set<number>();
+      let lastPose = contact.pose(Math.PI);
       for (let tick = 0; tick < 240; tick += 1) {
         const step = motion.step({
           throttle: 1,
@@ -435,6 +440,8 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
         expect(response, `FLD/223 seam contact escaped at tick ${tick}`).toBeDefined();
         motion.applyNativeContactResponse(response!.velocity, response!.yaw, response!.runtimeFlags);
         const pose = contact.pose(response!.browserYaw);
+        lastPose = pose;
+        visitedFields.add(pose.fieldNumber);
         expect([
           pose.position.x,
           pose.position.y,
@@ -449,7 +456,10 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
           break;
         }
       }
-      expect(crossed).toBe(true);
+      expect(
+        crossed,
+        `seam not crossed; fields=${[...visitedFields].join(",")} final=${JSON.stringify(lastPose.position)}`,
+      ).toBe(true);
     } finally {
       opened.close();
     }
