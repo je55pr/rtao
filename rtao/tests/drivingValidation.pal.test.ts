@@ -345,7 +345,13 @@ describe.skipIf(!binPath)("PAL driving validation sequences", () => {
             throttle,
             steering,
             surfaceIndex: 0,
-            contact: { driveContact: true, accelerationY: 89, allowsYaw: true },
+            contact: {
+              driveContact: true,
+              accelerationY: 89,
+              allowsYaw: true,
+              specialState: 0,
+              propellerEnabled: false,
+            },
           });
           const label = `${equipmentCase.label} tick ${tick}`;
           expect(browser.nativeVehicle, `${label} vehicle state`).toEqual(pal.state);

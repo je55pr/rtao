@@ -9,6 +9,10 @@ export interface NativeDrivingEquipmentTarget {
   setNativeTransmissionSelector(selector: number): void;
   setNativeSteeringSelector(selector: number): void;
   setNativeBrakeSelector(selector: number): void;
+  /** Category 10 selector; only the recovered Propeller special-contact flag is consumed live. */
+  setNativeSpecialSelector(selector: number): void;
+  /** Category 11 selector; only the recovered Water Ski special-contact flag is consumed live. */
+  setNativeOptionSelector(selector: number): void;
 }
 
 export const nativePlayerEquipmentCategoryCount = 15;
@@ -32,9 +36,9 @@ export function nativePlayerEquipmentSelectors(
 }
 
 /**
- * Applies the six recovered scalar-driving categories. Categories 7..14 are
- * deliberately excluded: their unresolved equip-side effects remain issue #30
- * archaeology rather than browser handling guesses.
+ * Applies the six recovered scalar-driving categories plus the proven category
+ * 10 Propeller and category 11 Water Ski special-contact selectors. Other
+ * categories/equip-side effects remain evidence-gated rather than guessed.
  */
 export function applyNativeDrivingEquipment(
   target: NativeDrivingEquipmentTarget,
@@ -48,4 +52,6 @@ export function applyNativeDrivingEquipment(
   target.setNativeTransmissionSelector(selectors[4] ?? 0);
   target.setNativeSteeringSelector(selectors[5] ?? 0);
   target.setNativeBrakeSelector(selectors[6] ?? 0);
+  target.setNativeSpecialSelector(selectors[10] ?? 0);
+  target.setNativeOptionSelector(selectors[11] ?? 0);
 }

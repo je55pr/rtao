@@ -68,7 +68,13 @@ describe("native driving cross-mode integration", () => {
         throttle: 1,
         steering,
         surfaceIndex: 0,
-        contact: { driveContact: true, accelerationY: 89, allowsYaw: true },
+        contact: {
+          driveContact: true,
+          accelerationY: 89,
+          allowsYaw: true,
+          specialState: 0,
+          propellerEnabled: false,
+        },
       });
 
       expect(freeRoam.commands).toBe(commands);

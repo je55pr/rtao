@@ -1,10 +1,11 @@
 import { describe, expect, test } from "vitest";
 import type { CompiledFieldCollision } from "../formats/fieldCollision";
 import { ArcadeCarController } from "./drivingGame";
+import { applyNativeDrivingEquipment } from "./nativeDrivingEquipment";
 import { nativeDrivingFixedStepSeconds, nativeDrivingSurfaceIndex } from "./nativeDrivingMotion";
 import { syntheticNativeDrivingMotionAuthority } from "./nativeDrivingMotion.testSupport";
 import { allWorldFieldNumbers } from "./worldTopology";
-import { DrivingWorld, flatFieldCollision, type DrivingSurfaceKind, type ResolvedFootprint, type Vec3 } from "./worldCollision";
+import { DrivingWorld, flatFieldCollision, type DrivingSurfaceKind, type Vec3 } from "./worldCollision";
 
 function flatWorld(): DrivingWorld {
   const world = new DrivingWorld();
@@ -31,30 +32,6 @@ class PositionSurfaceWorld extends DrivingWorld {
 
   override drivingSurface(_originFieldNumber: number, position: Vec3, _referenceY?: number): DrivingSurfaceKind {
     return position.z > 555.4 ? "snow" : "dry";
-  }
-}
-
-class FloodedEdgeWorld extends DrivingWorld {
-  private flooded = false;
-
-  constructor() {
-    super();
-    for (const field of allWorldFieldNumbers()) this.addCompiledField(field, flatFieldCollision());
-  }
-
-  override resolveFootprint(
-    originFieldNumber: number,
-    candidate: Vec3,
-    yaw: number,
-    referenceY: number,
-    contactThreshold = 0.5,
-  ): ResolvedFootprint | undefined {
-    if (!this.flooded && candidate.z > 556.1) {
-      this.flooded = true;
-      return undefined;
-    }
-    if (this.flooded && candidate.z > 555.4) return undefined;
-    return super.resolveFootprint(originFieldNumber, candidate, yaw, referenceY, contactThreshold);
   }
 }
 
@@ -205,18 +182,61 @@ describe("recovered driving integration", () => {
     expect(studless.state.distanceTravelled).not.toBe(normal.state.distanceTravelled);
   });
 
-  test("backs out of an invalid shoreline footprint instead of permanently freezing", () => {
-    const car = controller(new FloodedEdgeWorld());
-    for (let frame = 0; frame < 80; frame += 1) car.update(nativeDrivingFixedStepSeconds, drive);
-    expect(car.state.position.z).toBeLessThanOrEqual(555.4);
-    const shorelineZ = car.state.position.z;
-    for (let frame = 0; frame < 80; frame += 1) {
-      car.update(nativeDrivingFixedStepSeconds, { throttle: -1, steering: 0, boost: false });
+  test("crosses shallow/deep auxiliary contact and reverses back out without a rescue jump", () => {
+    const world = new DrivingWorld();
+    world.addCompiledField(223, slopedWaterCollision(0, 555, 575, 1));
+    const car = new ArcadeCarController(
+      world,
+      syntheticNativeDrivingMotionAuthority(),
+      223,
+      { x: 800, y: 0, z: 552 },
+      0,
+    );
+    let sawShallow = false, sawDeep = false;
+    let previousPosition = car.state.position;
+    let previousDistance = car.state.distanceTravelled;
+    for (let frame = 0; frame < 600; frame += 1) {
+      car.update(nativeDrivingFixedStepSeconds, drive);
+      sawShallow ||= car.state.contactSpecialState === -1;
+      sawDeep ||= car.state.contactSpecialState === 1;
+      const moved = Math.hypot(
+        car.state.position.x - previousPosition.x,
+        car.state.position.z - previousPosition.z,
+      );
+      expect(moved).toBeLessThanOrEqual(car.state.distanceTravelled - previousDistance + 1e-8);
+      previousPosition = car.state.position;
+      previousDistance = car.state.distanceTravelled;
+      if (sawDeep && car.state.position.z > 568) break;
     }
-    expect(car.state.position.z).toBeLessThan(shorelineZ);
+    expect(sawShallow).toBe(true);
+    expect(sawDeep).toBe(true);
+    expect(car.state.surfaceKind).toBe("dry");
+    expect(car.state.nativeContactSurfaceFlags & 7).toBe(1);
+    const deepZ = car.state.position.z;
+    const deepDistance = car.state.distanceTravelled;
+
+    let sawShallowOnExit = false, sawOrdinaryOnExit = false;
+    for (let frame = 0; frame < 800; frame += 1) {
+      const before = car.state;
+      car.update(nativeDrivingFixedStepSeconds, { throttle: -1, steering: 0, boost: false });
+      if (car.state.contactSpecialState === -1) sawShallowOnExit = true;
+      if (sawShallowOnExit && car.state.contactSpecialState === 0) {
+        sawOrdinaryOnExit = true;
+        break;
+      }
+      const moved = Math.hypot(
+        car.state.position.x - before.position.x,
+        car.state.position.z - before.position.z,
+      );
+      expect(moved).toBeLessThanOrEqual(car.state.distanceTravelled - before.distanceTravelled + 1e-8);
+    }
+    expect(sawShallowOnExit).toBe(true);
+    expect(sawOrdinaryOnExit).toBe(true);
+    expect(car.state.position.z).toBeLessThan(deepZ);
+    expect(car.state.distanceTravelled).toBeGreaterThan(deepDistance);
   });
 
-  test("uses Big Tyre's recovered 1.35 contact gate in free-roam movement", () => {
+  test("uses Big Tyre's recovered 1.35 shoreline threshold without rejecting either contact", () => {
     const normalWorld = new DrivingWorld();
     normalWorld.addCompiledField(223, auxiliaryBarrierCollision(0, 0.8));
     const bigWorld = new DrivingWorld();
@@ -226,9 +246,58 @@ describe("recovered driving integration", () => {
     big.setNativeTyreSelector(11);
     normal.update(nativeDrivingFixedStepSeconds, drive);
     big.update(nativeDrivingFixedStepSeconds, drive);
-    expect(normal.state.distanceTravelled).toBe(0);
-    expect(normal.state.speed).toBe(0);
+    expect(normal.state.contactSpecialState).toBe(1);
+    expect(big.state.contactSpecialState).toBe(-1);
+    expect(normal.state.distanceTravelled).toBeGreaterThan(0);
     expect(big.state.distanceTravelled).toBeGreaterThan(0);
+    expect(normal.state.surfaceKind).toBe("dry");
+    expect(normal.state.nativeContactSurfaceFlags & 7).toBe(1);
+    expect(big.state.nativeContactSurfaceFlags & 7).toBe(0);
+  });
+
+  test("wires Propeller thrust and Water Ski unsupported steering as separate proven equipment roles", () => {
+    const makeCar = (propeller: boolean, waterSki: boolean) => {
+      const world = new DrivingWorld();
+      world.addCompiledField(223, auxiliaryOnlyCollision(0.8));
+      const car = new ArcadeCarController(
+        world,
+        syntheticNativeDrivingMotionAuthority(),
+        223,
+        { x: 800, y: 0, z: 800 },
+        0,
+      );
+      applyNativeDrivingEquipment(car, {
+        selectedItem: (_loadout, category) => ((category === 10 && propeller) || (category === 11 && waterSki)) ? 1 : 0,
+      });
+      return car;
+    };
+    const neither = makeCar(false, false);
+    const skiOnly = makeCar(false, true);
+    const propellerOnly = makeCar(true, false);
+    const both = makeCar(true, true);
+    for (let frame = 0; frame < 120; frame += 1) {
+      for (const car of [neither, skiOnly, propellerOnly, both]) {
+        car.update(nativeDrivingFixedStepSeconds, { throttle: 1, steering: 1, boost: false });
+      }
+    }
+    expect(neither.state.distanceTravelled).toBe(0);
+    expect(skiOnly.state.distanceTravelled).toBe(0);
+    expect(propellerOnly.state.distanceTravelled).toBeGreaterThan(0);
+    expect(both.state.distanceTravelled).toBeGreaterThan(0);
+    expect(Math.abs(propellerOnly.state.yaw)).toBe(0);
+    expect(Math.abs(both.state.yaw)).toBeGreaterThan(0);
+    expect(both.state.contactSpecialState).toBe(1);
+    expect(both.state.contactHasGroundSupport).toBe(false);
+    expect(both.state.surfaceKind).toBe("other");
+    expect(both.state.nativeContactSurfaceFlags & 7).toBe(1);
+
+    const reverse = makeCar(true, false);
+    const startZ = reverse.state.position.z;
+    for (let frame = 0; frame < 120; frame += 1) {
+      reverse.update(nativeDrivingFixedStepSeconds, { throttle: -1, steering: 0, boost: false });
+    }
+    expect(reverse.state.position.z).toBeLessThan(startZ);
+    expect(reverse.state.distanceTravelled).toBeGreaterThan(0);
   });
 
   test("keeps unresolved browser surfaces neutral instead of inventing a native surface code", () => {
@@ -269,6 +338,35 @@ describe("recovered driving integration", () => {
   });
 
 });
+
+function auxiliaryOnlyCollision(extraY: number): CompiledFieldCollision {
+  return {
+    triangleCount: 2,
+    positions: new Float32Array([
+      0, extraY, 0, 1600, extraY, 0, 0, extraY, 1600,
+      1600, extraY, 0, 1600, extraY, 1600, 0, extraY, 1600,
+    ]),
+    surfaceFlags: new Uint32Array([0x1000_0000, 0x1000_0000]),
+  };
+}
+
+function slopedWaterCollision(
+  groundY: number,
+  shoreZ: number,
+  deepZ: number,
+  deepY: number,
+): CompiledFieldCollision {
+  return {
+    triangleCount: 4,
+    positions: new Float32Array([
+      0, groundY, 0, 1600, groundY, 0, 0, groundY, 1600,
+      1600, groundY, 0, 1600, groundY, 1600, 0, groundY, 1600,
+      0, groundY, shoreZ, 1600, groundY, shoreZ, 0, deepY, deepZ,
+      1600, groundY, shoreZ, 1600, deepY, deepZ, 0, deepY, deepZ,
+    ]),
+    surfaceFlags: new Uint32Array([0, 0, 0x1000_0000, 0x1000_0000]),
+  };
+}
 
 function auxiliaryBarrierCollision(groundY: number, extraY: number): CompiledFieldCollision {
   return {

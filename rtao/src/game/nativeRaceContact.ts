@@ -68,6 +68,40 @@ const add = (a: number, b: number): number => (a + b) | 0;
 const sub = (a: number, b: number): number => (a - b) | 0;
 const div = (a: number, b: number): number => Math.trunc(a / b) | 0;
 
+export type NativeAuxiliaryContactState = -1 | 0 | 1;
+
+/** PAL 0x21C550 shoreline classification. Auxiliary height is contact state, not a tyre surface. */
+export function nativeAuxiliaryContactState(
+  referenceY: number,
+  extraY: number | undefined,
+  threshold: number,
+): NativeAuxiliaryContactState {
+  if (extraY === undefined) return 0;
+  const reference = f(referenceY), auxiliary = f(extraY);
+  if (reference < f(auxiliary - threshold)) return 1;
+  if (reference < auxiliary) return -1;
+  return 0;
+}
+
+/** Retains the recovered 0x40 transition pulse without inventing higher-level water callbacks. */
+export function advanceNativeAuxiliaryContactState(input: {
+  readonly referenceY: number;
+  readonly extraY: number | undefined;
+  readonly threshold: number;
+  readonly previousSpecialState: number;
+  readonly runtimeFlags: number;
+}): { readonly specialState: NativeAuxiliaryContactState; readonly runtimeFlags: number } {
+  const specialState = nativeAuxiliaryContactState(input.referenceY, input.extraY, input.threshold);
+  let runtimeFlags = input.runtimeFlags | 0;
+  if (specialState === -1 || (specialState === 0 && input.previousSpecialState !== 0)) runtimeFlags |= 0x40;
+  return { specialState, runtimeFlags: runtimeFlags >>> 0 };
+}
+
+/** PAL deep auxiliary-contact replacement surface. Its low three bits select grip slot 1. */
+export function nativeDeepAuxiliarySurface(surfaceFlags: number): number {
+  return (surfaceFlags & 0x3000) | 0x100651;
+}
+
 /**
  * Scalar caller 0x21C280..0x21C864: seven queries, support/history, height and
  * flag writes, and inputs to the orientation stage. VU transforms, cross/
@@ -112,7 +146,14 @@ export function produceNativeRaceContacts(input: NativeRaceContactInput, data: N
   }
   const threshold = (input.globalEquipmentFlags & 0x400) ? data.bigTyreThreshold : 0.5;
   const referenceY = f(state.referenceY), extraY = points[0]![3];
-  if (referenceY < f(extraY - threshold)) {
+  const transition = advanceNativeAuxiliaryContactState({
+    referenceY,
+    extraY,
+    threshold,
+    previousSpecialState: specialState,
+    runtimeFlags,
+  });
+  if (transition.specialState > 0) {
     if (input.equipmentFlags & 0x100) {
       if (!(flags & 0x100)) {
         if (input.responseZ > 8192) {
@@ -123,16 +164,12 @@ export function produceNativeRaceContacts(input: NativeRaceContactInput, data: N
     } else if (specialState <= 0) {
       for (let i = 0; i < 3; i++) impulses[i] = div(impulses[i]!, 2);
     }
-    specialState = 1;
-    surfaces[0] = surfaces[1] = surfaces[2] = (surfaces[0]! & 0x3000) | 0x100651;
-  } else if (referenceY < extraY) {
-    runtimeFlags |= 0x40;
+    surfaces[0] = surfaces[1] = surfaces[2] = nativeDeepAuxiliarySurface(surfaces[0]!);
+  } else if (transition.specialState < 0) {
     if (specialState === 0 && (input.carFlags & 3) && !(input.sceneFlags & 0x48)) soundRequests.push(40);
-    specialState = -1;
-  } else {
-    if (specialState !== 0) runtimeFlags |= 0x40;
-    specialState = 0;
   }
+  specialState = transition.specialState;
+  runtimeFlags = transition.runtimeFlags;
   let unsupportedTicks = 0;
   if ((support.support[0]! | support.support[1]! | support.support[2]!) === 0) {
     unsupportedTicks = add(state.unsupportedTicks, 1);

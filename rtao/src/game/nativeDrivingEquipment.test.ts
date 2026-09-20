@@ -9,6 +9,8 @@ function target(values: number[]) {
     setNativeTransmissionSelector: (value: number) => { values[4] = value; },
     setNativeSteeringSelector: (value: number) => { values[5] = value; },
     setNativeBrakeSelector: (value: number) => { values[6] = value; },
+    setNativeSpecialSelector: (value: number) => { values[10] = value; },
+    setNativeOptionSelector: (value: number) => { values[11] = value; },
   };
 }
 
@@ -25,6 +27,15 @@ describe("native driving equipment bridge", () => {
       selectedItem: (_loadout, category) => selectors[category] ?? 0,
     });
     expect(applied.slice(1, 7)).toEqual(selectors.slice(1, 7));
+  });
+
+  test("forwards the proven Propeller and Water Ski selectors without promoting other option semantics", () => {
+    const applied: number[] = [];
+    applyNativeDrivingEquipment(target(applied), {
+      selectedItem: (_loadout, category) => category === 10 || category === 11 ? 1 : 0,
+    });
+    expect(applied[10]).toBe(1);
+    expect(applied[11]).toBe(1);
   });
 
   test("snapshots the same complete player loadout used by ordinary races", () => {

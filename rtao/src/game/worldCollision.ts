@@ -17,6 +17,10 @@ export interface GroundSample {
 export interface ResolvedFootprint extends GroundSample {
   readonly fieldNumber: number;
   readonly position: Vec3;
+  /** PAL 0x10000000 auxiliary-height channel, distinct from selected ground. */
+  readonly auxiliaryY?: number;
+  /** Browser bridge summary of ordinary wheel support; auxiliary contact can remain valid without it. */
+  readonly hasGroundSupport: boolean;
 }
 
 export type DrivingSurfaceKind = "paved-road" | "dry" | "dirt" | "wet" | "grass" | "snow" | "ice" | "other";
@@ -209,7 +213,6 @@ export class DrivingWorld {
     candidate: Vec3,
     yaw: number,
     referenceY: number,
-    contactThreshold = 0.5,
   ): Omit<ResolvedFootprint, "fieldNumber"> | undefined {
     const sampler = this.specialOutdoorScenes.get(areaCode);
     if (!sampler) return undefined;
@@ -217,25 +220,27 @@ export class DrivingWorld {
       [-0.66, 0.68], [0.66, 0.68], [-0.66, -0.66], [0.66, -0.66],
     ];
     const sine = Math.sin(yaw), cosine = Math.cos(yaw);
-    let height = 0;
+    const support: GroundSample[] = [];
     for (const [localX, localZ] of contacts) {
       const sample = sampler.sampleClosest(
         candidate.x + localX * cosine + localZ * sine,
         candidate.z - localX * sine + localZ * cosine,
         referenceY,
       );
-      if (!sample) return undefined;
-      height += sample.y;
+      if (sample) support.push(sample);
     }
     const frontCentreX = candidate.x + 0.68 * sine;
     const frontCentreZ = candidate.z + 0.68 * cosine;
-    const extraY = sampler.sampleAuxiliaryHeight(frontCentreX, frontCentreZ);
-    if (extraY !== undefined && referenceY < extraY - contactThreshold) return undefined;
+    const auxiliaryY = sampler.sampleAuxiliaryHeight(frontCentreX, frontCentreZ);
+    if (support.length !== contacts.length && auxiliaryY === undefined) return undefined;
     const centre = sampler.sampleClosest(candidate.x, candidate.z, referenceY);
+    const y = support.length ? support.reduce((sum, sample) => sum + sample.y, 0) / support.length : referenceY;
     return {
-      position: { x: candidate.x, y: height / contacts.length, z: candidate.z },
-      y: height / contacts.length,
-      surfaceFlags: centre?.surfaceFlags ?? 0,
+      position: { x: candidate.x, y, z: candidate.z },
+      y,
+      surfaceFlags: centre?.surfaceFlags ?? support[0]?.surfaceFlags ?? 0,
+      hasGroundSupport: support.length > 0,
+      ...(auxiliaryY === undefined ? {} : { auxiliaryY }),
     };
   }
 
@@ -260,6 +265,11 @@ export class DrivingWorld {
     return this.fields.get(normalized.fieldNumber)?.sampleHighest(normalized.localPosition.x, normalized.localPosition.y);
   }
 
+  sampleAuxiliaryHeight(originFieldNumber: number, position: Vec3): number | undefined {
+    const normalized = normalizeRenderPosition(originFieldNumber, { x: position.x, y: position.z });
+    return this.fields.get(normalized.fieldNumber)?.sampleAuxiliaryHeight(normalized.localPosition.x, normalized.localPosition.y);
+  }
+
   drivingSurface(originFieldNumber: number, position: Vec3, referenceY = position.y): DrivingSurfaceKind {
     const normalized = normalizeRenderPosition(originFieldNumber, { x: position.x, y: position.z });
     const collision = this.fields.get(normalized.fieldNumber)?.sampleClosest(normalized.localPosition.x, normalized.localPosition.y, referenceY);
@@ -269,14 +279,14 @@ export class DrivingWorld {
     return nativeDrivingSurfaceFromCollisionFlags(collision.surfaceFlags) ?? "other";
   }
 
-  resolveFootprint(originFieldNumber: number, candidate: Vec3, yaw: number, referenceY: number, contactThreshold = 0.5): ResolvedFootprint | undefined {
+  resolveFootprint(originFieldNumber: number, candidate: Vec3, yaw: number, referenceY: number): ResolvedFootprint | undefined {
     const normalized = normalizeRenderPosition(originFieldNumber, { x: candidate.x, y: candidate.z });
     const localCandidate = { x: normalized.localPosition.x, y: candidate.y, z: normalized.localPosition.y };
     const contacts: ReadonlyArray<readonly [number, number]> = [
       [-0.66, 0.68], [0.66, 0.68], [-0.66, -0.66], [0.66, -0.66],
     ];
     const sine = Math.sin(yaw), cosine = Math.cos(yaw);
-    let height = 0;
+    const support: Array<GroundSample & { fieldNumber: number; localPosition: Vec3 }> = [];
     for (const [localX, localZ] of contacts) {
       const point = {
         x: localCandidate.x + localX * cosine + localZ * sine,
@@ -284,22 +294,24 @@ export class DrivingWorld {
         z: localCandidate.z - localX * sine + localZ * cosine,
       };
       const sample = this.sampleGround(normalized.fieldNumber, point, referenceY);
-      if (!sample) return undefined;
-      height += sample.y;
+      if (sample) support.push(sample);
     }
     const frontCentre = {
       x: localCandidate.x + 0.68 * sine,
       y: localCandidate.y,
       z: localCandidate.z + 0.68 * cosine,
     };
-    const extraY = this.fields.get(normalized.fieldNumber)?.sampleAuxiliaryHeight(frontCentre.x, frontCentre.z);
-    if (extraY !== undefined && referenceY < extraY - contactThreshold) return undefined;
+    const auxiliaryY = this.sampleAuxiliaryHeight(normalized.fieldNumber, frontCentre);
+    if (support.length !== contacts.length && auxiliaryY === undefined) return undefined;
     const centre = this.sampleGround(normalized.fieldNumber, localCandidate, referenceY);
+    const y = support.length ? support.reduce((sum, sample) => sum + sample.y, 0) / support.length : referenceY;
     return {
       fieldNumber: normalized.fieldNumber,
-      position: { x: localCandidate.x, y: height / contacts.length, z: localCandidate.z },
-      y: height / contacts.length,
-      surfaceFlags: centre?.surfaceFlags ?? 0,
+      position: { x: localCandidate.x, y, z: localCandidate.z },
+      y,
+      surfaceFlags: centre?.surfaceFlags ?? support[0]?.surfaceFlags ?? 0,
+      hasGroundSupport: support.length > 0,
+      ...(auxiliaryY === undefined ? {} : { auxiliaryY }),
     };
   }
 }

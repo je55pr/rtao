@@ -21,15 +21,26 @@ describe("world collision", () => {
     expect(resolved?.y).toBe(7);
   });
 
-  it("keeps PAL auxiliary surfaces out of ground sampling and applies the vertical contact gate", () => {
+  it("keeps PAL auxiliary surfaces out of selected ground while retaining auxiliary contact", () => {
     const world = new DrivingWorld();
     const collision = auxiliaryBarrierCollision(0, 0.8);
     world.addCompiledField(223, collision);
     const sampler = new FieldCollisionSampler(collision);
     expect(sampler.sampleClosest(800, 800, 0)).toEqual({ y: 0, surfaceFlags: 0 });
     expect(sampler.sampleAuxiliaryHeight(800, 800)).toBeCloseTo(0.8, 6);
-    expect(world.resolveFootprint(223, { x: 800, y: 0, z: 800 }, 0, 0, 0.5)).toBeUndefined();
-    expect(world.resolveFootprint(223, { x: 800, y: 0, z: 800 }, 0, 0, Math.fround(1.35))?.y).toBe(0);
+    const resolved = world.resolveFootprint(223, { x: 800, y: 0, z: 800 }, 0, 0);
+    expect(resolved).toMatchObject({ y: 0, surfaceFlags: 0, hasGroundSupport: true });
+    expect(resolved?.auxiliaryY).toBeCloseTo(0.8, 6);
+    expect(world.drivingSurface(223, { x: 800, y: 0, z: 800 })).toBe("dry");
+  });
+
+  it("retains auxiliary-only contact without inventing ordinary ground support", () => {
+    const world = new DrivingWorld();
+    world.addCompiledField(223, auxiliaryOnlyCollision(0.8));
+    const resolved = world.resolveFootprint(223, { x: 800, y: 0, z: 800 }, 0, 0);
+    expect(resolved).toMatchObject({ y: 0, surfaceFlags: 0, hasGroundSupport: false });
+    expect(resolved?.auxiliaryY).toBeCloseTo(0.8, 6);
+    expect(world.drivingSurface(223, { x: 800, y: 0, z: 800 })).toBe("other");
   });
 
   it("does not guess field surfaces from legacy texture pointers", () => {
@@ -69,6 +80,16 @@ describe("world collision", () => {
     world.addCompiledField(113, flatFieldCollision(0, 0x00000455));
     expect(world.drivingSurface(113, { x: 800, y: 0, z: 800 })).toBe("ice");
     expect(world.drivingSurface(203, { x: 800, y: 0, z: 800 })).toBe("other");
+  });
+
+  it("resolves auxiliary front contact through ordinary field seams", () => {
+    const world = new DrivingWorld();
+    const origin = fieldNumberFromAddress(5, 0);
+    const acrossNorthSeam = fieldNumberFromAddress(4, 7);
+    world.addCompiledField(origin, flatFieldCollision(0, 0));
+    world.addCompiledField(acrossNorthSeam, auxiliaryBarrierCollision(0, 0.4));
+    const resolved = world.resolveFootprint(origin, { x: 960, y: 0, z: 0.2 }, Math.PI, 0);
+    expect(resolved?.auxiliaryY).toBeCloseTo(0.4, 6);
   });
 
   it("resolves native surfaces through ordinary field seams", () => {
@@ -132,6 +153,17 @@ function surfaceMesh(textureBasePointer: number, roadKind?: number): CompiledFie
       dirtRibbonCount: roadKind === 1 ? 1 : 0,
       unresolvedVertexCount: 0,
     },
+  };
+}
+
+function auxiliaryOnlyCollision(extraY: number): CompiledFieldCollision {
+  return {
+    triangleCount: 2,
+    positions: new Float32Array([
+      0, extraY, 0, 1600, extraY, 0, 0, extraY, 1600,
+      1600, extraY, 0, 1600, extraY, 1600, 0, extraY, 1600,
+    ]),
+    surfaceFlags: new Uint32Array([0x1000_0000, 0x1000_0000]),
   };
 }
 

@@ -38,6 +38,22 @@ describe('native contact producer with explicit synthetic transform boundary', (
     expect(run({...value,state:{...value.state,referenceY:0}}).state.specialState).toBe(0);
   });
 
+  test('retains deep-contact impulse halving, synthetic surface and Water Ski vertical branches', () => {
+    const base = input();
+    const deepInput = {...base,state:{...base.state,referenceY:-1,impulses:[9,-10,0]}};
+    const ordinary = run(deepInput,-4);
+    expect(ordinary.state).toMatchObject({specialState:1,impulses:[4,-5,0]});
+    expect(ordinary.surfaces.slice(0,3)).toEqual([0x100651,0x100651,0x100651]);
+
+    const zero = run({...deepInput,equipmentFlags:0x100,responseZ:0},-4);
+    const exact = run({...deepInput,equipmentFlags:0x100,responseZ:8192},-4);
+    expect(exact.state.position[1] - zero.state.position[1]).toBe(1024);
+    expect(exact.state.impulses).toEqual([9,-10,0]);
+    const above = run({...deepInput,equipmentFlags:0x100,responseZ:8193},-4);
+    expect(above.state.position[1] - zero.state.position[1]).toBe(1024);
+    expect(above.state.impulses).toEqual([1,1,0]);
+  });
+
   test('selects the correct scene command channel, gives 0x1000 precedence, and gates on support bit 0x100', () => {
     const value = {...input(),sceneByte0B:1,sceneCommands:[0x5000,0x4000] as const};
     expect(run(value).state.position[1]).toBe(-4096);

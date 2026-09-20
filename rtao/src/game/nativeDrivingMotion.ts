@@ -1,4 +1,4 @@
-import { readNativeRaceContactData } from "./nativeRaceContact";
+import { readNativeRaceContactData, type NativeAuxiliaryContactState } from "./nativeRaceContact";
 import {
   inverseNativeRaceMatrix,
   nativeRaceYawMatrix,
@@ -37,6 +37,9 @@ export interface NativeDrivingMotionInput {
     readonly driveContact: boolean;
     readonly accelerationY: number;
     readonly allowsYaw: boolean;
+    readonly specialState: NativeAuxiliaryContactState;
+    /** Category 10 selector 1, PAL equipment flag 0x0040. */
+    readonly propellerEnabled: boolean;
   };
 }
 
@@ -113,19 +116,35 @@ export class NativeDrivingMotion {
     const matrix = nativeRaceYawMatrix(oldYaw, this.authority.math);
     const inverse = inverseNativeRaceMatrix(matrix);
     const localVelocity = transformNativeRaceIntegerVector(inverse, this.velocity);
-    const drag = nativeRaceDrag(localVelocity[2], localVelocity[0], this.equipment.mass, 0, 0, 0);
-    const surfaceResolved = input.surfaceIndex !== undefined;
+    const commands = nativeDrivingCommands(input, this.vehicle);
+    let forward = localVelocity[2];
+    if (input.contact.propellerEnabled && input.contact.specialState !== 0) {
+      if (commands & 4) forward = (forward - 89) | 0;
+      else if (commands & 1) forward = (forward + 89) | 0;
+    }
+    const drag = nativeRaceDrag(
+      forward,
+      localVelocity[0],
+      this.equipment.mass,
+      input.contact.specialState,
+      0,
+      0,
+    );
+    // Deep auxiliary contact replaces the runtime surface with 0x100651, whose
+    // low three bits select grip slot 1. Otherwise preserve the source-owned
+    // explicit surface-index bridge, including unresolved-neutral handling.
+    const effectiveSurfaceIndex = input.contact.specialState > 0 ? 1 : input.surfaceIndex;
+    const surfaceResolved = effectiveSurfaceIndex !== undefined;
     const equipment = surfaceResolved
       ? this.equipment
       : neutralUnresolvedSurfaceEquipment(this.equipment);
-    const commands = nativeDrivingCommands(input, this.vehicle);
     const drive = advanceNativeRaceVehicleVelocity(
       this.vehicle,
       equipment,
       {
         localForwardSpeed: drag.forward,
         localSideSpeed: drag.side,
-        surfaceIndex: input.surfaceIndex ?? 0,
+        surfaceIndex: effectiveSurfaceIndex ?? 0,
         driveContact: input.contact.driveContact,
         contactAccelerationY: input.contact.accelerationY,
         contactAllowsYaw: input.contact.allowsYaw,

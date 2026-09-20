@@ -2,7 +2,13 @@ import { describe, expect, test } from "vitest";
 import { NativeDrivingMotion, nativeDrivingFixedStepSeconds } from "./nativeDrivingMotion";
 import { syntheticNativeDrivingMotionAuthority } from "./nativeDrivingMotion.testSupport";
 
-const contact = { driveContact: true, accelerationY: 89, allowsYaw: true } as const;
+const contact = {
+  driveContact: true,
+  accelerationY: 89,
+  allowsYaw: true,
+  specialState: 0,
+  propellerEnabled: false,
+} as const;
 
 describe("browser/PAL driving handedness bridge", () => {
   test("preserves PAL physical steering command bits", () => {

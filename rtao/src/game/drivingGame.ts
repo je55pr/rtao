@@ -7,6 +7,11 @@ import {
 } from "./nativeDrivingMotion";
 import { nativeTyreContactThreshold } from "./nativeTyrePerformance";
 import {
+  advanceNativeAuxiliaryContactState,
+  nativeDeepAuxiliarySurface,
+  type NativeAuxiliaryContactState,
+} from "./nativeRaceContact";
+import {
   advanceNativeChaseCamera,
   createNativeChaseCameraState,
   resetNativeChaseLag,
@@ -54,6 +59,15 @@ export interface CarState {
   readonly roll: number;
   readonly surfaceFlags: number;
   readonly surfaceKind: DrivingSurfaceKind;
+  /** PAL car +0x213 auxiliary-height state: ordinary 0, shallow -1, deep +1. */
+  readonly contactSpecialState: NativeAuxiliaryContactState;
+  /** Recovered per-update contact transition flags; 0x40 marks shallow/exit transitions. */
+  readonly contactRuntimeFlags: number;
+  /** Browser footprint support channel, kept separate from auxiliary-height contact. */
+  readonly contactHasGroundSupport: boolean;
+  readonly contactAuxiliaryY: number | undefined;
+  /** Runtime surface word after PAL's deep-contact 0x100651 replacement. */
+  readonly nativeContactSurfaceFlags: number;
   /** Direct recovered car +0x1D0 engine RPM, retained for native engine audio. */
   readonly nativeEngineSpeed: number;
   /** Recovered engine-sound layer selector; semantic polarity is intentionally unnamed. */
@@ -66,6 +80,8 @@ export class ArcadeCarController {
   private mutable: CarState;
   private readonly motion: NativeDrivingMotion;
   private nativeTyreSelector = 0;
+  /** Proven special-contact equipment bits only: Propeller 0x40 and Water Ski 0x100. */
+  private nativeSpecialContactEquipmentFlags = 0;
 
   constructor(
     private readonly world: DrivingWorld,
@@ -75,8 +91,9 @@ export class ArcadeCarController {
     yaw = -0.1,
   ) {
     this.motion = new NativeDrivingMotion(motionAuthority, yaw);
-    const resolved = world.resolveFootprint(fieldNumber, position, yaw, position.y, nativeTyreContactThreshold(this.nativeTyreSelector));
+    const resolved = world.resolveFootprint(fieldNumber, position, yaw, position.y);
     const resolvedFieldNumber = resolved?.fieldNumber ?? fieldNumber;
+    const contact = this.auxiliaryContact(position.y, resolved?.auxiliaryY);
     this.mutable = {
       location: { kind: "standard-world", fieldNumber: resolvedFieldNumber },
       fieldNumber: resolvedFieldNumber,
@@ -91,6 +108,13 @@ export class ArcadeCarController {
       roll: 0,
       surfaceFlags: resolved?.surfaceFlags ?? 0,
       surfaceKind: world.drivingSurface(resolved?.fieldNumber ?? fieldNumber, resolved?.position ?? position, resolved?.y ?? position.y),
+      contactSpecialState: contact.specialState,
+      contactRuntimeFlags: contact.runtimeFlags,
+      contactHasGroundSupport: resolved?.hasGroundSupport ?? false,
+      contactAuxiliaryY: resolved?.auxiliaryY,
+      nativeContactSurfaceFlags: contact.specialState > 0
+        ? nativeDeepAuxiliarySurface(resolved?.surfaceFlags ?? 0)
+        : resolved?.surfaceFlags ?? 0,
       nativeEngineSpeed: 0,
       nativeEngineLayerSelector: 0,
       distanceTravelled: 0,
@@ -124,6 +148,32 @@ export class ArcadeCarController {
     this.motion.setSelector(6, selector);
   }
 
+  setNativeSpecialSelector(selector: number): void {
+    if (selector === 1) this.nativeSpecialContactEquipmentFlags |= 0x40;
+    else this.nativeSpecialContactEquipmentFlags &= ~0x40;
+  }
+
+  setNativeOptionSelector(selector: number): void {
+    if (selector === 1) this.nativeSpecialContactEquipmentFlags |= 0x100;
+    else this.nativeSpecialContactEquipmentFlags &= ~0x100;
+  }
+
+  private auxiliaryContact(
+    referenceY: number,
+    auxiliaryY: number | undefined,
+    previousSpecialState: NativeAuxiliaryContactState = 0,
+  ): { readonly specialState: NativeAuxiliaryContactState; readonly runtimeFlags: number } {
+    return advanceNativeAuxiliaryContactState({
+      referenceY,
+      extraY: auxiliaryY,
+      threshold: nativeTyreContactThreshold(this.nativeTyreSelector),
+      previousSpecialState,
+      // The PAL frame supplies a fresh runtime flag word before this contact stage;
+      // retain the recovered 0x40 transition as a per-update pulse here as well.
+      runtimeFlags: 0,
+    });
+  }
+
   enterArea(fieldNumber: number, position: { readonly x: number; readonly z: number }): void {
     const current = this.mutable;
     this.relocate(fieldNumber, { x: position.x, y: current.position.y, z: position.z }, current.yaw);
@@ -137,8 +187,8 @@ export class ArcadeCarController {
       candidate,
       current.yaw,
       current.position.y,
-      nativeTyreContactThreshold(this.nativeTyreSelector),
     );
+    const contact = this.auxiliaryContact(current.position.y, resolved?.auxiliaryY);
     this.motion.reset(current.yaw);
     this.mutable = {
       location: { kind: "special-outdoor", areaCode },
@@ -154,6 +204,13 @@ export class ArcadeCarController {
       roll: 0,
       surfaceFlags: resolved?.surfaceFlags ?? 0,
       surfaceKind: this.world.specialOutdoorDrivingSurface(areaCode, resolved?.position ?? candidate, resolved?.y ?? candidate.y),
+      contactSpecialState: contact.specialState,
+      contactRuntimeFlags: contact.runtimeFlags,
+      contactHasGroundSupport: resolved?.hasGroundSupport ?? false,
+      contactAuxiliaryY: resolved?.auxiliaryY,
+      nativeContactSurfaceFlags: contact.specialState > 0
+        ? nativeDeepAuxiliarySurface(resolved?.surfaceFlags ?? 0)
+        : resolved?.surfaceFlags ?? 0,
       nativeEngineSpeed: 0,
       nativeEngineLayerSelector: 0,
       distanceTravelled: current.distanceTravelled,
@@ -167,8 +224,9 @@ export class ArcadeCarController {
 
   private relocate(fieldNumber: number, position: Vec3, yaw: number): void {
     this.motion.reset(yaw);
-    const resolved = this.world.resolveFootprint(fieldNumber, position, yaw, position.y, nativeTyreContactThreshold(this.nativeTyreSelector));
+    const resolved = this.world.resolveFootprint(fieldNumber, position, yaw, position.y);
     const resolvedFieldNumber = resolved?.fieldNumber ?? fieldNumber;
+    const contact = this.auxiliaryContact(position.y, resolved?.auxiliaryY);
     this.mutable = {
       location: { kind: "standard-world", fieldNumber: resolvedFieldNumber },
       fieldNumber: resolvedFieldNumber,
@@ -183,6 +241,13 @@ export class ArcadeCarController {
       roll: 0,
       surfaceFlags: resolved?.surfaceFlags ?? 0,
       surfaceKind: this.world.drivingSurface(resolved?.fieldNumber ?? fieldNumber, resolved?.position ?? position, resolved?.y ?? position.y),
+      contactSpecialState: contact.specialState,
+      contactRuntimeFlags: contact.runtimeFlags,
+      contactHasGroundSupport: resolved?.hasGroundSupport ?? false,
+      contactAuxiliaryY: resolved?.auxiliaryY,
+      nativeContactSurfaceFlags: contact.specialState > 0
+        ? nativeDeepAuxiliarySurface(resolved?.surfaceFlags ?? 0)
+        : resolved?.surfaceFlags ?? 0,
       nativeEngineSpeed: 0,
       nativeEngineLayerSelector: 0,
       distanceTravelled: this.mutable.distanceTravelled,
@@ -202,11 +267,14 @@ export class ArcadeCarController {
       surfaceIndex: nativeDrivingSurfaceIndex(old.surfaceKind),
       contact: {
         // Free-roam still uses the browser footprint bridge, not PAL's seven-
-        // probe support solver. 89 is PAL's recovered gravity quantum and is
-        // used here only as the explicit level-support compatibility input.
-        driveContact: true,
+        // probe support solver. Auxiliary contact is retained independently so
+        // deep water does not masquerade as a missing/invalid footprint.
+        driveContact: old.contactHasGroundSupport,
         accelerationY: 89,
-        allowsYaw: true,
+        allowsYaw: old.contactHasGroundSupport
+          || (old.contactSpecialState !== 0 && (this.nativeSpecialContactEquipmentFlags & 0x100) !== 0),
+        specialState: old.contactSpecialState,
+        propellerEnabled: (this.nativeSpecialContactEquipmentFlags & 0x40) !== 0,
       },
     });
 
@@ -223,10 +291,9 @@ export class ArcadeCarController {
     let wheelSpin = old.wheelSpin - speed * dt / 0.355;
     if (Math.abs(wheelSpin) > Math.PI * 2) wheelSpin %= Math.PI * 2;
     const candidate = { x: old.position.x + moveX, y: old.position.y, z: old.position.z + moveZ };
-    const contactThreshold = nativeTyreContactThreshold(this.nativeTyreSelector);
     const resolveCandidate = (position: Vec3) => old.location.kind === "special-outdoor"
-      ? this.world.resolveSpecialOutdoorFootprint(old.location.areaCode, position, yaw, old.position.y, contactThreshold)
-      : this.world.resolveFootprint(old.fieldNumber, position, yaw, old.position.y, contactThreshold);
+      ? this.world.resolveSpecialOutdoorFootprint(old.location.areaCode, position, yaw, old.position.y)
+      : this.world.resolveFootprint(old.fieldNumber, position, yaw, old.position.y);
     let resolved = resolveCandidate(candidate);
     let distanceMoved = resolved ? Math.hypot(moveX, moveZ) : 0;
     if (!resolved) {
@@ -237,29 +304,19 @@ export class ArcadeCarController {
     }
     if (!resolved) {
       speed = 0;
-      // Full PAL outdoor contact/obstacle response is not recovered. When the
-      // footprint bridge rejects movement, keep the native no-bounce fallback,
-      // but first recover from a shoreline/edge state whose current footprint
-      // has itself become invalid. This prevents permanent lock-up without
-      // inventing Water Ski propulsion or a synthetic collision impulse.
+      // Auxiliary-height contact is no longer rejected here. A remaining miss
+      // is an ordinary unresolved obstacle/support case, whose full PAL response
+      // is still unrecovered. Keep the existing no-bounce stop without a magic
+      // shoreline retreat or teleport.
       resolved = resolveCandidate(old.position);
-      if (!resolved) {
-        const movementLength = Math.hypot(moveX, moveZ);
-        if (movementLength > 1e-6) {
-          const unitX = moveX / movementLength;
-          const unitZ = moveZ / movementLength;
-          for (const retreatDistance of [0.25, 0.5, 1, 2]) {
-            resolved = resolveCandidate({
-              x: old.position.x - unitX * retreatDistance,
-              y: old.position.y,
-              z: old.position.z - unitZ * retreatDistance,
-            });
-            if (resolved) break;
-          }
-        }
-      }
       this.motion.haltTranslation();
-      resolved ??= { position: old.position, y: old.position.y, surfaceFlags: old.surfaceFlags };
+      resolved ??= {
+        position: old.position,
+        y: old.position.y,
+        surfaceFlags: old.surfaceFlags,
+        hasGroundSupport: old.contactHasGroundSupport,
+        ...(old.contactAuxiliaryY === undefined ? {} : { auxiliaryY: old.contactAuxiliaryY }),
+      };
     }
 
     const resolvedFieldNumber = "fieldNumber" in resolved && typeof resolved.fieldNumber === "number"
@@ -268,6 +325,7 @@ export class ArcadeCarController {
     const nextLocation: CarOutdoorLocation = old.location.kind === "special-outdoor"
       ? old.location
       : { kind: "standard-world", fieldNumber: resolvedFieldNumber };
+    const contact = this.auxiliaryContact(old.position.y, resolved.auxiliaryY, old.contactSpecialState);
     const attitude = this.groundAttitude(nextLocation, resolved.position, yaw, old.pitch, old.roll, dt);
     const resolvedSurfaceKind = nextLocation.kind === "special-outdoor"
       ? this.world.specialOutdoorDrivingSurface(nextLocation.areaCode, resolved.position, resolved.y)
@@ -286,6 +344,13 @@ export class ArcadeCarController {
       roll: attitude.roll,
       surfaceFlags: resolved.surfaceFlags,
       surfaceKind: resolvedSurfaceKind,
+      contactSpecialState: contact.specialState,
+      contactRuntimeFlags: contact.runtimeFlags,
+      contactHasGroundSupport: resolved.hasGroundSupport,
+      contactAuxiliaryY: resolved.auxiliaryY,
+      nativeContactSurfaceFlags: contact.specialState > 0
+        ? nativeDeepAuxiliarySurface(resolved.surfaceFlags)
+        : resolved.surfaceFlags,
       nativeEngineSpeed: motion.nativeVehicle.engineSpeed,
       nativeEngineLayerSelector: (motion.commands & 1) as 0 | 1,
       distanceTravelled: old.distanceTravelled + distanceMoved,
@@ -388,6 +453,10 @@ export class BrowserDrivingGame {
   setNativeSteeringSelector(selector: number): void { this.controller.setNativeSteeringSelector(selector); }
 
   setNativeBrakeSelector(selector: number): void { this.controller.setNativeBrakeSelector(selector); }
+
+  setNativeSpecialSelector(selector: number): void { this.controller.setNativeSpecialSelector(selector); }
+
+  setNativeOptionSelector(selector: number): void { this.controller.setNativeOptionSelector(selector); }
 
   setPaused(paused: boolean): void {
     if (this.paused === paused) return;
