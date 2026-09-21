@@ -25,6 +25,21 @@ test("browser obstruction safety stays a post-native rendering adjustment", () =
   expect(raised.target).toEqual(nativePose.target);
 });
 
+test("browser obstruction safety samples the actual target-to-camera ray height", () => {
+  const pose = {
+    position: [6, 8, -6] as const,
+    target: [0, 2, 0] as const,
+  };
+  const sampledY: number[] = [];
+
+  applyBrowserChaseObstructionSafety(pose, (point) => {
+    sampledY.push(point.y);
+    return undefined;
+  }, 3);
+
+  expect(sampledY).toEqual([4, 6, 8]);
+});
+
 test("browser obstruction safety never alters native final output", () => {
   const nativePose = {
     position: [0, 2, -7] as const,

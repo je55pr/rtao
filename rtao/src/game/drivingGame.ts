@@ -549,6 +549,7 @@ export class ArcadeCarController {
 
 export interface BrowserSceneRelocationOptions {
   readonly yaw?: number;
+  readonly resolveNativePlacement?: boolean;
   readonly beforeRender?: (state: CarState) => void;
 }
 
@@ -649,7 +650,14 @@ export class BrowserDrivingGame {
     options: BrowserSceneRelocationOptions = {},
   ): void {
     this.controls.reset();
-    this.controller.enterArea(fieldNumber, position, options.yaw);
+    const resolvedPosition = options.resolveNativePlacement && position.y !== undefined
+      ? this.world.resolveNativeExteriorPlacement(fieldNumber, {
+          x: position.x,
+          y: position.y,
+          z: position.z,
+        }) ?? position
+      : position;
+    this.controller.enterArea(fieldNumber, resolvedPosition, options.yaw);
     options.beforeRender?.(this.controller.state);
     this.reinitializeCameraForScene();
   }
@@ -752,8 +760,8 @@ export class BrowserDrivingGame {
       : { source: "host-fallback" as const, pose: fallbackPose };
     const chase = applyBrowserChaseSafetyToSelection(selection, (point) =>
       state.location.kind === "special-outdoor"
-        ? this.world.sampleSpecialOutdoorHighest(state.location.areaCode, point)
-        : this.world.sampleHighest(state.fieldNumber, point)
+        ? this.world.sampleSpecialOutdoorGround(state.location.areaCode, point, point.y)
+        : this.world.sampleGround(state.fieldNumber, point, point.y)
     );
     if (state.location.kind === "special-outdoor") {
       this.view.updateSpecialOutdoorDriving(

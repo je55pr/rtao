@@ -38,6 +38,7 @@ class PositionSurfaceWorld extends DrivingWorld {
 
 class NativeOnlyWorld extends DrivingWorld {
   footprintCalls = 0;
+  readonly nativeQueries: NativeRaceCollisionPoint[] = [];
 
   constructor(private readonly auxiliaryY = 0) {
     super();
@@ -48,6 +49,7 @@ class NativeOnlyWorld extends DrivingWorld {
   }
 
   override queryNativeContact(_originFieldNumber: number, point: NativeRaceCollisionPoint) {
+    this.nativeQueries.push([...point] as NativeRaceCollisionPoint);
     const hit: NativeRaceCollisionPoint = [point[0], 0, point[2], this.auxiliaryY];
     return { point: hit, flags: 0x550, ceilingY: 10000 };
   }
@@ -102,8 +104,9 @@ describe("recovered driving integration", () => {
     expect(car.state.position.z).toBeCloseTo(700, 5);
   });
 
-  test("runs explicit relocation seeding before the relocated state is rendered", () => {
+  test("grounds a PAL exterior seed before interaction seeding and scene render", () => {
     const events: string[] = [];
+    const world = new NativeOnlyWorld();
     type DrivingGameArgs = ConstructorParameters<typeof BrowserDrivingGame>;
     const view = {
       updateDriving: (fieldNumber: number) => events.push(`view:${fieldNumber}`),
@@ -117,21 +120,28 @@ describe("recovered driving integration", () => {
       createScope: () => ({ reset: () => undefined }),
     } as unknown as DrivingGameArgs[4];
     const game = new BrowserDrivingGame(
-      new NativeOnlyWorld(),
+      world,
       view,
       car,
       (state) => events.push(`state:${state.fieldNumber}`),
       input,
       syntheticNativeDrivingMotionAuthority(),
     );
+    world.nativeQueries.length = 0;
 
-    game.enterArea(113, { x: 700, z: 700 }, { yaw: 1.25, beforeRender: (state) => {
-      events.push(`seed:${state.fieldNumber}`);
-      expect(state.position.x).toBeCloseTo(700, 5);
-      expect(state.position.z).toBeCloseTo(700, 5);
-      expect(state.yaw).toBeCloseTo(1.25, 4);
-    } });
+    game.enterArea(113, { x: 700, y: -20, z: 700 }, {
+      yaw: 1.25,
+      resolveNativePlacement: true,
+      beforeRender: (state) => {
+        events.push(`seed:${state.fieldNumber}`);
+        expect(state.position.x).toBeCloseTo(700, 5);
+        expect(state.position.y).toBeCloseTo(0, 5);
+        expect(state.position.z).toBeCloseTo(700, 5);
+        expect(state.yaw).toBeCloseTo(1.25, 4);
+      },
+    });
 
+    expect(world.nativeQueries[0]).toEqual([900, -20, 700, 1]);
     expect(events).toEqual(["seed:113", "view:113", "state:113"]);
   });
 

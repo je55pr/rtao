@@ -1801,7 +1801,11 @@ function relocateToFixedInteractionReturn(interaction: FixedInteractionDefinitio
   try {
     const pose = fixedInteractionReturnPose(interaction);
     if (interaction.fieldNumber >= 0) {
-      game.enterArea(interaction.fieldNumber, pose.position, { yaw: pose.yaw, beforeRender: seedInteractionContact });
+      game.enterArea(interaction.fieldNumber, pose.position, {
+        yaw: pose.yaw,
+        resolveNativePlacement: true,
+        beforeRender: seedInteractionContact,
+      });
       lastPrefetchedWorldField = interaction.fieldNumber;
       void ensureNearbyWorldFields(interaction.fieldNumber).catch((error) => console.warn("Interior return prefetch failed.", error));
       return;
@@ -3124,7 +3128,11 @@ async function warpToCity(
     if (!game || !isDriving) throw new Error("The outdoor driving session ended while Warp was loading.");
 
     closePauseMenu();
-    game.enterArea(fieldNumber, entry.position, { yaw: entry.yaw, beforeRender: seedInteractionContact });
+    game.enterArea(fieldNumber, entry.position, {
+      yaw: entry.yaw,
+      resolveNativePlacement: true,
+      beforeRender: seedInteractionContact,
+    });
     playerDialogueState!.currentAreaIndex = destination.areaIndex;
     requiredElement<HTMLElement>("viewer-title").textContent = destination.name;
     sceneFade.flash();

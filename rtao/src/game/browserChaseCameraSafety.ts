@@ -23,7 +23,7 @@ export const browserOrdinaryChasePresetIndex = 0;
  */
 export function applyBrowserChaseObstructionSafety(
   pose: BrowserChasePose,
-  sampleHighest: (point: { x: number; y: number; z: number }) => BrowserChaseObstruction | undefined,
+  sampleClosest: (point: { x: number; y: number; z: number }) => BrowserChaseObstruction | undefined,
   sampleCount = 6,
   clearance = 1.8,
 ): BrowserChasePose {
@@ -32,12 +32,12 @@ export function applyBrowserChaseObstructionSafety(
   }
   let cameraY = pose.position[1];
   const [targetX, targetY, targetZ] = pose.target;
-  const [cameraX, , cameraZ] = pose.position;
+  const [cameraX, sourceCameraY, cameraZ] = pose.position;
   for (let step = 1; step <= sampleCount; step += 1) {
     const fraction = step / sampleCount;
-    const obstruction = sampleHighest({
+    const obstruction = sampleClosest({
       x: targetX + (cameraX - targetX) * fraction,
-      y: targetY,
+      y: targetY + (sourceCameraY - targetY) * fraction,
       z: targetZ + (cameraZ - targetZ) * fraction,
     });
     if (obstruction) cameraY = Math.max(cameraY, obstruction.y + clearance);
@@ -55,9 +55,9 @@ export function applyBrowserChaseObstructionSafety(
  */
 export function applyBrowserChaseSafetyToSelection(
   selection: NativeCameraRenderSelection,
-  sampleHighest: (point: { x: number; y: number; z: number }) => BrowserChaseObstruction | undefined,
+  sampleClosest: (point: { x: number; y: number; z: number }) => BrowserChaseObstruction | undefined,
 ): BrowserChasePose {
   return selection.source === "native-final-output"
     ? selection.pose
-    : applyBrowserChaseObstructionSafety(selection.pose, sampleHighest);
+    : applyBrowserChaseObstructionSafety(selection.pose, sampleClosest);
 }

@@ -239,6 +239,27 @@ export class DrivingWorld {
   }
 
   /**
+   * PAL 0x207AA0 scene placement queries the selected ordinary-world collision
+   * helper once at the seeded car centre and writes the corrected ground Y back
+   * into the spawn vector before normal seven-probe vehicle contact begins.
+   */
+  resolveNativeExteriorPlacement(fieldNumber: number, seed: Vec3): Vec3 | undefined {
+    if (!this.hasNativeField(fieldNumber)) return undefined;
+    const hit = this.queryNativeContact(fieldNumber, [
+      Math.fround(fieldExtent - seed.x),
+      Math.fround(seed.y),
+      Math.fround(seed.z),
+      1,
+    ]);
+    if (hit.flags < 0) return undefined;
+    return {
+      x: Math.fround(seed.x),
+      y: hit.point[1],
+      z: Math.fround(seed.z),
+    };
+  }
+
+  /**
    * Ordinary-world camera height query through the retained native FLD strip
    * walker. Invalid native contact remains invalid; valid hits expose only the
    * corrected Y consumed by the recovered near-edge obstruction loop.
