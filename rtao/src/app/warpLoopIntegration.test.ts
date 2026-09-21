@@ -58,8 +58,9 @@ describe("complete ordinary-city Warp loop", () => {
     const peach = await runRegisteredCityWarp(1, state, catalogue, enter);
     const peachEntry = resolveWarpWorldEntry(peach, interactions);
     expect(peachEntry.interaction.fieldNumber).toBe(223);
-    expect(peachEntry.position.x).toBeCloseTo(1091.86, 5);
-    expect(peachEntry.position.z).toBeCloseTo(434.41, 5);
+    expect(peachEntry.position.x).toBe(Math.fround(1091.86));
+    expect(peachEntry.position.y).toBe(-20);
+    expect(peachEntry.position.z).toBe(Math.fround(434.41));
 
     new DialogueFlow(factoryEntity(2), state, 4);
     expect(createWarpMenuState(state, catalogue).destinations).toEqual([
@@ -70,8 +71,9 @@ describe("complete ordinary-city Warp loop", () => {
     const fuji = await runRegisteredCityWarp(2, state, catalogue, enter);
     const fujiEntry = resolveWarpWorldEntry(fuji, interactions);
     expect(fujiEntry.interaction.fieldNumber).toBe(113);
-    expect(fujiEntry.position.x).toBeCloseTo(581.2, 5);
-    expect(fujiEntry.position.z).toBeCloseTo(1170.55, 5);
+    expect(fujiEntry.position.x).toBe(Math.fround(581.2));
+    expect(fujiEntry.position.y).toBe(-20);
+    expect(fujiEntry.position.z).toBe(Math.fround(1170.55));
     expect(enter).toHaveBeenLastCalledWith(fuji);
 
     const saved = createRecoveredDialogueStateSave(state, "2026-09-17T22:30:00.000Z");

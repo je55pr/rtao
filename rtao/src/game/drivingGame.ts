@@ -295,28 +295,36 @@ export class ArcadeCarController {
     };
   }
 
-  enterArea(fieldNumber: number, position: { readonly x: number; readonly z: number }): void {
+  enterArea(
+    fieldNumber: number,
+    position: { readonly x: number; readonly y?: number; readonly z: number },
+    yaw = this.mutable.yaw,
+  ): void {
     const current = this.mutable;
-    this.relocate(fieldNumber, { x: position.x, y: current.position.y, z: position.z }, current.yaw);
+    this.relocate(fieldNumber, { x: position.x, y: position.y ?? current.position.y, z: position.z }, yaw);
   }
 
-  enterSpecialOutdoor(areaCode: number, position: { readonly x: number; readonly z: number }): void {
+  enterSpecialOutdoor(
+    areaCode: number,
+    position: { readonly x: number; readonly y?: number; readonly z: number },
+    yaw = this.mutable.yaw,
+  ): void {
     const current = this.mutable;
-    const candidate = { x: position.x, y: current.position.y, z: position.z };
+    const candidate = { x: position.x, y: position.y ?? current.position.y, z: position.z };
     const resolved = this.world.resolveSpecialOutdoorFootprint(
       areaCode,
       candidate,
-      current.yaw,
-      current.position.y,
+      yaw,
+      candidate.y,
     );
-    const contact = this.auxiliaryContact(current.position.y, resolved?.auxiliaryY);
-    this.motion.reset(current.yaw);
+    const contact = this.auxiliaryContact(candidate.y, resolved?.auxiliaryY);
+    this.motion.reset(yaw);
     this.nativeContact = undefined;
     this.mutable = {
       location: { kind: "special-outdoor", areaCode },
       fieldNumber: -1,
       position: resolved?.position ?? candidate,
-      yaw: current.yaw,
+      yaw,
       nativeYaw: this.motion.nativeVehicle.yaw,
       nativeSlipAngle: this.motion.nativeVehicle.slipAngle,
       speed: 0,
@@ -539,6 +547,11 @@ export class ArcadeCarController {
   }
 }
 
+export interface BrowserSceneRelocationOptions {
+  readonly yaw?: number;
+  readonly beforeRender?: (state: CarState) => void;
+}
+
 export class BrowserDrivingGame {
   readonly controller: ArcadeCarController;
   private readonly controls: SemanticInputScope;
@@ -632,23 +645,23 @@ export class BrowserDrivingGame {
 
   enterArea(
     fieldNumber: number,
-    position: { readonly x: number; readonly z: number },
-    beforeRender?: (state: CarState) => void,
+    position: { readonly x: number; readonly y?: number; readonly z: number },
+    options: BrowserSceneRelocationOptions = {},
   ): void {
     this.controls.reset();
-    this.controller.enterArea(fieldNumber, position);
-    beforeRender?.(this.controller.state);
+    this.controller.enterArea(fieldNumber, position, options.yaw);
+    options.beforeRender?.(this.controller.state);
     this.reinitializeCameraForScene();
   }
 
   enterSpecialOutdoor(
     areaCode: number,
-    position: { readonly x: number; readonly z: number },
-    beforeRender?: (state: CarState) => void,
+    position: { readonly x: number; readonly y?: number; readonly z: number },
+    options: BrowserSceneRelocationOptions = {},
   ): void {
     this.controls.reset();
-    this.controller.enterSpecialOutdoor(areaCode, position);
-    beforeRender?.(this.controller.state);
+    this.controller.enterSpecialOutdoor(areaCode, position, options.yaw);
+    options.beforeRender?.(this.controller.state);
     this.reinitializeCameraForScene();
   }
 

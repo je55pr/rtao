@@ -60,7 +60,8 @@ describe("native Warp travel", () => {
     const interaction = fixedInteraction(1, 223, 0, [[100, 200], [140, 200], [150, 260], [110, 260]]);
     const entry = resolveWarpWorldEntry(destination, [interaction]);
     expect(entry.interaction).toBe(interaction);
-    expect(entry.position).toEqual({ x: 1470, z: 260 });
+    expect(entry.position).toEqual({ x: 1470, y: -20, z: 260 });
+    expect(entry.yaw).toBeCloseTo(Math.PI, 6);
   });
 
   test("rejects a standard city when its authored selector-zero Q's Factory entry is unavailable", () => {

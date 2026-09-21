@@ -125,11 +125,12 @@ describe("recovered driving integration", () => {
       syntheticNativeDrivingMotionAuthority(),
     );
 
-    game.enterArea(113, { x: 700, z: 700 }, (state) => {
+    game.enterArea(113, { x: 700, z: 700 }, { yaw: 1.25, beforeRender: (state) => {
       events.push(`seed:${state.fieldNumber}`);
       expect(state.position.x).toBeCloseTo(700, 5);
       expect(state.position.z).toBeCloseTo(700, 5);
-    });
+      expect(state.yaw).toBeCloseTo(1.25, 4);
+    } });
 
     expect(events).toEqual(["seed:113", "view:113", "state:113"]);
   });

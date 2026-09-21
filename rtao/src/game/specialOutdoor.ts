@@ -1,4 +1,5 @@
 import { readFixedInteractionAtIndex, type FixedInteractionDefinition } from "../formats/overworld";
+import { fixedInteractionReturnPose } from "./fixedInteractionReturn";
 import type { NativeWarpCityDestination } from "./warpTravel";
 
 export interface NativeSpecialOutdoorScene {
@@ -11,7 +12,8 @@ export interface NativeSpecialOutdoorScene {
 export interface NativeSpecialOutdoorEntry {
   readonly scene: NativeSpecialOutdoorScene;
   readonly interaction: FixedInteractionDefinition;
-  readonly position: { readonly x: number; readonly z: number };
+  readonly position: { readonly x: number; readonly y: number; readonly z: number };
+  readonly yaw: number;
 }
 
 /**
@@ -56,19 +58,18 @@ export function resolveSpecialOutdoorWarpEntry(
   if (!interaction || interaction.corners.length !== 4) {
     throw new Error(`${destination.name} selector ${intent.rawEntrySelector} has no authored fixed-interaction return edge.`);
   }
+  const pose = fixedInteractionReturnPose(interaction);
   return {
     scene,
     interaction,
-    position: fixedInteractionReturnPosition(interaction),
+    position: pose.position,
+    yaw: pose.yaw,
   };
 }
 
 export function fixedInteractionReturnPosition(
   interaction: Pick<FixedInteractionDefinition, "corners">,
 ): { readonly x: number; readonly z: number } {
-  const [a, b] = [interaction.corners[2], interaction.corners[3]];
-  if (!a || !b) throw new Error("The authored fixed interaction has an incomplete return edge.");
-  const sourceX = (a[0] + b[0]) * 0.5;
-  const sourceZ = (a[1] + b[1]) * 0.5;
-  return { x: 1600 - sourceX, z: sourceZ };
+  const { x, z } = fixedInteractionReturnPose(interaction).position;
+  return { x, z };
 }

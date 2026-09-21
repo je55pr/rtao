@@ -56,10 +56,12 @@ import { applyRecoveredDialogueHostAction } from "./game/dialogueProgress";
 import type { BrowserDrivingGame, CarState } from "./game/drivingGame";
 import { applyRecoveredEquipmentHostAction, fitOwnedNativeEquipmentPart, type RecoveredEquipmentState } from "./game/equipmentProgress";
 import { findNearestFixedInteraction } from "./game/fixedInteractionProximity";
+import { fixedInteractionReturnPose } from "./game/fixedInteractionReturn";
 import {
   cloudHillSpecialOutdoorScene,
   readSpecialOutdoorFixedInteractions,
   resolveSpecialOutdoorWarpEntry,
+  specialOutdoorSceneForAreaCode,
 } from "./game/specialOutdoor";
 import { resolveWarpWorldEntry, runRegisteredCityWarp } from "./game/warpTravel";
 import { ContactEdgeTracker } from "./game/interactionContact";
@@ -1793,6 +1795,30 @@ function seedInteractionContact(state: CarState): void {
   interactionContactTracker.update(contactInteractionTargets(state).map((target) => target.key));
 }
 
+function relocateToFixedInteractionReturn(interaction: FixedInteractionDefinition): void {
+  const game = drivingGame;
+  if (!game) return;
+  try {
+    const pose = fixedInteractionReturnPose(interaction);
+    if (interaction.fieldNumber >= 0) {
+      game.enterArea(interaction.fieldNumber, pose.position, { yaw: pose.yaw, beforeRender: seedInteractionContact });
+      lastPrefetchedWorldField = interaction.fieldNumber;
+      void ensureNearbyWorldFields(interaction.fieldNumber).catch((error) => console.warn("Interior return prefetch failed.", error));
+      return;
+    }
+    const descriptor = overworldCatalogue?.authoredAreas.find((area) => area.areaIndex === interaction.areaIndex);
+    const scene = descriptor ? specialOutdoorSceneForAreaCode(descriptor.areaCode) : undefined;
+    if (scene) {
+      game.enterSpecialOutdoor(scene.areaCode, pose.position, { yaw: pose.yaw, beforeRender: seedInteractionContact });
+      lastPrefetchedWorldField = undefined;
+      return;
+    }
+  } catch (error) {
+    console.warn("Could not reconstruct the authored exterior return pose; preserving the current outdoor state.", error);
+  }
+  game.reinitializeCameraForScene();
+}
+
 function overworldInteractionUiBusy(): boolean {
   return Boolean(activeDialogue || qFactorySession || shopInteriorSession || shopInteriorPreviewInteraction
     || shopInteriorPreviewLoading || qFactoryLoading || pauseMenuOpen || peachRaceCoordinator);
@@ -2007,7 +2033,7 @@ async function debugTeleportField(): Promise<void> {
   }
   await ensureWorldFieldLoaded(fieldNumber);
   if (!loadedWorldFieldNumbers.has(fieldNumber)) throw new Error(`FLD/${String(fieldNumber).padStart(3, "0")} is not available in this install.`);
-  drivingGame.enterArea(fieldNumber, { x, z }, seedInteractionContact);
+  drivingGame.enterArea(fieldNumber, { x, z }, { beforeRender: seedInteractionContact });
   requiredElement<HTMLElement>("viewer-title").textContent = `FLD/${String(fieldNumber).padStart(3, "0")}`;
   sceneFade.flash();
   lastPrefetchedWorldField = fieldNumber;
@@ -2991,7 +3017,8 @@ function endShopInteriorPreview(resumeOutdoorMusic = true): void {
   stopNativeBgmPlayback();
   shopInteriorPreviewLoadGeneration += 1;
   shopInteriorPreviewLoading = false;
-  const name = shopInteriorPreviewInteraction?.name ?? "Interior";
+  const interaction = shopInteriorPreviewInteraction ?? shopInteriorSession?.interaction;
+  const name = interaction?.name ?? "Interior";
   shopInteriorPreviewView?.dispose();
   shopInteriorPreviewView = undefined;
   shopInteriorPreviewInteraction = undefined;
@@ -3020,7 +3047,10 @@ function endShopInteriorPreview(resumeOutdoorMusic = true): void {
   requiredElement<HTMLElement>("factory-dialogue").hidden = false;
   requiredElement<HTMLElement>("factory-speaker").textContent = "Q's Factory";
   delete root.dataset.dialogueSlot;
-  if (resumeOutdoorMusic) drivingGame?.reinitializeCameraForScene();
+  if (resumeOutdoorMusic) {
+    if (interaction) relocateToFixedInteractionReturn(interaction);
+    else drivingGame?.reinitializeCameraForScene();
+  }
   drivingGame?.setPaused(false);
   worldSimulation?.setPaused(false);
   if (resumeOutdoorMusic && isDriving) startNativeFreeRoamMusic();
@@ -3073,7 +3103,7 @@ async function warpToCity(
       const game = drivingGame;
       if (!game || !isDriving) throw new Error("The outdoor driving session ended while Warp was loading.");
       closePauseMenu();
-      game.enterSpecialOutdoor(intent.areaCode, entry.position, seedInteractionContact);
+      game.enterSpecialOutdoor(intent.areaCode, entry.position, { yaw: entry.yaw, beforeRender: seedInteractionContact });
       playerDialogueState!.currentAreaIndex = destination.areaIndex;
       requiredElement<HTMLElement>("viewer-title").textContent = destination.name;
       sceneFade.flash();
@@ -3094,7 +3124,7 @@ async function warpToCity(
     if (!game || !isDriving) throw new Error("The outdoor driving session ended while Warp was loading.");
 
     closePauseMenu();
-    game.enterArea(fieldNumber, entry.position, seedInteractionContact);
+    game.enterArea(fieldNumber, entry.position, { yaw: entry.yaw, beforeRender: seedInteractionContact });
     playerDialogueState!.currentAreaIndex = destination.areaIndex;
     requiredElement<HTMLElement>("viewer-title").textContent = destination.name;
     sceneFade.flash();
@@ -4344,7 +4374,8 @@ function endQFactoryInterior(resumeOutdoorMusic = true): void {
   if (resumeOutdoorMusic) stopNativeBgmPlayback();
   qFactoryLoadGeneration += 1;
   qFactoryLoading = false;
-  const name = qFactorySession?.interaction.name ?? "Q's Factory";
+  const interaction = qFactorySession?.interaction;
+  const name = interaction?.name ?? "Q's Factory";
   qFactoryInteriorView?.dispose();
   qFactoryInteriorView = undefined;
   qFactorySession = undefined;
@@ -4356,7 +4387,10 @@ function endQFactoryInterior(resumeOutdoorMusic = true): void {
   requiredElement<HTMLElement>("factory-parts").hidden = true;
   requiredElement<HTMLElement>("factory-dialogue").hidden = false;
   delete root.dataset.dialogueSlot;
-  if (resumeOutdoorMusic) drivingGame?.reinitializeCameraForScene();
+  if (resumeOutdoorMusic) {
+    if (interaction) relocateToFixedInteractionReturn(interaction);
+    else drivingGame?.reinitializeCameraForScene();
+  }
   drivingGame?.setPaused(false);
   worldSimulation?.setPaused(false);
   if (resumeOutdoorMusic && isDriving) startNativeFreeRoamMusic();

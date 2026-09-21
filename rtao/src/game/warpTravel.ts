@@ -1,6 +1,7 @@
 import type { DialogueRuntimeState } from "../formats/dialogue";
 import type { AuthoredAreaDescriptor, FixedInteractionDefinition } from "../formats/overworld";
 import { classifyAreaTransitionOperands, type AreaTransitionIntent } from "./areaTransition";
+import { fixedInteractionReturnPose } from "./fixedInteractionReturn";
 
 export interface NativeWarpCityDestination {
   readonly areaIndex: number;
@@ -11,7 +12,8 @@ export interface NativeWarpCityDestination {
 export interface NativeWarpWorldEntry {
   readonly destination: NativeWarpCityDestination;
   readonly interaction: FixedInteractionDefinition;
-  readonly position: { readonly x: number; readonly z: number };
+  readonly position: { readonly x: number; readonly y: number; readonly z: number };
+  readonly yaw: number;
 }
 
 type WarpRegistrationState = Pick<DialogueRuntimeState, "hasWarpRegistration">;
@@ -50,17 +52,17 @@ export function resolveWarpWorldEntry(
   if (!interaction || interaction.fieldNumber !== intent.fieldNumber) {
     throw new Error(`${intent.name} selector ${intent.rawEntrySelector} has no authored fixed-interaction world entry.`);
   }
-  const corner2 = interaction.corners[2];
-  const corner3 = interaction.corners[3];
-  if (!corner2 || !corner3 || [corner2, corner3].some(([x, z]) => x === -1 && z === -1)) {
+  let pose;
+  try {
+    pose = fixedInteractionReturnPose(interaction);
+  } catch {
     throw new Error(`${intent.name} selector ${intent.rawEntrySelector} has no usable authored return edge.`);
   }
-  const sourceX = (corner2[0] + corner3[0]) * 0.5;
-  const sourceZ = (corner2[1] + corner3[1]) * 0.5;
   return {
     destination,
     interaction,
-    position: { x: 1600 - sourceX, z: sourceZ },
+    position: pose.position,
+    yaw: pose.yaw,
   };
 }
 export async function runRegisteredCityWarp(
