@@ -33,6 +33,8 @@ export interface NativeRaceFrameState {
   readonly inverse:NativeRaceMatrix;
   readonly bodyMatrix:NativeRaceMatrix;
   readonly coordinates:NativeRaceVector;
+  /** PAL car +0x140/+0x150/+0x160/+0x170: retained world-space contact probes 3..6. */
+  readonly collisionHardpoints:readonly NativeRaceVector[];
   readonly surfaces:readonly number[];
   readonly carFlags:number;
   readonly positionIndex:number;
@@ -167,7 +169,8 @@ export function advanceNativeRaceFrame(input:NativeRaceFrameInput,data:NativeRac
   const schedule=(((input.sceneTime-0xe484)>>>0)>0x1944c?1:0)^((input.commands&16)?1:0);
   return {state:{...state,vehicle:{...drive.state,yaw:response.yaw,runtimeFlags:contact.state.runtimeFlags},
     contact:{...contact.state,position:response.position,yaw:response.yaw,referenceY:coordinates[1]},
-    velocity:response.velocity,previousVelocity,matrix:contact.matrix,inverse:contact.inverse,bodyMatrix,coordinates,surfaces:contact.surfaces,
+    velocity:response.velocity,previousVelocity,matrix:contact.matrix,inverse:contact.inverse,bodyMatrix,coordinates,
+    collisionHardpoints:contact.points.slice(3,7),surfaces:contact.surfaces,
     carFlags:response.carFlags,positionIndex:response.positionIndex,
     distance:response.carFlags&0x200?state.distance:(state.distance+Math.abs(drive.state.nativeSpeed))|0,
     countdownByte:state.countdownByte?((state.countdownByte-1)<<24>>24):0,

@@ -66,6 +66,7 @@ function blankState(): NativeRaceFrameState {
     inverse: nativeRaceIdentity(),
     bodyMatrix: nativeRaceIdentity(),
     coordinates: [0, 0, 0, 1],
+    collisionHardpoints: Array.from({ length: 4 }, () => [0, 0, 0, 0] as const),
     surfaces: Array(7).fill(0),
     carFlags: 2,
     positionIndex: 0,

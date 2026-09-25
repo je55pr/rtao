@@ -12,6 +12,11 @@ import {
 } from "../nativeRaceFrame";
 import { type NativeRaceVector, nativeRaceIdentity } from "../nativeRaceMath";
 import { createNativeRaceVehicleState, type NativeRaceEquipment } from "../nativeRaceVehicle";
+import {
+  advanceNativeRaceVehicleCollisions,
+  type NativeRaceVehicleCollisionData,
+  type NativeRaceVehicleCollisionEvent,
+} from "../nativeRaceVehicleCollision";
 import { nativeRacePositions } from "../racePositions";
 import {
   advanceNativeRaceFinishGate,
@@ -51,7 +56,9 @@ export interface OrdinaryRaceSessionConfig {
   readonly finishGates: RaceFinishGateSet;
   readonly countdown: OrdinaryRaceCountdownSeed;
   readonly frameData: NativeRaceFrameData;
-  readonly query: Parameters<typeof advanceNativeRaceFrame>[2];  readonly sceneKind: number;
+  readonly vehicleCollisionData: NativeRaceVehicleCollisionData;
+  readonly query: Parameters<typeof advanceNativeRaceFrame>[2];
+  readonly sceneKind: number;
   readonly sceneByte0B: number;
   readonly raceModeByte: number;
   readonly globalEquipmentFlags: number;
@@ -98,6 +105,7 @@ export interface OrdinaryRaceSessionStepResult {
   readonly phase: OrdinaryRaceSessionPhase;
   readonly countdown: NativeRaceCountdownOutput | null;
   readonly frames: readonly OrdinaryRaceSessionFrameEvent[];
+  readonly vehicleCollisions: readonly NativeRaceVehicleCollisionEvent[];
 }
 
 export type OrdinaryRaceLivePositions =
@@ -129,6 +137,8 @@ export interface OrdinaryRaceInitialFrameInput {
   readonly groundedNativeY: number;
   /** PAL GP-32492 position scale, exposed by readNativeRaceFrameData. */
   readonly positionDivisor: number;
+  /** Seven PAL contact probes from 0x002A1DD0. Probes 3..6 seed car +0x140..+0x170. */
+  readonly contactProbes: readonly NativeRaceVector[];
 }
 
 /**
@@ -141,9 +151,15 @@ export function createOrdinaryRaceInitialFrameState(input: OrdinaryRaceInitialFr
   if (!Number.isFinite(groundedNativeY) || !Number.isFinite(positionDivisor) || positionDivisor <= 0) {
     throw new RangeError("Ordinary race initial frame requires finite grounded Y and a positive PAL position divisor.");
   }
+  if (input.contactProbes.length !== 7) {
+    throw new RangeError("Ordinary race initial frame requires the seven PAL contact probes.");
+  }
   const fixed = (value: number): number => mipsCvtWs(Math.fround(Math.fround(value) * Math.fround(positionDivisor)));
   const position = [fixed(entrant.seed.nativeX), fixed(groundedNativeY), fixed(entrant.seed.nativeZ)] as const;
+  const coordinates = [Math.fround(entrant.seed.nativeX), Math.fround(groundedNativeY), Math.fround(entrant.seed.nativeZ), 1] as const;
   const identity = nativeRaceIdentity();
+  const collisionHardpoints = input.contactProbes.slice(3, 7).map((probe) =>
+    probe.map((value, lane) => Math.fround(value + coordinates[lane]!)) as unknown as NativeRaceVector);
   return {
     vehicle: createNativeRaceVehicleState(entrant.seed.nativeYaw),
     contact: {
@@ -162,7 +178,8 @@ export function createOrdinaryRaceInitialFrameState(input: OrdinaryRaceInitialFr
     matrix: identity,
     inverse: [...identity],
     bodyMatrix: [...identity],
-    coordinates: [Math.fround(entrant.seed.nativeX), Math.fround(groundedNativeY), Math.fround(entrant.seed.nativeZ), 1],
+    coordinates,
+    collisionHardpoints,
     surfaces: [0, 0, 0, 0, 0, 0, 0],
     carFlags: entrant.packedCreationFlags >>> 16,
     positionIndex: entrant.carIndex,
@@ -179,6 +196,7 @@ export class OrdinaryRaceSession {
   private readonly activity: RaceActivityDescriptor;
   private readonly finishGates: RaceFinishGateSet;
   private readonly frameData: NativeRaceFrameData;
+  private readonly vehicleCollisionData: NativeRaceVehicleCollisionData;
   private readonly query: Parameters<typeof advanceNativeRaceFrame>[2];
   private readonly sceneKind: number;
   private readonly sceneByte0B: number;
@@ -193,12 +211,14 @@ export class OrdinaryRaceSession {
   private finishCount = 0;
   private resultApplied = false;
   private readonly frameAdvance: typeof advanceNativeRaceFrame;
+  private readonly vehicleCollisionAdvance: typeof advanceNativeRaceVehicleCollisions;
   private readonly flightWingVelocityScalar: ((velocity: NativeRaceVector) => number) | undefined;
 
   constructor(
     config: OrdinaryRaceSessionConfig,
     dependencies: {
       readonly advanceFrame?: typeof advanceNativeRaceFrame;
+      readonly advanceVehicleCollisions?: typeof advanceNativeRaceVehicleCollisions;
       /** Exact PAL helper 0x0021E208 result for the supplied car+0xF0 world-velocity vector. */
       readonly flightWingVelocityScalar?: (velocity: NativeRaceVector) => number;
     } = {},
@@ -210,6 +230,7 @@ export class OrdinaryRaceSession {
     this.activity = config.activity;
     this.finishGates = config.finishGates;
     this.frameData = config.frameData;
+    this.vehicleCollisionData = config.vehicleCollisionData;
     this.query = config.query;
     this.sceneKind = config.sceneKind;
     this.sceneByte0B = config.sceneByte0B;    this.raceModeByte = config.raceModeByte;
@@ -219,6 +240,7 @@ export class OrdinaryRaceSession {
     this.sceneFlags = config.countdown.sceneFlags >>> 0;
     this.updatesPerSecond = config.countdown.updatesPerSecond;
     this.frameAdvance = dependencies.advanceFrame ?? advanceNativeRaceFrame;
+    this.vehicleCollisionAdvance = dependencies.advanceVehicleCollisions ?? advanceNativeRaceVehicleCollisions;
     this.flightWingVelocityScalar = dependencies.flightWingVelocityScalar;
     this.cars = [...config.entrants]
       .sort((a, b) => a.entrant.carIndex - b.entrant.carIndex)
@@ -285,6 +307,7 @@ export class OrdinaryRaceSession {
     }
 
     const frames: OrdinaryRaceSessionFrameEvent[] = [];
+    const frameByCar = new Map<number, ReturnType<typeof advanceNativeRaceFrame>>();
     for (const car of this.cars) {
       if (car.finishIndex !== null) continue;
       const command = input.commandSource(viewOf(car));
@@ -316,6 +339,21 @@ export class OrdinaryRaceSession {
       car.state = frame.state;
       car.equipmentFlags = frame.equipmentFlags;
 
+      frameByCar.set(car.entrant.carIndex, frame);
+    }
+
+    const collision = this.vehicleCollisionAdvance(
+      this.cars
+        .filter((car) => car.finishIndex === null)
+        .map((car) => ({ carIndex: car.entrant.carIndex, state: car.state })),
+      this.sceneFlags,
+      this.vehicleCollisionData,
+    );
+    for (const resolved of collision.cars) this.requireCar(resolved.carIndex).state = resolved.state;
+
+    for (const car of this.cars) {
+      const frame = frameByCar.get(car.entrant.carIndex);
+      if (!frame) continue;
       const gate = advanceNativeRaceFinishGate(
         this.finishGates,
         car.finishGatePhase,
@@ -337,12 +375,13 @@ export class OrdinaryRaceSession {
             positionIndex: car.finishIndex,
           };
         }
-      }      if (car.completedLaps > this.activity.rawParameter2) {
+      }
+      if (car.completedLaps > this.activity.rawParameter2) {
         throw new Error("Race lap state advanced beyond the recovered descriptor lap count.");
       }
       frames.push({ carIndex: car.entrant.carIndex, completedLap, finishIndex: car.finishIndex, frame });
     }
-    return { phase: this.phase, countdown, frames };
+    return { phase: this.phase, countdown, frames, vehicleCollisions: collision.contacts };
   }
 
   livePositions(): OrdinaryRaceLivePositions {

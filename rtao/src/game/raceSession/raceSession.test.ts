@@ -41,6 +41,15 @@ const finishGates: RaceFinishGateSet = {
   bigTyreLift: 1,
   obstacleYawScale: Math.fround(Math.PI),
 };
+const vehicleCollisionData = {
+  lateralMinimum: Math.fround(-0.9),
+  lateralMaximum: Math.fround(0.9),
+  forwardMinimum: -1.5,
+  forwardMaximum: 1.5,
+  broadphaseDistance: Math.fround(1.8),
+  directSeparationDistance: Math.fround(0.9),
+  minimumSeparationScale: Math.fround(0.01),
+} as const;
 
 const query: Parameters<typeof advanceNativeRaceFrame>[2] = (point) => ({
   point: [point[0], 0, point[2], 0],
@@ -114,6 +123,9 @@ function entrant(carIndex: number): OrdinaryRaceEntrant {
     inverse: nativeRaceIdentity(),
     bodyMatrix: nativeRaceIdentity(),
     coordinates: [20, 0, 5, 1] as const,
+    collisionHardpoints: [
+      [19.1, 0, 6.5, 1], [20.9, 0, 6.5, 1], [19.1, 0, 3.5, 1], [20.9, 0, 3.5, 1],
+    ] as const,
     surfaces: Array(7).fill(0),
     carFlags: carIndex === 0 ? 2 : 0x80,
     positionIndex: carIndex,
@@ -130,6 +142,7 @@ function entrant(carIndex: number): OrdinaryRaceEntrant {
     finishGates,
     countdown: { elapsedUpdates, fadeUpdates: 64, sceneFlags: 0, updatesPerSecond: 50 },
     frameData,
+    vehicleCollisionData,
     query,
     sceneKind: 0,
     sceneByte0B: 0,
@@ -192,6 +205,7 @@ function session(carCount: number, elapsedUpdates = 200): OrdinaryRaceSession {
       entrant: player,
       groundedNativeY: 1.1,
       positionDivisor: 20971.51953125,
+      contactProbes: frameData.contact.probes,
     });
     expect(state.contact.position).toEqual([9_588_179, 23_069, 11_928_600]);
     expect(state.contact.support).toEqual([4096, 4096, 4096]);
@@ -283,6 +297,61 @@ function session(carCount: number, elapsedUpdates = 200): OrdinaryRaceSession {
     expect(race.entrant(0)).toMatchObject({ completedLaps: 3, finishIndex: 0, speedLimit: 40 });
     expect(race.entrant(0).state.carFlags & 0x280).toBe(0x280);
   });
+  test("runs the native dynamic pass after per-car frames for player/AI and AI/AI pairs", () => {
+    const stationaryFrame = ((input: NativeRaceFrameInput) => ({
+      ...frameAdvance(input, frameData, query),
+      state: input.state,
+    })) as typeof advanceNativeRaceFrame;
+    const positioned = (source: ReturnType<typeof frameState>, x: number, velocityX: number) => ({
+      ...source,
+      contact: { ...source.contact, position: [Math.round(x * 32768), 0, 0] as [number, number, number] },
+      coordinates: [x, 0, 0, 1] as const,
+      collisionHardpoints: [
+        [Math.fround(x - 0.9), 0, 1.5, 1],
+        [Math.fround(x + 0.9), 0, 1.5, 1],
+        [Math.fround(x - 0.9), 0, -1.5, 1],
+        [Math.fround(x + 0.9), 0, -1.5, 1],
+      ] as const,
+      velocity: [velocityX, 0, 0, 0] as const,
+    });
+
+    const playerConfig = config(2);
+    const playerRace = new OrdinaryRaceSession({
+      ...playerConfig,
+      entrants: playerConfig.entrants.map((car, index) => ({
+        ...car,
+        state: positioned(frameState(index), index, index === 0 ? 1000 : -500),
+      })),
+    }, { advanceFrame: stationaryFrame });
+    const playerStep = playerRace.step({
+      sceneTime: 0,
+      shortFinalPhase: false,
+      commandSource: () => ({ commands: 0, navigationOutput: 1, navigationDistance: 0 }),
+    });
+    expect(playerStep.vehicleCollisions.map((contact) => [contact.firstCarIndex, contact.secondCarIndex]))
+      .toEqual([[0, 1]]);
+    expect(playerRace.entrant(0).state.velocity[0]).toBe(250);
+    expect(playerRace.entrant(1).state.velocity[0]).toBe(250);
+
+    const aiConfig = config(3);
+    const aiRace = new OrdinaryRaceSession({
+      ...aiConfig,
+      entrants: aiConfig.entrants.map((car, index) => ({
+        ...car,
+        state: positioned(frameState(index), index === 0 ? -10 : index - 1, index * 400),
+      })),
+    }, { advanceFrame: stationaryFrame });
+    const aiStep = aiRace.step({
+      sceneTime: 0,
+      shortFinalPhase: false,
+      commandSource: () => ({ commands: 0, navigationOutput: 1, navigationDistance: 0 }),
+    });
+    expect(aiStep.vehicleCollisions.map((contact) => [contact.firstCarIndex, contact.secondCarIndex]))
+      .toEqual([[1, 2]]);
+    expect(aiRace.entrant(1).state.velocity[0]).toBe(600);
+    expect(aiRace.entrant(2).state.velocity[0]).toBe(600);
+  });
+
   test("gates reward handoff until the player finishes and applies it only once", () => {
     const race = session(2);
     const races = new RecoveredRaceState();
