@@ -1,0 +1,519 @@
+{
+  "schema": 1,
+  "coordinateSpace": "PAL source before browser X reflection",
+  "stripParity": "even 0,1,2; odd 2,1,3",
+  "fields": {
+    "100": {
+      "primitives": 6669,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6039,
+      "horizontalNegative": 5
+    },
+    "101": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "102": {
+      "primitives": 5787,
+      "billboards": 0,
+      "triangles": 15137,
+      "degenerate": 0,
+      "horizontalPositive": 8670,
+      "horizontalNegative": 5
+    },
+    "103": {
+      "primitives": 5847,
+      "billboards": 283,
+      "triangles": 15147,
+      "degenerate": 0,
+      "horizontalPositive": 8423,
+      "horizontalNegative": 114
+    },
+    "110": {
+      "primitives": 7167,
+      "billboards": 139,
+      "triangles": 15368,
+      "degenerate": 0,
+      "horizontalPositive": 7159,
+      "horizontalNegative": 409
+    },
+    "111": {
+      "primitives": 1831,
+      "billboards": 65,
+      "triangles": 7323,
+      "degenerate": 0,
+      "horizontalPositive": 5400,
+      "horizontalNegative": 240
+    },
+    "112": {
+      "primitives": 1452,
+      "billboards": 79,
+      "triangles": 5301,
+      "degenerate": 0,
+      "horizontalPositive": 4501,
+      "horizontalNegative": 0
+    },
+    "113": {
+      "primitives": 12347,
+      "billboards": 84,
+      "triangles": 26653,
+      "degenerate": 0,
+      "horizontalPositive": 8378,
+      "horizontalNegative": 909
+    },
+    "120": {
+      "primitives": 4477,
+      "billboards": 53,
+      "triangles": 11123,
+      "degenerate": 0,
+      "horizontalPositive": 6806,
+      "horizontalNegative": 420
+    },
+    "121": {
+      "primitives": 8712,
+      "billboards": 0,
+      "triangles": 17526,
+      "degenerate": 1,
+      "horizontalPositive": 8871,
+      "horizontalNegative": 428
+    },
+    "122": {
+      "primitives": 4572,
+      "billboards": 0,
+      "triangles": 6980,
+      "degenerate": 0,
+      "horizontalPositive": 3887,
+      "horizontalNegative": 0
+    },
+    "123": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "130": {
+      "primitives": 6269,
+      "billboards": 0,
+      "triangles": 12369,
+      "degenerate": 0,
+      "horizontalPositive": 6259,
+      "horizontalNegative": 5
+    },
+    "131": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "132": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "133": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "200": {
+      "primitives": 6263,
+      "billboards": 0,
+      "triangles": 16451,
+      "degenerate": 0,
+      "horizontalPositive": 10201,
+      "horizontalNegative": 4
+    },
+    "201": {
+      "primitives": 611,
+      "billboards": 0,
+      "triangles": 3479,
+      "degenerate": 0,
+      "horizontalPositive": 3479,
+      "horizontalNegative": 0
+    },
+    "202": {
+      "primitives": 8147,
+      "billboards": 100,
+      "triangles": 18239,
+      "degenerate": 0,
+      "horizontalPositive": 8362,
+      "horizontalNegative": 598
+    },
+    "203": {
+      "primitives": 10913,
+      "billboards": 387,
+      "triangles": 29058,
+      "degenerate": 0,
+      "horizontalPositive": 15191,
+      "horizontalNegative": 781
+    },
+    "210": {
+      "primitives": 7907,
+      "billboards": 200,
+      "triangles": 23863,
+      "degenerate": 0,
+      "horizontalPositive": 8832,
+      "horizontalNegative": 764
+    },
+    "211": {
+      "primitives": 4413,
+      "billboards": 0,
+      "triangles": 9699,
+      "degenerate": 0,
+      "horizontalPositive": 8004,
+      "horizontalNegative": 0
+    },
+    "212": {
+      "primitives": 6617,
+      "billboards": 60,
+      "triangles": 17388,
+      "degenerate": 0,
+      "horizontalPositive": 13898,
+      "horizontalNegative": 28
+    },
+    "213": {
+      "primitives": 12208,
+      "billboards": 191,
+      "triangles": 23295,
+      "degenerate": 0,
+      "horizontalPositive": 14947,
+      "horizontalNegative": 209
+    },
+    "220": {
+      "primitives": 8666,
+      "billboards": 147,
+      "triangles": 25038,
+      "degenerate": 0,
+      "horizontalPositive": 14755,
+      "horizontalNegative": 603
+    },
+    "221": {
+      "primitives": 7860,
+      "billboards": 82,
+      "triangles": 14177,
+      "degenerate": 0,
+      "horizontalPositive": 10576,
+      "horizontalNegative": 8
+    },
+    "222": {
+      "primitives": 9390,
+      "billboards": 184,
+      "triangles": 18300,
+      "degenerate": 0,
+      "horizontalPositive": 13083,
+      "horizontalNegative": 5
+    },
+    "223": {
+      "primitives": 13917,
+      "billboards": 303,
+      "triangles": 29101,
+      "degenerate": 0,
+      "horizontalPositive": 15685,
+      "horizontalNegative": 503
+    },
+    "230": {
+      "primitives": 4014,
+      "billboards": 0,
+      "triangles": 6655,
+      "degenerate": 0,
+      "horizontalPositive": 3649,
+      "horizontalNegative": 0
+    },
+    "231": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "232": {
+      "primitives": 4434,
+      "billboards": 10,
+      "triangles": 7363,
+      "degenerate": 0,
+      "horizontalPositive": 5016,
+      "horizontalNegative": 2
+    },
+    "233": {
+      "primitives": 10697,
+      "billboards": 0,
+      "triangles": 26722,
+      "degenerate": 0,
+      "horizontalPositive": 10251,
+      "horizontalNegative": 357
+    },
+    "300": {
+      "primitives": 6669,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6039,
+      "horizontalNegative": 5
+    },
+    "301": {
+      "primitives": 6990,
+      "billboards": 0,
+      "triangles": 15681,
+      "degenerate": 0,
+      "horizontalPositive": 9239,
+      "horizontalNegative": 5
+    },
+    "302": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "303": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "310": {
+      "primitives": 6471,
+      "billboards": 49,
+      "triangles": 16752,
+      "degenerate": 0,
+      "horizontalPositive": 9973,
+      "horizontalNegative": 5
+    },
+    "311": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "312": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "313": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "320": {
+      "primitives": 6669,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6039,
+      "horizontalNegative": 5
+    },
+    "321": {
+      "primitives": 8241,
+      "billboards": 23,
+      "triangles": 14979,
+      "degenerate": 0,
+      "horizontalPositive": 8748,
+      "horizontalNegative": 5
+    },
+    "322": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "323": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "330": {
+      "primitives": 6473,
+      "billboards": 0,
+      "triangles": 13671,
+      "degenerate": 0,
+      "horizontalPositive": 7220,
+      "horizontalNegative": 5
+    },
+    "331": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "332": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "333": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "000": {
+      "primitives": 6669,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6039,
+      "horizontalNegative": 5
+    },
+    "001": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "002": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "003": {
+      "primitives": 6453,
+      "billboards": 0,
+      "triangles": 12844,
+      "degenerate": 0,
+      "horizontalPositive": 6265,
+      "horizontalNegative": 5
+    },
+    "010": {
+      "primitives": 6669,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6039,
+      "horizontalNegative": 5
+    },
+    "011": {
+      "primitives": 6508,
+      "billboards": 58,
+      "triangles": 14623,
+      "degenerate": 1,
+      "horizontalPositive": 7326,
+      "horizontalNegative": 69
+    },
+    "012": {
+      "primitives": 6472,
+      "billboards": 45,
+      "triangles": 17575,
+      "degenerate": 0,
+      "horizontalPositive": 8579,
+      "horizontalNegative": 288
+    },
+    "013": {
+      "primitives": 11121,
+      "billboards": 340,
+      "triangles": 34665,
+      "degenerate": 1,
+      "horizontalPositive": 10911,
+      "horizontalNegative": 1277
+    },
+    "020": {
+      "primitives": 4244,
+      "billboards": 23,
+      "triangles": 7166,
+      "degenerate": 0,
+      "horizontalPositive": 4087,
+      "horizontalNegative": 0
+    },
+    "021": {
+      "primitives": 6419,
+      "billboards": 0,
+      "triangles": 12960,
+      "degenerate": 0,
+      "horizontalPositive": 6284,
+      "horizontalNegative": 5
+    },
+    "022": {
+      "primitives": 8500,
+      "billboards": 712,
+      "triangles": 24391,
+      "degenerate": 0,
+      "horizontalPositive": 12465,
+      "horizontalNegative": 1337
+    },
+    "023": {
+      "primitives": 2890,
+      "billboards": 0,
+      "triangles": 10604,
+      "degenerate": 0,
+      "horizontalPositive": 6377,
+      "horizontalNegative": 432
+    },
+    "030": {
+      "primitives": 4522,
+      "billboards": 0,
+      "triangles": 7396,
+      "degenerate": 0,
+      "horizontalPositive": 4209,
+      "horizontalNegative": 0
+    },
+    "031": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    },
+    "032": {
+      "primitives": 3735,
+      "billboards": 0,
+      "triangles": 6390,
+      "degenerate": 0,
+      "horizontalPositive": 3943,
+      "horizontalNegative": 1
+    },
+    "033": {
+      "primitives": 6314,
+      "billboards": 0,
+      "triangles": 12606,
+      "degenerate": 0,
+      "horizontalPositive": 6044,
+      "horizontalNegative": 5
+    }
+  }
+}

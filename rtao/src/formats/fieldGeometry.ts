@@ -113,6 +113,16 @@ const fieldMeshVuProgram = 8;
 const fieldBillboardVuProgram = 6;
 const vectorsPerVertex = 5;
 const bytesPerVector3 = 12;
+export const fieldRenderReflectionX = 1600;
+
+export function fieldTriangleStripIndices(index: number): readonly [number, number, number] {
+  if (!Number.isInteger(index) || index < 0) throw new RangeError(`Invalid triangle-strip index ${index}.`);
+  return (index & 1) === 0 ? [index, index + 1, index + 2] : [index + 1, index, index + 2];
+}
+
+export function reflectFieldRenderPosition(position: Vec3): Vec3 {
+  return { x: fieldRenderReflectionX - position.x, y: position.y, z: position.z };
+}
 
 export function readFieldRenderPrimitives(bytes: Uint8Array): FieldRenderPrimitive[] {
   const header = readFieldHeader(bytes);
@@ -179,7 +189,7 @@ export function compileFieldVertexColorMesh(bytes: Uint8Array): CompiledFieldMes
       }
     }
     for (let index = 0; index < primitive.vertices.length - 2; index += 1) {
-      const indices = (index & 1) === 0 ? [index, index + 1, index + 2] : [index + 1, index, index + 2];
+      const indices = fieldTriangleStripIndices(index);
       if (staticTriangles) {
         const a = primitive.vertices[indices[0]!];
         const b = primitive.vertices[indices[1]!];
@@ -195,15 +205,17 @@ export function compileFieldVertexColorMesh(bytes: Uint8Array): CompiledFieldMes
       for (const vertexIndex of indices) {
         const vertex = primitive.vertices[vertexIndex];
         if (!vertex) throw new Error("Triangle strip referenced a missing vertex.");
+        const renderPosition = reflectFieldRenderPosition(vertex.position);
         if (billboard && primitive.placementOffset) {
+          const renderAnchor = reflectFieldRenderPosition(primitive.placementOffset);
           group.positions.push(
-            -(vertex.position.x - primitive.placementOffset.x),
-            vertex.position.y - primitive.placementOffset.y,
-            vertex.position.z - primitive.placementOffset.z,
+            renderPosition.x - renderAnchor.x,
+            renderPosition.y - renderAnchor.y,
+            renderPosition.z - renderAnchor.z,
           );
-          group.anchors.push(1600 - primitive.placementOffset.x, primitive.placementOffset.y, primitive.placementOffset.z);
+          group.anchors.push(renderAnchor.x, renderAnchor.y, renderAnchor.z);
         } else {
-          group.positions.push(1600 - vertex.position.x, vertex.position.y, vertex.position.z);
+          group.positions.push(renderPosition.x, renderPosition.y, renderPosition.z);
         }
         group.colors.push(fieldColorByte(vertex.dayColor.x), fieldColorByte(vertex.dayColor.y), fieldColorByte(vertex.dayColor.z));
         // VU1 MSCALF 8 reconstructs the warm transition as Day.r plus the

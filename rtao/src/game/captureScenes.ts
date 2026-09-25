@@ -125,6 +125,7 @@ export const captureScenes: readonly CaptureScene[] = [
     camera: { position: [1500, 320, 960], target: [1150, 55, 610] },
   },
   { id: "fuji", label: "Fuji City", kind: "field-overview", fieldNumber: 113, size: comparisonSize },
+  { id: "sandpolis", label: "Sandpolis", kind: "field-overview", fieldNumber: 13, size: comparisonSize },
   { id: "white-mountain", label: "White Mountain", kind: "field-overview", fieldNumber: 203, size: comparisonSize },
   { id: "papaya", label: "Papaya Island", kind: "field-overview", fieldNumber: 233, size: comparisonSize },
   {

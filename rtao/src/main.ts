@@ -1077,6 +1077,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   console.info(`ChoroQ coins: ${choroCoinPlacements.length - (playerDialogueState?.choroCoinCollectedCount ?? 0)}/${choroCoinPlacements.length} uncollected PAL placements rendered.`);
   updatePeachRaceAvailability();
   overworldCatalogue = readOverworldCatalogue(executableBytes);
+  worldView.setFixedInteractionDebugDefinitions(overworldCatalogue.interactions);
   const cloudHillDescriptor = overworldCatalogue.authoredAreas.find((area) => area.areaIndex === cloudHillSpecialOutdoorScene.areaIndex);
   specialOutdoorInteractions = cloudHillDescriptor
     ? readSpecialOutdoorFixedInteractions(executableBytes, cloudHillSpecialOutdoorScene, cloudHillDescriptor.fixedInteractionCount)
@@ -1933,7 +1934,7 @@ function refreshGameHud(driveState?: CarState): void {
 
 function refreshDebugOverlay(): void {
   const state = peachRaceCoordinator ? undefined : drivingGame?.controller.state;
-  const rows = liveDiagnosticsRows({
+  const rows = [...liveDiagnosticsRows({
     mode: peachRaceCoordinator ? "race" : isDriving ? "driving" : "overview",
     fps: debugFrameRate.fps,
     fieldNumber: state?.location.kind === "standard-world" ? state.fieldNumber : undefined,
@@ -1942,7 +1943,9 @@ function refreshDebugOverlay(): void {
     surfaceFlags: state?.surfaceFlags,
     loadedSectors: loadedWorldFieldNumbers.size,
     installStage: activeManifest?.installStage,
-  });
+  })];
+  const fixedZone = worldView?.fixedInteractionDebugNearestLabel();
+  if (fixedZone) rows.push({ label: "Nearest fixed zone", value: fixedZone });
   debugLiveRows.replaceChildren(...rows.map((row) => {
     const line = document.createElement("div");
     const label = document.createElement("dt");
@@ -2049,6 +2052,7 @@ function setDebugOverlayVisible(visible: boolean): void {
   if (debugOverlayVisible === visible) return;
   debugOverlayVisible = visible;
   debugOverlay.hidden = !visible;
+  worldView?.setFixedInteractionDebugVisible(visible);
   requiredElement<HTMLElement>("debug-feedback").hidden = true;
   requiredElement<HTMLElement>("pause-diagnostics").textContent = visible ? "Hide developer diagnostics" : "Show developer diagnostics";
   if (visible) {

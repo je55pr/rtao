@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { deserializeCompiledField } from "../formats/fieldGeometry";
+import { deserializeCompiledField, type CompiledFieldBatch } from "../formats/fieldGeometry";
+import { palFieldFaceCullMode, palFieldSubmissionFamily } from "./fieldFaceCulling";
 
 export class FieldView {
   private readonly renderer: THREE.WebGLRenderer;
@@ -73,7 +74,7 @@ export class FieldView {
       const material = new THREE.MeshBasicMaterial({
         map: batch.textureIndex >= 0 ? textures[batch.textureIndex] : null,
         vertexColors: true,
-        side: THREE.DoubleSide,
+        side: fieldBatchMaterialSide(batch),
         fog: true,
         transparent: batch.hasTransparency,
         alphaTest: batch.hasTransparency ? 1 / 255 : 0,
@@ -151,5 +152,15 @@ export class FieldView {
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+  }
+}
+
+function fieldBatchMaterialSide(batch: Pick<CompiledFieldBatch, "billboard">): THREE.Side {
+  const family = palFieldSubmissionFamily(batch);
+  switch (palFieldFaceCullMode(family)) {
+    case "none":
+      return THREE.DoubleSide;
+    case "unresolved":
+      return THREE.DoubleSide;
   }
 }

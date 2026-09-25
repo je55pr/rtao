@@ -270,6 +270,20 @@ This discovery also removes one previously plausible rabbit hole: that first slo
 The current renderer still uses mip level 0 only, but `FieldMaterial` preserves decoded `MIPTBP1_2` so full PS2 mip filtering can be implemented later without redoing the parser archaeology.
 
 
+## Ordinary field face culling and winding
+
+PAL ordinary `MSCALF 8` field submissions are not front- or back-face culled.
+The VU1 path uses `CLIP` plus `FCOR`/`FCAND` to set the GS ADC no-draw bit for
+clip rejection, but contains no MAC/area-sign face reject in its entry/helper
+region. Browser conversion expands triangle-strip parity normally and reflects
+X exactly once (`renderX = 1600 - sourceX`), reversing all winding once; sector
+placement adds translation only. A 64-FLD source-space census also shows Peach
+Town and Sandpolis share the same dominant horizontal source orientation, so
+their opposite FrontSide/BackSide screenshot result is not a field-specific
+transform. It is the consequence of imposing one-sided browser culling on a
+natively two-sided mixed-winding submission. See
+`docs/archaeology/FIELD_WINDING_AND_CULLING_2026-09-25.md`.
+
 ## Day/night field colour channels and alpha-tested field cards
 
 The five V3-32 vectors per HG2 field vertex include distinct `DayColor` and `NightColor` vectors. FLD/113 contains 100 untextured primitives whose DayColor is exactly black while NightColor is warm/non-zero. Early Fuji window comparisons made these look like a single "night-only overlay" class, but later shop-door ground truth refined that interpretation: some members are authored black interior/backing volumes by day and become warm-lit at night, while others sit behind ordinary facade layers and are naturally hidden by depth/geometry. `FieldRenderPrimitive.IsDayBlackNightLitLayer` therefore classifies the data without imposing visibility, and the daytime renderer no longer blanket-discards this static family.

@@ -3,9 +3,12 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { deserializeCompiledField, type CompiledFieldBatch, type CompiledFieldMesh } from "../formats/fieldGeometry";
 import type { ChoroCoinPlacement } from "../formats/choroCoins";
 import type { FieldObjectAsset, FieldObjectKind, FieldObjectSectionTransform, NativeFourthColumn } from "../formats/fieldObjects";
+import type { FixedInteractionDefinition } from "../formats/overworld";
 import type { SkyTextureSet } from "../formats/skyTexture";
 import { choroCoinRenderPosition } from "./choroCoinProgress";
 import type { CaptureSize, CarVisualCaptureScene, FieldOverviewCaptureScene, WorldOverviewCaptureScene } from "./captureScenes";
+import { fixedInteractionDebugState, type FixedInteractionDebugPolygon } from "./fixedInteractionDebug";
+import { palFieldFaceCullMode, palFieldSubmissionFamily } from "./fieldFaceCulling";
 import type { BrowserChasePose } from "./browserChaseCameraSafety";
 import { browserWorldCameraProjectionFallback, hostCameraViewportAspect } from "./hostCameraProjection";
 import { renderPng } from "./renderCapture";
@@ -288,6 +291,12 @@ export class WorldView {
   private readonly animatedDynamicObjects: AnimatedDynamicObject[] = [];
   private readonly distanceCullForward = new THREE.Vector3();
   private choroCoins: ChoroCoinRenderResources | undefined;
+  private readonly fixedInteractionDebugGroup = new THREE.Group();
+  private fixedInteractionDebugDefinitions: readonly FixedInteractionDefinition[] = [];
+  private fixedInteractionDebugPose: { fieldNumber: number; position: { x: number; y: number; z: number } } | undefined;
+  private fixedInteractionDebugFieldNumber: number | undefined;
+  private fixedInteractionDebugNearestId: string | undefined;
+  private fixedInteractionDebugVisible = false;
   private lastFrameTimestamp = 0;
   private animationSeconds = 0;
 
@@ -302,6 +311,9 @@ export class WorldView {
     this.scene.background = new THREE.Color(0x91c2dc);
     this.scene.fog = null;
     this.scene.add(this.worldGroup);
+    this.fixedInteractionDebugGroup.name = "F3 fixed-interaction polygons";
+    this.fixedInteractionDebugGroup.visible = false;
+    this.scene.add(this.fixedInteractionDebugGroup);
     this.camera.position.set(1180, 310, 1120);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.target.set(800, 28, 800);
@@ -672,6 +684,29 @@ export class WorldView {
     this.actors.clear();
   }
 
+  setFixedInteractionDebugDefinitions(interactions: readonly FixedInteractionDefinition[]): void {
+    this.fixedInteractionDebugDefinitions = import.meta.env.DEV ? interactions : [];
+    this.fixedInteractionDebugFieldNumber = undefined;
+    this.fixedInteractionDebugNearestId = undefined;
+    if (this.fixedInteractionDebugVisible) this.refreshFixedInteractionDebug();
+  }
+
+  setFixedInteractionDebugVisible(visible: boolean): void {
+    this.fixedInteractionDebugVisible = import.meta.env.DEV && visible;
+    this.fixedInteractionDebugGroup.visible = this.fixedInteractionDebugVisible;
+    if (this.fixedInteractionDebugVisible) this.refreshFixedInteractionDebug();
+  }
+
+  fixedInteractionDebugNearestLabel(): string | undefined {
+    const pose = this.fixedInteractionDebugPose;
+    if (!pose) return undefined;
+    return fixedInteractionDebugState(
+      this.fixedInteractionDebugDefinitions,
+      pose.fieldNumber,
+      pose.position,
+    ).polygons.find((polygon) => polygon.nearest)?.label;
+  }
+
   startDriving(vehicle: THREE.Object3D, fieldNumber: number, position: { x: number; y: number; z: number }, yaw: number): void {
     this.vehicle?.removeFromParent();
     this.vehicle = vehicle;
@@ -685,6 +720,7 @@ export class WorldView {
     this.vehicle.rotation.order = "YXZ";
     this.vehicle.rotation.set(0, yaw, 0);
     this.horizon.position.set(position.x, -3000, position.z);
+    this.updateFixedInteractionDebugPose(fieldNumber, position);
   }
 
   updateDriving(
@@ -702,6 +738,7 @@ export class WorldView {
       this.positionSectors();
     }
     this.updateDrivingPose(position, yaw, pitch, roll, camera);
+    this.updateFixedInteractionDebugPose(fieldNumber, position);
   }
 
   updateSpecialOutdoorDriving(
@@ -733,9 +770,47 @@ export class WorldView {
     this.horizon.position.set(position.x, -3000, position.z);
   }
 
+  private updateFixedInteractionDebugPose(
+    fieldNumber: number,
+    position: { x: number; y: number; z: number },
+  ): void {
+    this.fixedInteractionDebugPose = { fieldNumber, position: { ...position } };
+    if (this.fixedInteractionDebugVisible) this.refreshFixedInteractionDebug();
+  }
+
+  private refreshFixedInteractionDebug(): void {
+    const pose = this.fixedInteractionDebugPose;
+    if (!pose || this.fixedInteractionDebugDefinitions.length === 0) {
+      clearFixedInteractionDebugGroup(this.fixedInteractionDebugGroup);
+      this.fixedInteractionDebugFieldNumber = undefined;
+      this.fixedInteractionDebugNearestId = undefined;
+      return;
+    }
+    const state = fixedInteractionDebugState(
+      this.fixedInteractionDebugDefinitions,
+      pose.fieldNumber,
+      pose.position,
+    );
+    const nearestId = state.polygons.find((polygon) => polygon.nearest)?.id;
+    this.fixedInteractionDebugGroup.position.y = pose.position.y + 0.25;
+    if (this.fixedInteractionDebugFieldNumber === pose.fieldNumber
+      && this.fixedInteractionDebugNearestId === nearestId) return;
+
+    clearFixedInteractionDebugGroup(this.fixedInteractionDebugGroup);
+    for (const polygon of state.polygons) {
+      this.fixedInteractionDebugGroup.add(createFixedInteractionDebugObject(polygon));
+    }
+    this.fixedInteractionDebugFieldNumber = pose.fieldNumber;
+    this.fixedInteractionDebugNearestId = nearestId;
+  }
+
   stopDriving(): void {
     this.vehicle?.removeFromParent();
     this.vehicle = undefined;
+    this.fixedInteractionDebugPose = undefined;
+    clearFixedInteractionDebugGroup(this.fixedInteractionDebugGroup);
+    this.fixedInteractionDebugFieldNumber = undefined;
+    this.fixedInteractionDebugNearestId = undefined;
     this.controls.enabled = true;
     this.showWorldOverview();
   }
@@ -743,6 +818,7 @@ export class WorldView {
   private activateStandardWorld(): void {
     this.activeSpecialOutdoorAreaCode = undefined;
     this.worldGroup.visible = true;
+    this.fixedInteractionDebugGroup.visible = this.fixedInteractionDebugVisible;
     for (const resources of this.specialOutdoorScenes.values()) resources.group.visible = false;
   }
 
@@ -751,6 +827,7 @@ export class WorldView {
     if (!selected) throw new Error(`Special outdoor area-code ${areaCode} is not loaded.`);
     this.activeSpecialOutdoorAreaCode = areaCode;
     this.worldGroup.visible = false;
+    this.fixedInteractionDebugGroup.visible = false;
     for (const [candidateAreaCode, resources] of this.specialOutdoorScenes) {
       resources.group.visible = candidateAreaCode === areaCode;
     }
@@ -932,6 +1009,7 @@ export class WorldView {
     this.resizeObserver.disconnect();
     this.controls.dispose();
     this.disposeWorld();
+    clearFixedInteractionDebugGroup(this.fixedInteractionDebugGroup);
     this.horizon.geometry.dispose();
     const horizonMaterials = Array.isArray(this.horizon.material) ? this.horizon.material : [this.horizon.material];
     for (const material of horizonMaterials) material.dispose();
@@ -1222,6 +1300,79 @@ export class WorldView {
   }
 }
 
+function createFixedInteractionDebugObject(polygon: FixedInteractionDebugPolygon): THREE.Group {
+  const group = new THREE.Group();
+  group.name = polygon.label;
+  const points = polygon.points.map(([x, z]) => new THREE.Vector3(x, 0, z));
+  const outlineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+  const outlineMaterial = new THREE.LineBasicMaterial({
+    color: polygon.nearest ? 0xff45d7 : 0x36d9ff,
+    depthTest: false,
+    depthWrite: false,
+    transparent: true,
+    opacity: polygon.nearest ? 1 : 0.8,
+  });
+  const outline = new THREE.LineLoop(outlineGeometry, outlineMaterial);
+  outline.renderOrder = 50_000;
+  group.add(outline);
+
+  const edgeGeometry = new THREE.BufferGeometry().setFromPoints(
+    polygon.returnEdge.map(([x, z]) => new THREE.Vector3(x, 0.08, z)),
+  );
+  const edgeMaterial = new THREE.LineBasicMaterial({
+    color: 0xffc247,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const edge = new THREE.Line(edgeGeometry, edgeMaterial);
+  edge.renderOrder = 50_001;
+  edge.name = `${polygon.label} return edge 2→3`;
+  group.add(edge);
+
+  const center = points.reduce((sum, point) => sum.add(point), new THREE.Vector3())
+    .multiplyScalar(1 / points.length);
+  const label = createFixedInteractionDebugLabel(polygon.label, polygon.nearest);
+  label.position.set(center.x, 2.2, center.z);
+  label.renderOrder = 50_002;
+  group.add(label);
+  return group;
+}
+
+function createFixedInteractionDebugLabel(text: string, nearest: boolean): THREE.Sprite {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 80;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Could not create fixed-interaction debug label canvas.");
+  context.fillStyle = "rgba(0, 0, 0, 0.78)";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.font = nearest ? "bold 28px monospace" : "24px monospace";
+  context.fillStyle = nearest ? "#ff7be7" : "#74e8ff";
+  context.textBaseline = "middle";
+  context.fillText(text, 12, canvas.height / 2, canvas.width - 24);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const material = new THREE.SpriteMaterial({ map: texture, depthTest: false, depthWrite: false });
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(22, 3.4, 1);
+  return sprite;
+}
+
+function clearFixedInteractionDebugGroup(group: THREE.Group): void {
+  for (const child of [...group.children]) {
+    child.traverse((object) => {
+      if (object instanceof THREE.Line || object instanceof THREE.LineLoop) object.geometry.dispose();
+      const material = (object as THREE.Mesh | THREE.Line | THREE.Sprite).material;
+      if (!material) return;
+      for (const item of Array.isArray(material) ? material : [material]) {
+        if (item instanceof THREE.SpriteMaterial) item.map?.dispose();
+        item.dispose();
+      }
+    });
+    child.removeFromParent();
+  }
+}
+
 function disposeSkyMaterial(material: THREE.Material | THREE.Material[]): void {
   for (const item of Array.isArray(material) ? material : [material]) {
     if (item instanceof THREE.MeshBasicMaterial) item.map?.dispose();
@@ -1267,6 +1418,16 @@ export function fieldMaterialRenderPolicy(renderPath: FieldRenderPath, hasTransp
   };
 }
 
+function fieldBatchMaterialSide(batch: Pick<CompiledFieldBatch, "billboard">): THREE.Side {
+  const family = palFieldSubmissionFamily(batch);
+  switch (palFieldFaceCullMode(family)) {
+    case "none":
+      return THREE.DoubleSide;
+    case "unresolved":
+      return THREE.DoubleSide;
+  }
+}
+
 function createFieldMaterial(batch: CompiledFieldBatch, textures: THREE.Texture[], renderPath: FieldRenderPath): THREE.MeshBasicMaterial {
   const timeWeights = new THREE.Vector3(1.1, 0, 0);
   const atmosphereColor = new THREE.Color(1, 1, 1);
@@ -1279,7 +1440,7 @@ function createFieldMaterial(batch: CompiledFieldBatch, textures: THREE.Texture[
   const material = new THREE.MeshBasicMaterial({
     map: batch.textureIndex >= 0 ? textures[batch.textureIndex] : null,
     vertexColors: true,
-    side: THREE.DoubleSide,
+    side: fieldBatchMaterialSide(batch),
     fog: false,
     // The authentic depth/opaque split must live in Three's opaque queue so
     // buildings and solid foliage texels populate framebuffer + depth before
