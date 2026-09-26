@@ -504,6 +504,21 @@ h1 em { color: var(--red); font-style: normal; }
   letter-spacing: -.045em;
 }
 
+/* Shared PAL menu semantics. Screen-specific rules below currently retain the
+   measured/recovered presentation boundary while menu archaeology continues. */
+.pal-menu-list {
+  display: grid;
+}
+
+.pal-menu-row {
+  position: relative;
+  font: inherit;
+}
+
+.pal-menu-row.selected::before {
+  pointer-events: none;
+}
+
 .factory-choices {
   display: grid;
   align-content: start;

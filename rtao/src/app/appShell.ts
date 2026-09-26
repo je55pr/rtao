@@ -258,7 +258,7 @@ const appShellHtml = `
           </div>
 
           <div id="pause-warp-menu" hidden>
-            <div class="pause-warp-destinations" id="pause-warp-destinations" role="listbox" aria-label="Warp destinations"></div>
+            <div class="pal-menu-list pause-warp-destinations" id="pause-warp-destinations" role="listbox" aria-label="Warp destinations"></div>
             <p class="pause-warp-hint" id="pause-warp-hint">↑ / ↓ choose · E confirm · Esc back</p>
             <p class="pause-warp-feedback" id="pause-warp-feedback" role="status" hidden></p>
             <div class="pause-actions">
@@ -284,7 +284,7 @@ const appShellHtml = `
           <section class="factory-dialogue" id="factory-dialogue" aria-live="polite">
             <p class="factory-speaker" id="factory-speaker">Q's Factory</p>
             <p class="factory-text" id="factory-text"></p>
-            <div class="factory-choices" id="factory-choices"></div>
+            <div class="pal-menu-list factory-choices" id="factory-choices"></div>
             <div class="factory-host-action" id="factory-host-action" hidden>
               <strong id="factory-action-title"></strong>
               <span id="factory-action-detail"></span>

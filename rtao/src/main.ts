@@ -2432,7 +2432,7 @@ function renderPauseWarpMenu(): void {
   const buttons = pauseWarpState.destinations.map((destination, index) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "pause-warp-destination";
+    button.className = "pal-menu-row pause-warp-destination";
     button.dataset.warpIndex = String(index);
     button.textContent = destination.name;
     button.disabled = pauseWarpPending;
@@ -3772,6 +3772,7 @@ function renderShopInteriorDialogue(): void {
   flow.currentChoices.forEach((choice, index) => {
     const button = document.createElement("button");
     button.type = "button";
+    button.className = "pal-menu-row";
     button.textContent = choice.text;
     button.classList.toggle("selected", index === session.choiceIndex);
     button.setAttribute("aria-current", index === session.choiceIndex ? "true" : "false");
@@ -4334,6 +4335,7 @@ function renderQFactoryDialogue(): void {
   flow.currentChoices.forEach((choice, index) => {
     const button = document.createElement("button");
     button.type = "button";
+    button.className = "pal-menu-row";
     button.textContent = choice.text;
     button.classList.toggle("selected", index === session.choiceIndex);
     button.setAttribute("aria-current", index === session.choiceIndex ? "true" : "false");
