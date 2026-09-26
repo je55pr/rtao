@@ -126,3 +126,21 @@ This proves 12-unit native row spacing and a renderer-level selected-row state.
 It still does not prove the visual shape, colour, animation, or browser
 equivalent of the selection decoration, so the host `>` marker remains
 provisional rather than being labelled native.
+
+## Selected-row mode boundary
+
+For ordinary string entries the row loop passes its selected/ordinary mode as
+the fourth argument to `0x002042A8`. That renderer preserves the mode in the
+render-command header before iterating glyphs through `0x00201D70`; the
+mode is therefore renderer state, not a character prepended to the label.
+
+The shared loop supplies mode `0` for the active visible row
+(`0x002059D8..0x002059DC`). Non-active ordinary rows receive mode `10`
+when object byte `+0x5F == 2`; other object modes can suppress that override.
+Entry flag bits `0x01/0x02` instead select modes `6/5` before the active-row
+test, so those flags take precedence over ordinary selection styling.
+
+The glyph routine `0x00201D70` uses executable glyph metrics and emits native
+render commands, but this tranche does not establish the final PAL colour or
+texture meaning of renderer modes 0/5/6/10. Browser colours must therefore not
+be derived from those numeric mode values without further evidence.
