@@ -106,3 +106,23 @@ shared object.
 These facts justify native width-aware layout as a future reusable primitive,
 but do not identify a browser-safe equivalent font, glyph atlas, palette or
 selection cursor. Those remain evidence-gated rather than approximated.
+
+## Row cadence and selected-entry rendering
+
+The entry loop in `0x00205690` establishes a fixed native row cadence. Its
+working Y coordinate starts at object Y minus 11 and advances by exactly 12
+units for each installed entry (`0x00205938`, `0x00205994`). Horizontal
+placement is selected from entry flag bits: the row can originate from object
+X, object X plus width, or object X plus the stored inset plus 20
+(`0x00205958..0x0020598C`).
+
+Selection is not represented by inserting a textual `>`. The loop derives the
+active visible row from the object's selection/window state
+(`0x002059C4..0x002059DC`) and assigns it a distinct renderer mode before
+dispatching the entry text through `0x002042A8`; ordinary rows use another
+mode. Flagged entries can instead use `0x00204740` or `0x00202088`.
+
+This proves 12-unit native row spacing and a renderer-level selected-row state.
+It still does not prove the visual shape, colour, animation, or browser
+equivalent of the selection decoration, so the host `>` marker remains
+provisional rather than being labelled native.
