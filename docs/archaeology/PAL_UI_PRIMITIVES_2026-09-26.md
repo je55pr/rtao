@@ -87,3 +87,22 @@ request `0x0303`.
 This is deliberately structural only. The current yellow selection fill,
 `>` marker, ownership annotations, stat bars and browser typography are not
 promoted to PAL-authentic primitives by this adoption.
+
+## Shared renderer and text measurement
+
+The common object is not merely a dialogue state container. Renderer
+`0x00205690` loads its signed halfwords `+0x00/+0x02/+0x04/+0x06` and byte
+`+0x5F`, then calls the same panel primitive `0x00202760` used directly by
+action-05. This ties the recovered object coordinates and layout helper to an
+actual native panel draw path.
+
+String measurement at `0x00204218` is variable-width. Bytes `0x7E` (`~`),
+`0x5E` (`^`), `0x2F` (`/`) and `0x60` (backtick) consume the following
+byte and advance by 16 units. Nonnegative ordinary bytes use the signed width
+table rooted at `0x0029F000`; negative bytes advance by 20 units. The
+string-install helper uses this measured width when expanding/recentering the
+shared object.
+
+These facts justify native width-aware layout as a future reusable primitive,
+but do not identify a browser-safe equivalent font, glyph atlas, palette or
+selection cursor. Those remain evidence-gated rather than approximated.
