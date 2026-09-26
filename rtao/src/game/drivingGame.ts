@@ -25,6 +25,8 @@ import { resolveNativeCameraObstruction } from "./nativeCameraObstruction";
 import {
   nativeCameraFinalOutput,
   nativeCameraNearLowerProbes,
+  nativeCameraProjectionCenterMode,
+  nativeCameraProjectionContract,
   nativePalCameraDisplayScaleMode,
 } from "./nativeCameraFinalOutput";
 import { nativeCameraWorldInputsFromCarMatrices } from "./nativeCameraWorldTransform";
@@ -816,6 +818,11 @@ export class BrowserDrivingGame {
         state.pitch,
         state.roll,
         chase,
+        nativeCameraProjectionContract(
+          this.cameraRuntimeState.finalOutput!.focal,
+          nativePalCameraDisplayScaleMode,
+          nativeCameraProjectionCenterMode(this.cameraRuntimeState.controller),
+        ),
       );
     }
     this.onState(state);

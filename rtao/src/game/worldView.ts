@@ -10,7 +10,8 @@ import type { CaptureSize, CarVisualCaptureScene, FieldOverviewCaptureScene, Wor
 import { fixedInteractionDebugState, type FixedInteractionDebugPolygon } from "./fixedInteractionDebug";
 import { palFieldFaceCullMode, palFieldSubmissionFamily } from "./fieldFaceCulling";
 import type { BrowserChasePose } from "./browserChaseCameraSafety";
-import { browserWorldCameraProjectionFallback, hostCameraViewportAspect } from "./hostCameraProjection";
+import { applyNativeCameraProjection, browserWorldCameraProjectionFallback, hostCameraViewportAspect } from "./hostCameraProjection";
+import type { NativeCameraProjectionContract } from "./nativeCameraFinalOutput";
 import { renderPng } from "./renderCapture";
 import { fieldExtent, relativeRenderTranslation } from "./worldTopology";
 import { authenticFieldVisibilityProfile, hg2TimeUnits, outdoorAtmosphere, type OutdoorVisibilityMode, visibilityProfile } from "./fieldLighting";
@@ -730,6 +731,7 @@ export class WorldView {
     pitch: number,
     roll: number,
     camera: BrowserChasePose,
+    projection?: NativeCameraProjectionContract,
   ): void {
     if (!this.vehicle) return;
     this.activateStandardWorld();
@@ -738,6 +740,7 @@ export class WorldView {
       this.positionSectors();
     }
     this.updateDrivingPose(position, yaw, pitch, roll, camera);
+    if (projection) applyNativeCameraProjection(this.camera, projection);
     this.updateFixedInteractionDebugPose(fieldNumber, position);
   }
 

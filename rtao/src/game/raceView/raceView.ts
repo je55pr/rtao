@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { browserRaceCameraProjectionFallback, hostCameraViewportAspect } from "../hostCameraProjection";
+import { applyNativeCameraProjection, browserRaceCameraProjectionFallback, hostCameraViewportAspect } from "../hostCameraProjection";
+import type { NativeCameraProjectionContract } from "../nativeCameraFinalOutput";
 import { renderPng } from "../renderCapture";
 import { RaceCourseModel, type RaceCoursePresentationStats } from "./courseModel";
 
@@ -103,6 +104,7 @@ export class RaceView {
   readonly entrants = new RaceEntrantLayer();
   private readonly resizeObserver: ResizeObserver;
   private course?: RaceCourseModel;
+  private nativeProjection?: NativeCameraProjectionContract;
   private cameraPose: RaceCameraPose = {
     position: [1180, 310, 1120],
     target: [800, 28, 800],
@@ -135,12 +137,14 @@ export class RaceView {
     this.entrants.setEntrants(entries);
   }
 
-  setCameraPose(pose: RaceCameraPose): void {
+  setCameraPose(pose: RaceCameraPose, projection?: NativeCameraProjectionContract): void {
+    this.nativeProjection = projection;
     this.cameraPose = {
       position: [...pose.position],
       target: [...pose.target],
     };
     applyRaceCameraPose(this.camera, this.cameraPose);
+    if (projection) applyNativeCameraProjection(this.camera, projection);
   }
 
   renderOnce(): void {
@@ -172,8 +176,11 @@ export class RaceView {
     const width = Math.max(1, this.host.clientWidth);
     const height = Math.max(1, this.host.clientHeight);
     this.renderer.setSize(width, height, false);
-    this.camera.aspect = hostCameraViewportAspect(width, height);
-    this.camera.updateProjectionMatrix();
+    if (this.nativeProjection) applyNativeCameraProjection(this.camera, this.nativeProjection);
+    else {
+      this.camera.aspect = hostCameraViewportAspect(width, height);
+      this.camera.updateProjectionMatrix();
+    }
   }
 }
 

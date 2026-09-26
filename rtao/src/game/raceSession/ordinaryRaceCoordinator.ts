@@ -12,6 +12,8 @@ import { resolveNativeCameraObstruction } from "../nativeCameraObstruction";
 import {
   nativeCameraFinalOutput,
   nativeCameraNearLowerProbes,
+  nativeCameraProjectionCenterMode,
+  nativeCameraProjectionContract,
   nativePalCameraDisplayScaleMode,
 } from "../nativeCameraFinalOutput";
 import { nativeCameraWorldInputsFromCarMatrices } from "../nativeCameraWorldTransform";
@@ -114,7 +116,14 @@ export class OrdinaryRaceCoordinator {
       toRenderPoint: (point) => reflectNativeCameraPointX(point, 1600),
       projection: null,
     });
-    view.setCameraPose(camera.pose);
+    view.setCameraPose(
+      camera.pose,
+      nativeCameraProjectionContract(
+        output.focal,
+        nativePalCameraDisplayScaleMode,
+        nativeCameraProjectionCenterMode(this.cameraRuntimeState.controller),
+      ),
+    );
     view.renderOnce();
   }
 

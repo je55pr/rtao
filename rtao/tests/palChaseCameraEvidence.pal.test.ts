@@ -110,6 +110,17 @@ suite('verified PAL chase-camera executable evidence',()=>{
     expect(signedImmediate(word(0x21f674))).toBe(8);
   });
 
+  it('pins the ordinary projection-center selector to controller states 2 and 3',()=>{
+    expect(signedImmediate(word(0x21f6b0))).toBe(2);
+    expect(signedImmediate(word(0x21f6b8))).toBe(3);
+    expect(word(0x21f6bc)).toBe(0x3c014500); // 2048.0
+    expect(word(0x21f6c4)).toBe(0x3c0144f9); // 1992.0
+    expect(float32(0x3d5954)).toBe(2104);
+    expect(jumpTarget(0x21f6cc,word(0x21f6cc))).toBe(0x2207e8);
+    expect(jumpTarget(0x21f6f4,word(0x21f6f4))).toBe(0x2207e8);
+    expect(jumpTarget(0x21f710,word(0x21f710))).toBe(0x2207e8);
+  });
+
   it('pins the obstruction probes to PAL frustum corners and focal scaling',()=>{
     const table=0x2a2290;
     expect([0,1].map(index=>[

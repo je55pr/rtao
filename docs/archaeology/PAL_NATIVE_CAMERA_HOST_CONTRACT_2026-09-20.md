@@ -79,10 +79,12 @@ FOV/clip state. `nativeCameraProjectionContract` carries focal/512, perspective
 Z coefficients `1.0000457763671875` and `-3.0000686645507812`, exact native near
 `1.5` / far `65536`, GS viewport scales, reverse-depth scale/bias, the two decoded
 display-scale families, and center pairs `(2048,2048)`, `(2048,1992)`,
-`(2048,2104)`. Live Three.js projection remains host-owned only because the
-runtime selector for the two unlabelled display-scale modes is not yet wired;
-shifted centers also require an off-axis/custom projection rather than only
-FOV/aspect.
+`(2048,2104)`. The remaining selectors are now recovered and live: this PAL
+executable fixes display-scale mode 1, while `0x0021F6AC..0x0021F710` selects
+ordinary center unless controller `+0x1C` equals 2 or 3, which selects Y centers
+1992 or 2104 respectively. The Three.js adapter applies the resulting native
+frustum directly, including shifted-center off-axis projection, in ordinary FLD
+and race presentation.
 
 The same rule removes the need for a browser `yawSign`: all controller,
 camera-world and output-builder math remains in PAL/native coordinates.
