@@ -158,3 +158,26 @@ presentation state, but not to map those mode numbers to CSS colours,
 backgrounds, glyph textures, or cursor art. Existing host colours and
 pseudo-element arrows remain accessibility/presentation affordances outside the
 recovered PAL primitive until the relevant GS state/palette source is proven.
+
+## Panel decoration sprites
+
+Helper `0x00204148` emits a 20 by 20 textured sprite through
+`0x00206730`. Shared-object helper `0x00206228`, when flag `0x10` is
+present, places sprite variant 2 at object horizontal centre minus 10 and 20
+render units above object Y. Sibling helper `0x00206288` places variant 3 at
+the same horizontal centre and the object's lower edge. Action-05 independently
+uses variants 2 and 3 at fixed coordinates.
+
+This establishes reusable panel-decoration geometry, but not that either sprite
+is a selected-row cursor. The texture content is still local original-game
+data, so no replacement artwork is committed and the browser `>` affordance
+is not reclassified as PAL-authentic.
+
+## Warp list feedback adoption
+
+Pause > Warp already used recovered request `0x001D` when its selected
+destination changes. Its accepted destination now uses the common recovered
+confirm request `0x001A`, and returning from the Warp destination list uses
+the common cancel request `0x001B`. These are shared decision/navigation
+semantics; no claim is made that unrelated browser pause settings reproduce a
+native PAL menu.

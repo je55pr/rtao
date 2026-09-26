@@ -2150,6 +2150,7 @@ function openPauseWarpMenu(): void {
 
 function showPauseRoot(): void {
   if (!pauseMenuOpen || pauseWarpPending) return;
+  playNativeSfx("menu-cancel");
   pauseMenuPage = "root";
   pauseRoot.hidden = false;
   pauseWarpMenu.hidden = true;
@@ -2468,6 +2469,7 @@ async function activatePauseWarpDestination(areaIndex: number): Promise<void> {
   if (pauseWarpPending) return;
   const destination = pauseWarpState.destinations.find((candidate) => candidate.areaIndex === areaIndex);
   if (!destination) return;
+  playNativeSfx("menu-confirm");
   pauseWarpPending = true;
   pauseWarpFeedback.hidden = true;
   renderPauseWarpMenu();
