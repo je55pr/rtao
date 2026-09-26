@@ -158,6 +158,22 @@ export async function readBytes(root: FileSystemDirectoryHandle, path: string): 
   return new Uint8Array(await (await handle.getFile()).arrayBuffer());
 }
 
+export async function readByteRange(
+  root: FileSystemDirectoryHandle,
+  path: string,
+  offset: number,
+  length: number,
+): Promise<Uint8Array> {
+  if (!Number.isSafeInteger(offset) || offset < 0) throw new RangeError("Byte range offset must be a non-negative safe integer.");
+  if (!Number.isSafeInteger(length) || length < 0) throw new RangeError("Byte range length must be a non-negative safe integer.");
+  const handle = await resolveFile(root, path);
+  const file = await handle.getFile();
+  if (offset + length > file.size) {
+    throw new RangeError(`Byte range [${offset}, ${offset + length}) lies beyond the ${file.size}-byte file '${path}'.`);
+  }
+  return new Uint8Array(await file.slice(offset, offset + length).arrayBuffer());
+}
+
 export async function readJson<T>(root: FileSystemDirectoryHandle, path: string): Promise<T> {
   return JSON.parse(new TextDecoder().decode(await readBytes(root, path))) as T;
 }

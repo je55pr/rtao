@@ -140,6 +140,7 @@ import {
   clearCurrentPointer,
   currentImportDirectory,
   type ImportManifest,
+  readByteRange,
   readBytes,
   readCurrentManifest,
   readJson,
@@ -2929,11 +2930,15 @@ async function startShopInteriorPreview(interaction: FixedInteractionDefinition)
   sceneFade.flash();
 
   try {
-    const { readShopInteriorBackdrop, shopInteriorPackagePath, shopInteriorSlotCount } = await import("./formats/shopInterior");
+    const { readShopInteriorSlotBackdrop, shopInteriorPackagePath, shopInteriorSlotSize } = await import("./formats/shopInterior");
     const packagePath = shopInteriorPackagePath(interaction.areaIndex);
     const staffPath = carAssetPath(interaction.bodyId);
-    const available = new Set(activeManifest.files.map((file) => file.path.toUpperCase()));
-    if (!available.has(packagePath.toUpperCase())) throw new Error(`The local install does not contain ${packagePath}.`);
+    const packageRecord = activeManifest.files.find((file) => file.path.toUpperCase() === packagePath.toUpperCase());
+    if (!packageRecord) throw new Error(`The local install does not contain ${packagePath}.`);
+    const slotCount = Math.floor(packageRecord.size / shopInteriorSlotSize);
+    if (interaction.localIndex >= slotCount) {
+      throw new Error(`${packagePath} contains ${slotCount} fixed slots; interaction ${interaction.localIndex} lies outside the package.`);
+    }
     const [
       { ShopInteriorRoomView: InteriorPreviewClass },
       { DialogueFlow: DialogueFlowClass, readDialogueEntityAtIndex },
@@ -2947,7 +2952,7 @@ async function startShopInteriorPreview(interaction: FixedInteractionDefinition)
       import("./game/interiorView"),
       import("./formats/dialogue"),
       import("./game/carView"),
-      readBytes(activeDirectory, `game/${packagePath}`),
+      readByteRange(activeDirectory, `game/${packagePath}`, interaction.localIndex * shopInteriorSlotSize, shopInteriorSlotSize),
       readBytes(activeDirectory, "game/CARS/TIRE.BIN"),
       readOptionalInstalledWheelBytes(activeDirectory),
       readBytes(activeDirectory, "game/CAR2/Q62.BIN"),
@@ -2958,11 +2963,7 @@ async function startShopInteriorPreview(interaction: FixedInteractionDefinition)
     shopInteriorTireBytes = tireBytes;
     shopInteriorWheelBytes = wheelBytes;
     bodyShopPreviewBodyId = 62;
-    const slotCount = shopInteriorSlotCount(shopBytes);
-    if (interaction.localIndex >= slotCount) {
-      throw new Error(`${packagePath} contains ${slotCount} fixed slots; interaction ${interaction.localIndex} lies outside the package.`);
-    }
-    const backdrop = readShopInteriorBackdrop(shopBytes, interaction.localIndex);
+    const backdrop = readShopInteriorSlotBackdrop(shopBytes, interaction.localIndex);
     const playerModel = new CarModelClass(playerBytes, tireBytes, { name: "Q62 interior player", ...currentPlayerCarOptions(wheelBytes) });
     playerModel.setPartsAppearance(aggregatePartsAppearance(equippedParts));
     const staffModel = new CarModelClass(staffBytes, tireBytes, {
@@ -3916,19 +3917,19 @@ async function startQFactoryInterior(interaction: FixedInteractionDefinition): P
   sizeFactoryStage();
   sceneFade.flash();
   try {
-    const [{ readShopInteriorBackdrop }, { DialogueFlow: DialogueFlowClass, readDialogueEntityAtIndex }, { QFactoryInteriorView: InteriorViewClass }, { Q62CarModel: CarModelClass }, shopBytes, tireBytes, wheelBytes, playerBytes, staffBytes] = await Promise.all([
+    const [{ readShopInteriorSlotBackdrop, shopInteriorSlotSize }, { DialogueFlow: DialogueFlowClass, readDialogueEntityAtIndex }, { QFactoryInteriorView: InteriorViewClass }, { Q62CarModel: CarModelClass }, shopBytes, tireBytes, wheelBytes, playerBytes, staffBytes] = await Promise.all([
       import("./formats/shopInterior"),
       import("./formats/dialogue"),
       import("./game/interiorView"),
       import("./game/carView"),
-      readBytes(activeDirectory, "game/SHOP/T00.BIN"),
+      readByteRange(activeDirectory, "game/SHOP/T00.BIN", interaction.localIndex * shopInteriorSlotSize, shopInteriorSlotSize),
       readBytes(activeDirectory, "game/CARS/TIRE.BIN"),
       readOptionalInstalledWheelBytes(activeDirectory),
       readBytes(activeDirectory, "game/CAR2/Q62.BIN"),
       readBytes(activeDirectory, `game/${staffPath}`),
     ]);
     if (generation !== qFactoryLoadGeneration) return;
-    const backdrop = readShopInteriorBackdrop(shopBytes, interaction.localIndex);
+    const backdrop = readShopInteriorSlotBackdrop(shopBytes, interaction.localIndex);
     const playerModel = new CarModelClass(playerBytes, tireBytes, { name: "Q62 factory player", ...currentPlayerCarOptions(wheelBytes) });
     playerModel.setPartsAppearance(aggregatePartsAppearance(equippedParts));
     const staffModel = new CarModelClass(staffBytes, tireBytes, {
