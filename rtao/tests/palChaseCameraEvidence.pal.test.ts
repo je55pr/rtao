@@ -94,6 +94,36 @@ suite('verified PAL chase-camera executable evidence',()=>{
     const end=elf.indexOf(0,stringOffset);
     expect(elf.subarray(stringOffset,end).toString('ascii')).toBe('Change View');
   });
+  it('pins the ordinary and recenter producer ABI through packed car translation',()=>{
+    for(const calls of [
+      {follow:0x21fa50,packed:0x21fa5c,builder:0x21fa70},
+      {follow:0x21fbfc,packed:0x21fc08,builder:0x21fc1c},
+    ]) {
+      expect(jumpTarget(calls.follow,word(calls.follow))).toBe(0x21eac8);
+      expect(jumpTarget(calls.packed,word(calls.packed))).toBe(0x21d6a0);
+      expect(jumpTarget(calls.builder,word(calls.builder))).toBe(0x220458);
+    }
+
+    // Ordinary update passes car+0xA0 directly to the packed-position decoder.
+    const packedCarAddress=word(0x21fa54);
+    expect(opcode(packedCarAddress)).toBe(9);
+    expect(rs(packedCarAddress)).toBe(19);
+    expect(rt(packedCarAddress)).toBe(16);
+    expect(signedImmediate(packedCarAddress)).toBe(0xa0);
+
+    // 0x21D6A0 decodes the same staggered X/Z packed position already retained by contact.
+    const packedZ=word(0x21d6a0),packedX=word(0x21d6a8),packedY=word(0x21d6c4);
+    expect(opcode(packedZ)).toBe(0x23);
+    expect(rs(packedZ)).toBe(5);
+    expect(signedImmediate(packedZ)).toBe(8);
+    expect(opcode(packedX)).toBe(0x23);
+    expect(rs(packedX)).toBe(5);
+    expect(signedImmediate(packedX)).toBe(0);
+    expect(opcode(packedY)).toBe(0x31);
+    expect(rs(packedY)).toBe(5);
+    expect(signedImmediate(packedY)).toBe(4);
+  });
+
   it('pins the native output-builder and projection-pair boundary',()=>{
     const builderCall=word(0x21fa70);
     expect(opcode(builderCall)).toBe(3);

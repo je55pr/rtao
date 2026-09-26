@@ -42,6 +42,17 @@ mutable descriptor offset/focal/pitch/yaw/slip fields to produce eye/forward/foc
 `materializeNativeCameraFinalOutput` composes those recovered stages only when
 all required PAL world inputs and decoded native translation are supplied, and
 associates the resulting final output with the same controller snapshot.
+
+The ordinary producer ABI is now pinned directly. `0x0021FA50`, `0x0021FA5C`
+and `0x0021FA70` call `0x0021EAC8`, `0x0021D6A0` and `0x00220458` in that
+order; timed recenter repeats the same chain at `0x0021FBFC`, `0x0021FC08`
+and `0x0021FC1C`. The ordinary call passes `car + 0xA0` to `0x0021D6A0`.
+That decoder reads packed X/Y/Z at `+0xA0/+0xA4/+0xA8` and applies the same
+staggered X/Z masks and native position divisor already recovered for vehicle
+contact. Therefore the retained native packed position is the camera
+translation authority too; browser/render position is not an alternate camera
+producer.
+
 `nativeCameraFrameFromStateForRenderer` still returns no frame until that
 producer chain has actually run; `selectNativeCameraRenderPose` therefore keeps
 the current live host fallback explicit. `replaceNativeCameraController`
