@@ -104,6 +104,24 @@ suite('verified PAL chase-camera executable evidence',()=>{
       expect(jumpTarget(calls.builder,word(calls.builder))).toBe(0x220458);
     }
 
+    // 0x21EAC8 copies car+0x10 as its source vec4, then reads the exact
+    // car +0x50/+0x58 scalars and +0x1D4 yaw used by both ordinary producers.
+    const sourceAddress=word(0x21eae8);
+    expect(opcode(sourceAddress)).toBe(9);
+    expect(rs(sourceAddress)).toBe(17);
+    expect(rt(sourceAddress)).toBe(5);
+    expect(signedImmediate(sourceAddress)).toBe(0x10);
+    for(const [address,offset] of [[0x21eb80,0x50],[0x21edac,0x58]] as const) {
+      const load=word(address);
+      expect(opcode(load)).toBe(0x31);
+      expect(rs(load)).toBe(17);
+      expect(signedImmediate(load)).toBe(offset);
+    }
+    const yaw=word(0x21eb10);
+    expect(opcode(yaw)).toBe(0x21);
+    expect(rs(yaw)).toBe(17);
+    expect(signedImmediate(yaw)).toBe(0x1d4);
+
     // Ordinary update passes car+0xA0 directly to the packed-position decoder.
     const packedCarAddress=word(0x21fa54);
     expect(opcode(packedCarAddress)).toBe(9);
