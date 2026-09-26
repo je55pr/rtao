@@ -1,3 +1,4 @@
+import { buildRadioVagCheckpointIndex } from "../audio/radioVagCheckpoints";
 import type { DiscEntry } from "../disc/iso9660";
 import { readCollisionChunkDirectory, readFieldHeader, readRenderChunkDirectory } from "../formats/field";
 import { compileFieldVertexColorMesh, compiledFieldCacheVersion, serializeCompiledField } from "../formats/fieldGeometry";
@@ -270,11 +271,23 @@ export async function importGame(
           completedBytes += entry.size;
           progress("cache", label, completedBytes, totalBytes);
         } else {
-          await writeFile(importDirectory, `game/${entry.path}`, async (destination) => {
-            await disc.copyFile(entry.path, destination, (written) => {
-              progress("cache", label, completedBytes + written, totalBytes);
+          const isRadioVag = /^SOUND\/(?:1CH|3CH)_[LR]\.VAG$/i.test(entry.path);
+          if (isRadioVag) {
+            const bytes = await disc.readFile(entry.path);
+            await writeBytes(importDirectory, `game/${entry.path}`, bytes);
+            const checkpointBytes = new TextEncoder().encode(JSON.stringify(buildRadioVagCheckpointIndex(bytes)));
+            await assertCacheHeadroom(totalBytes - completedBytes - entry.size + checkpointBytes.byteLength);
+            const checkpointName = entry.path.replace(/^SOUND\//i, "").replace(/\.VAG$/i, ".checkpoints.json");
+            await writeBytes(importDirectory, `compiled/${checkpointName}`, checkpointBytes);
+            derivedBytes += checkpointBytes.byteLength;
+            progress("cache", label, completedBytes + entry.size, totalBytes);
+          } else {
+            await writeFile(importDirectory, `game/${entry.path}`, async (destination) => {
+              await disc.copyFile(entry.path, destination, (written) => {
+                progress("cache", label, completedBytes + written, totalBytes);
+              });
             });
-          });
+          }
           completedBytes += entry.size;
         }
         cachedFiles.push({ path: entry.path, size: entry.size });

@@ -24,4 +24,4 @@ Initial preflight still checks all selected source bytes because future compiled
 
 ## Remaining large-data work
 
-The active long-form PAL radio VAG pair is still chunk-decoded for playback but retained as whole in-memory `Uint8Array`s after whole-file OPFS reads. Startup no longer materializes the unused pair; converting the active cursor to asynchronous ranged backing storage remains the next large-read target. ZIP imports also still require temporary expansion of the contained disc image before ISO extraction; direct ISO/BIN imports already use random-access sources.
+The importer now compiles predictor checkpoints for each 1CH/3CH VAG at 2,048-frame intervals and accounts for those indexes as derived bytes. This bounds the predictor replay needed for a future ranged seek while preserving PS-ADPCM history exactly. The active runtime pair is still retained as whole in-memory `Uint8Array`s; switching that cursor to checkpointed asynchronous OPFS windows is the next large-read target. ZIP imports also still require temporary expansion of the contained disc image before ISO extraction; direct ISO/BIN imports already use random-access sources.
