@@ -74,3 +74,16 @@ screen-space anchors for its panel and value. The identities of the low-level
 panel and decimal renderer are retained by address and arguments; this pass
 does not claim a font atlas, palette, border sprite, or browser-pixel transform
 until those lower-level consumers are recovered.
+
+## Change Parts adoption boundary
+
+The browser Change Parts route now uses the shared `pal-menu-list` /
+`pal-menu-row` structural seam for both category and owned-part lists. Its
+feedback remains evidence-backed: category/item navigation emits recovered
+request `0x001D`; applying or cancelling emits the common decision feedback,
+and a successful native selector mutation additionally emits equipment-fit
+request `0x0303`.
+
+This is deliberately structural only. The current yellow selection fill,
+`>` marker, ownership annotations, stat bars and browser typography are not
+promoted to PAL-authentic primitives by this adoption.

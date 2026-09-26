@@ -336,8 +336,8 @@ const appShellHtml = `
               <span>Owned native equipment</span>
             </header>
             <div class="parts-browser">
-              <nav class="parts-categories" id="parts-categories" aria-label="Part categories"></nav>
-              <div class="parts-list" id="parts-list" role="listbox" aria-label="Parts"></div>
+              <nav class="pal-menu-list parts-categories" id="parts-categories" aria-label="Part categories"></nav>
+              <div class="pal-menu-list parts-list" id="parts-list" role="listbox" aria-label="Parts"></div>
               <aside class="parts-detail">
                 <p class="parts-detail-category" id="parts-detail-category"></p>
                 <h3 id="parts-detail-name"></h3>

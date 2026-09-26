@@ -4078,6 +4078,7 @@ function renderChangeParts(): void {
   session.catalogue.forEach((candidate, index) => {
     const button = document.createElement("button");
     button.type = "button";
+    button.className = "pal-menu-row";
     button.textContent = partCategoryLabels[candidate.category];
     button.classList.toggle("selected", candidate === category);
     button.classList.toggle("changed", session.draftSelectors[candidate.nativeCategory] !== session.originalSelectors[candidate.nativeCategory]);
@@ -4098,6 +4099,7 @@ function renderChangeParts(): void {
     const fitted = session.draftSelectors[part.nativeCategory] === part.nativeItemIndex;
     const button = document.createElement("button");
     button.type = "button";
+    button.className = "pal-menu-row";
     button.setAttribute("role", "option");
     button.setAttribute("aria-selected", index === session.partIndex ? "true" : "false");
     button.classList.toggle("selected", index === session.partIndex);
