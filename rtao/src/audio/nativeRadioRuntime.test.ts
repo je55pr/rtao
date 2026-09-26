@@ -131,6 +131,27 @@ describe("PAL ordinary free-roam radio contract", () => {
     runtime.dispose();
   });
 
+  it("drops an in-flight ranged clip after outdoor playback stops", async () => {
+    const audio = new FakeRadioAudio();
+    let resolveClip!: (clip: PcmClip) => void;
+    const pending = new Promise<PcmClip>((resolve) => { resolveClip = resolve; });
+    const runtime = new NativeRadioRuntime(audio, {}, {
+      autoClock: false,
+      chunkSamples: 28,
+      lookaheadSeconds: 0.002,
+      clock: { now: () => 0, setInterval: () => 0, clearInterval: () => undefined },
+      asyncTunes: [undefined, { readClip: () => pending }],
+    });
+    runtime.startOutdoor();
+    runtime.stopOutdoor();
+    resolveClip({ sampleRate: 12_000, channels: [new Float32Array(28), new Float32Array(28)], frameCount: 28 });
+    await pending;
+    await Promise.resolve();
+    expect(audio.voices).toHaveLength(0);
+    expect(runtime.snapshot()).toMatchObject({ active: false, scheduledChunks: 0 });
+    runtime.dispose();
+  });
+
   it("keeps the synchronized counter moving while radio playback is stopped", () => {
     const audio = new FakeRadioAudio();
     const bytes = makeVag(0x00);

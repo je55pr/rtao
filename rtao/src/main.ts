@@ -5,6 +5,7 @@ import { ordinaryRaceBgmSetup, resolveFixedRoomBgm, resolveQFactoryBgm, type Nat
 import { NativeBgmRuntime } from "./audio/nativeBgmRuntime";
 import { NativeEngineAudioRuntime } from "./audio/nativeEngineAudio";
 import { NativeRadioRuntime, nativeRadioTickMilliseconds, resolveNativeRadioState } from "./audio/nativeRadioRuntime";
+import { openOpfsRadioStereoSource } from "./audio/opfsRadioSource";
 import { NativeSfxRuntime, type NativeSfxEvent } from "./audio/nativeSfx";
 import { installAppShell } from "./app/appShell";
 import { grantAllDebugParts, setDebugCake, unlockAllDebugWarps } from "./app/debugCheats";
@@ -739,15 +740,23 @@ async function loadNativeBgm(directory: FileSystemDirectoryHandle): Promise<void
 async function loadNativeFreeRoamRadio(directory: FileSystemDirectoryHandle): Promise<void> {
   try {
     nativeRadioRuntime?.dispose();
-    const [threeLeft, threeRight] = await Promise.all([
-      readBytes(directory, "game/SOUND/3CH_L.VAG"),
-      readBytes(directory, "game/SOUND/3CH_R.VAG"),
-    ]);
+    let threeSource;
+    let fallbackTune1;
+    try {
+      threeSource = await openOpfsRadioStereoSource(directory, "game/SOUND/3CH_L.VAG", "game/SOUND/3CH_R.VAG");
+    } catch {
+      const [left, right] = await Promise.all([
+        readBytes(directory, "game/SOUND/3CH_L.VAG"),
+        readBytes(directory, "game/SOUND/3CH_R.VAG"),
+      ]);
+      fallbackTune1 = { left, right };
+    }
     nativeRadioRuntime = new NativeRadioRuntime(
       audioRuntime,
-      { tune1: { left: threeLeft, right: threeRight } },
+      { tune1: fallbackTune1 },
       {
         isAudioReady: () => audioRuntime.snapshot().state === "running",
+        asyncTunes: [undefined, threeSource],
         initialTick: Math.max(0, Math.floor((performance.now() - nativeRadioEpochMs) / nativeRadioTickMilliseconds)),
         loadTune: async (tuneIndex) => {
           const selection = resolveNativeRadioState((tuneIndex + 1) as 1 | 2)!;
@@ -760,7 +769,7 @@ async function loadNativeFreeRoamRadio(directory: FileSystemDirectoryHandle): Pr
         onError: (error) => console.warn("Native free-roam radio stream stopped after an audio error.", error),
       },
     );
-    console.info("Native free-roam radio: loaded default synchronized 3CH pair; 1CH is deferred until native state 1 is selected.");
+    console.info(`Native free-roam radio: ${threeSource ? "checkpointed OPFS range streaming" : "legacy whole-file fallback"} for default 3CH; 1CH is deferred until native state 1 is selected.`);
   } catch (error) {
     nativeRadioRuntime?.dispose();
     nativeRadioRuntime = undefined;
