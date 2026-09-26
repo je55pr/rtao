@@ -82,7 +82,12 @@ export interface ImportManifest {
   readonly sourceKind: "iso" | "zip-iso" | "zip-bin-cue" | "bin-cue" | "bin";
   readonly identity: GameIdentity;
   readonly files: CachedFileRecord[];
+  /** Source-file bytes retained under game/. */
   readonly totalBytes: number;
+  /** Install-time derived mesh/collision bytes retained under compiled/. */
+  readonly derivedBytes?: number;
+  /** Total persistent footprint represented by source + derived artifacts. */
+  readonly installedBytes?: number;
   /** A bootstrap install is already playable in Peach Town while the worker fills the remaining cache. */
   readonly installStage?: "bootstrap" | "complete";
   readonly fields: FieldSummaryRecord[];

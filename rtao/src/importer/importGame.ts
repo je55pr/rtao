@@ -150,6 +150,7 @@ export async function importGame(
     let compiledFieldCount = 0;
     let compiledRaceCourseCount = 0;
     let completedBytes = 0;
+    let derivedBytes = 0;
     const makeManifest = (installStage: "bootstrap" | "complete", cachedByteCount: number): ImportManifest => ({
       schemaVersion: cacheSchemaVersion,
       importId,
@@ -159,6 +160,8 @@ export async function importGame(
       identity,
       files: [...cachedFiles],
       totalBytes: cachedByteCount,
+      derivedBytes,
+      installedBytes: cachedByteCount + derivedBytes,
       installStage,
       fields: [...fields].sort((a, b) => a.fieldNumber - b.fieldNumber),
       compiledFields: [...compiledFields].sort((a, b) => a.fieldNumber - b.fieldNumber),
@@ -192,7 +195,11 @@ export async function importGame(
             const mesh = compileFieldVertexColorMesh(bytes);
             const collision = compileFieldCollision(bytes);
             const compiledPath = `compiled/field-${summary.fieldNumber.toString().padStart(3, "0")}.mesh`;
-            await writeBytes(importDirectory, compiledPath, serializeCompiledField(mesh));
+            const compiledBytes = serializeCompiledField(mesh);
+            const collisionBytes = serializeCompiledCollision(collision);
+            await assertCacheHeadroom(totalBytes - completedBytes - entry.size + compiledBytes.byteLength + collisionBytes.byteLength);
+            await writeBytes(importDirectory, compiledPath, compiledBytes);
+            derivedBytes += compiledBytes.byteLength;
             compiledFields.push({
               fieldNumber: summary.fieldNumber,
               path: compiledPath,
@@ -202,7 +209,8 @@ export async function importGame(
               primitiveCount: mesh.primitiveCount,
             });
             const collisionPath = `compiled/collision-${summary.fieldNumber.toString().padStart(3, "0")}.bin`;
-            await writeBytes(importDirectory, collisionPath, serializeCompiledCollision(collision));
+            await writeBytes(importDirectory, collisionPath, collisionBytes);
+            derivedBytes += collisionBytes.byteLength;
             collisionFields.push({ fieldNumber: summary.fieldNumber, path: collisionPath, triangleCount: collision.triangleCount });
             compiledFieldCount += 1;
           } else if (isRaceCourse) {
@@ -217,7 +225,11 @@ export async function importGame(
             const mesh = compileFieldVertexColorMesh(bytes);
             const collision = compileFieldCollision(bytes);
             const compiledPath = `compiled/course-${summary.courseId.toString().padStart(2, "0")}.mesh`;
-            await writeBytes(importDirectory, compiledPath, serializeCompiledField(mesh));
+            const compiledBytes = serializeCompiledField(mesh);
+            const collisionBytes = serializeCompiledCollision(collision);
+            await assertCacheHeadroom(totalBytes - completedBytes - entry.size + compiledBytes.byteLength + collisionBytes.byteLength);
+            await writeBytes(importDirectory, compiledPath, compiledBytes);
+            derivedBytes += compiledBytes.byteLength;
             compiledRaceCourses.push({
               courseId: summary.courseId,
               path: compiledPath,
@@ -227,7 +239,8 @@ export async function importGame(
               primitiveCount: mesh.primitiveCount,
             });
             const collisionPath = `compiled/course-collision-${summary.courseId.toString().padStart(2, "0")}.bin`;
-            await writeBytes(importDirectory, collisionPath, serializeCompiledCollision(collision));
+            await writeBytes(importDirectory, collisionPath, collisionBytes);
+            derivedBytes += collisionBytes.byteLength;
             raceCourseCollisions.push({ courseId: summary.courseId, path: collisionPath, triangleCount: collision.triangleCount });
             compiledRaceCourseCount += 1;
           } else {
@@ -235,7 +248,11 @@ export async function importGame(
             const mesh = compileFieldVertexColorMesh(bytes);
             const collision = compileFieldCollision(bytes);
             const compiledPath = `compiled/special-outdoor-${cloudHillSpecialOutdoorScene.areaCode}.mesh`;
-            await writeBytes(importDirectory, compiledPath, serializeCompiledField(mesh));
+            const compiledBytes = serializeCompiledField(mesh);
+            const collisionBytes = serializeCompiledCollision(collision);
+            await assertCacheHeadroom(totalBytes - completedBytes - entry.size + compiledBytes.byteLength + collisionBytes.byteLength);
+            await writeBytes(importDirectory, compiledPath, compiledBytes);
+            derivedBytes += compiledBytes.byteLength;
             compiledSpecialOutdoors.push({
               areaCode: cloudHillSpecialOutdoorScene.areaCode,
               sourcePath: cloudHillSpecialOutdoorScene.sourcePath,
@@ -246,7 +263,8 @@ export async function importGame(
               primitiveCount: mesh.primitiveCount,
             });
             const collisionPath = `compiled/special-outdoor-collision-${cloudHillSpecialOutdoorScene.areaCode}.bin`;
-            await writeBytes(importDirectory, collisionPath, serializeCompiledCollision(collision));
+            await writeBytes(importDirectory, collisionPath, collisionBytes);
+            derivedBytes += collisionBytes.byteLength;
             specialOutdoorCollisions.push({ areaCode: cloudHillSpecialOutdoorScene.areaCode, path: collisionPath, triangleCount: collision.triangleCount });
           }
           completedBytes += entry.size;
