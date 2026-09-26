@@ -139,17 +139,20 @@ reset happens when the outdoor scene is re-entered.
 The live fallbacks remain necessary, but their retirement conditions are now
 narrow and explicit:
 
-- `browserChaseCamera.ts` distance/lift/blend framing stays only until each
-  live driving mode connects the now-recovered `0x0021EAC8` car-input bridge.
+- `browserChaseCamera.ts` distance/lift/blend framing is now restricted to
+  evidence-gated special-outdoor fallback; ordinary FLD and races use the
+  recovered `0x0021EAC8` car-input bridge.
   `0x0021C8AC` builds the contact/orientation matrix at car `+0x00` and
   `0x0021C8CC` applies yaw in place, so car `+0x10` is that matrix's second
   vec4 column. `0x0021D3DC` selects car `+0x40` and `0x0021D448` builds the
   suspension/body basis there, so car `+0x50/+0x58` are that basis normal's
   X/Z components. `nativeCameraWorldInputsFromCarMatrices` exposes exactly
   those retained fields together with `+0x1D4` yaw, without browser pose data.
-  `0x00220458` eye/forward semantics are no longer a gap; once this bridge is
-  connected in each live mode, browser geometry, smoothing and
-  `rebaseBrowserChaseCamera` can be deleted rather than tuned.
+  `0x00220458` eye/forward semantics are no longer a gap. Standard-FLD now
+  exposes an exact camera snapshot from `NativeOutdoorContact` and runs this
+  producer plus native FLD obstruction directly. Browser geometry/safety is no
+  longer selected for ordinary FLD driving; it remains only for the separately
+  unresolved special-outdoor family.
 - ordinary-race presentation now runs the native producer directly. PAL's
   normal first-selection path at `0x0021F680..0x0021F698` derives preset zero
   from the cleared context; native type byte `26` is the separately gated 8/9

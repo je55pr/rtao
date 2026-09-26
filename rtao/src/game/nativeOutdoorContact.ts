@@ -118,6 +118,15 @@ export class NativeOutdoorContact {
     return this.contact.runtimeFlags >>> 0;
   }
 
+  get cameraSnapshot() {
+    return {
+      position: [...this.contact.position] as [number, number, number],
+      matrix: [...this.matrix] as NativeRaceMatrix,
+      bodyMatrix: [...this.bodyMatrix] as NativeRaceMatrix,
+      math: this.authority.math,
+    };
+  }
+
   get retainedContact(): NativeDrivingRetainedContact {
     return {
       surfaceFlags: this.surfaces[0],

@@ -20,11 +20,20 @@ import {
   type NativeAuxiliaryContactState,
 } from "./nativeRaceContact";
 import { advanceNativeChaseCamera } from "./nativeChaseCamera";
+import { materializeNativeCameraFinalOutput } from "./nativeCameraProducer";
+import { resolveNativeCameraObstruction } from "./nativeCameraObstruction";
+import {
+  nativeCameraFinalOutput,
+  nativeCameraNearLowerProbes,
+  nativePalCameraDisplayScaleMode,
+} from "./nativeCameraFinalOutput";
+import { nativeCameraWorldInputsFromCarMatrices } from "./nativeCameraWorldTransform";
+import { nativeRacePositionCoordinates } from "./nativeRaceVehicle";
 import {
   createNativeCameraRuntimeContractState,
+  nativeCameraFrameForRenderer,
   reflectNativeCameraPointX,
   replaceNativeCameraController,
-  selectNativeCameraRenderPose,
   type NativeCameraRuntimeContractState,
 } from "./nativeCameraRuntimeContract";
 import {
@@ -36,10 +45,7 @@ import {
   rebaseOutdoorDrivingCameraAcrossFieldSeam,
 } from "./drivingCameraLifecycle";
 import { fieldExtent } from "./worldTopology";
-import {
-  applyBrowserChaseSafetyToSelection,
-  browserOrdinaryChasePresetIndex,
-} from "./browserChaseCameraSafety";
+import { applyBrowserChaseSafetyToSelection } from "./browserChaseCameraSafety";
 import type { DrivingSurfaceKind, DrivingWorld, Vec3 } from "./worldCollision";
 import { BrowserSemanticInput, type SemanticActionEvent, type SemanticInputScope } from "../input/semanticInput";
 import type { WorldView } from "./worldView";
@@ -72,6 +78,8 @@ export interface CarState {
   readonly roll: number;
   /** Retained PAL local chassis transform; absent on compatibility-only outdoor paths. */
   readonly nativeBodyMatrix?: NativeRaceMatrix;
+  /** Exact standard-FLD car storage consumed by the native camera producer. */
+  readonly nativeCameraContact?: NativeOutdoorContact["cameraSnapshot"];
   readonly surfaceFlags: number;
   readonly surfaceKind: DrivingSurfaceKind;
   /** PAL car +0x213 auxiliary-height state: ordinary 0, shallow -1, deep +1. */
@@ -285,6 +293,7 @@ export class ArcadeCarController {
       pitch: pose.pitch,
       roll: pose.roll,
       nativeBodyMatrix: pose.bodyMatrix,
+      nativeCameraContact: runtime.cameraSnapshot,
       surfaceFlags: pose.surfaceFlags,
       surfaceKind: this.world.drivingSurface(pose.fieldNumber, pose.position, pose.position.y),
       contactSpecialState: runtime.specialState,
@@ -564,7 +573,7 @@ export class BrowserDrivingGame {
   private paused = false;
   private inputOverride: DriveInput | undefined;
   private cameraRuntimeState: NativeCameraRuntimeContractState =
-    createNativeCameraRuntimeContractState(browserOrdinaryChasePresetIndex);
+    createNativeCameraRuntimeContractState(0);
   private browserChaseCameraState: BrowserChaseCameraState = {
     position: [0, 0, 0], target: [0, 0, 0], ready: false,
   };
@@ -718,25 +727,51 @@ export class BrowserDrivingGame {
   };
 
   private initializeCameraForScene(state: CarState): void {
-    const initialized = createOutdoorDrivingCameraLifecycleState(browserOrdinaryChasePresetIndex);
+    const initialized = createOutdoorDrivingCameraLifecycleState(0);
     this.cameraRuntimeState = initialized.native;
     this.browserChaseCameraState = initialized.browser;
     this.advanceCamera(state, true);
   }
 
   private advanceCamera(state: CarState, snap: boolean): void {
-    // Keep advancing proven controller slip/recenter state. The recovered
-    // camera-world lag pairs are advanced only once exact 0x21EAC8 car-record
-    // inputs are available; browser chase geometry remains the explicit fallback.
-    this.cameraRuntimeState = replaceNativeCameraController(
+    const advanced = replaceNativeCameraController(
       this.cameraRuntimeState,
       advanceNativeChaseCamera(
         this.cameraRuntimeState.controller,
-        {
-          nativeSlip: state.nativeSlipAngle,
-        },
+        { nativeSlip: state.nativeSlipAngle },
       ),
     );
+    if (state.location.kind === "standard-world") {
+      const contact = state.nativeCameraContact;
+      if (!contact) throw new Error("Standard-FLD native camera requires retained contact storage.");
+      const produced = materializeNativeCameraFinalOutput(advanced, {
+        world: nativeCameraWorldInputsFromCarMatrices(
+          contact.matrix,
+          contact.bodyMatrix,
+          state.nativeYaw,
+        ),
+        translation: nativeRacePositionCoordinates(contact.position),
+        math: contact.math,
+      });
+      const obstruction = resolveNativeCameraObstruction(
+        produced.state.controller,
+        (controller) => ({
+          finalOutput: nativeCameraFinalOutput(controller, produced.worldMatrix),
+          nearLowerProbes: nativeCameraNearLowerProbes(
+            controller,
+            produced.worldMatrix,
+            nativePalCameraDisplayScaleMode,
+          ),
+        }),
+        (probe) => this.world.queryNativeCameraObstruction(state.fieldNumber, probe),
+      );
+      this.cameraRuntimeState = {
+        controller: obstruction.controller,
+        finalOutput: obstruction.finalOutput,
+      };
+    } else {
+      this.cameraRuntimeState = advanced;
+    }
     this.browserChaseCameraState = advanceBrowserChaseCamera(
       this.browserChaseCameraState,
       { position: [state.position.x, state.position.y, state.position.z], yaw: state.yaw, cameraLift: 4.2 },
@@ -751,18 +786,19 @@ export class BrowserDrivingGame {
       position: this.browserChaseCameraState.position,
       target: this.browserChaseCameraState.target,
     };
-    const selection = state.location.kind === "standard-world"
-      ? selectNativeCameraRenderPose(
-          this.cameraRuntimeState,
-          (point) => reflectNativeCameraPointX(point, fieldExtent),
-          fallbackPose,
-        )
-      : { source: "host-fallback" as const, pose: fallbackPose };
-    const chase = applyBrowserChaseSafetyToSelection(selection, (point) =>
-      state.location.kind === "special-outdoor"
-        ? this.world.sampleSpecialOutdoorGround(state.location.areaCode, point, point.y)
-        : this.world.sampleGround(state.fieldNumber, point, point.y)
-    );
+    const chase = state.location.kind === "standard-world"
+      ? (() => {
+          const output = this.cameraRuntimeState.finalOutput;
+          if (!output) throw new Error("Standard-FLD native camera producer did not materialize output.");
+          return nativeCameraFrameForRenderer(output, {
+            toRenderPoint: (point) => reflectNativeCameraPointX(point, fieldExtent),
+            projection: null,
+          }).pose;
+        })()
+      : applyBrowserChaseSafetyToSelection(
+          { source: "host-fallback" as const, pose: fallbackPose },
+          (point) => this.world.sampleSpecialOutdoorGround(state.location.areaCode, point, point.y),
+        );
     if (state.location.kind === "special-outdoor") {
       this.view.updateSpecialOutdoorDriving(
         state.location.areaCode,
