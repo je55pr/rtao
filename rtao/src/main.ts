@@ -356,6 +356,7 @@ let paintShopCursor: PaintShopCursor = { kind: "body", tone: 0, channel: 0 };
 let shopInteriorPlayerBytes: Uint8Array | undefined;
 let shopInteriorTireBytes: Uint8Array | undefined;
 let shopInteriorWheelBytes: Uint8Array | undefined;
+const immutableInstalledAssetBytes = new Map<string, Promise<Uint8Array>>();
 let bodyShopPreviewGeneration = 0;
 let bodyShopPreviewBodyId = 62;
 let qFactoryLoading = false;
@@ -644,6 +645,7 @@ requiredElement<HTMLButtonElement>("remove-install").addEventListener("click", a
   drivingWorld = undefined;
   activeDirectory = undefined;
   activeManifest = undefined;
+  immutableInstalledAssetBytes.clear();
   nativeSfxRuntime = undefined;
   nativeEngineAudioRuntime?.stop();
   nativeEngineAudioRuntime = undefined;
@@ -892,6 +894,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   drivingWorld = undefined;
   activeDirectory = undefined;
   activeManifest = undefined;
+  immutableInstalledAssetBytes.clear();
   choroCoinPlacements = [];
   loadedWorldFieldNumbers.clear();
   loadingWorldFields.clear();
@@ -1361,7 +1364,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
     readBytes(activeDirectory, compiled.path),
     readBytes(activeDirectory, collision.path),
     readBytes(activeDirectory, `game/${source.path}`),
-    readBytes(activeDirectory, "game/CARS/TIRE.BIN"),
+    readImmutableInstalledAssetBytes(activeDirectory, "game/CARS/TIRE.BIN"),
     readOptionalInstalledWheelBytes(activeDirectory),
   ]);
   const runtime = createOrdinaryRaceRuntime({
@@ -1390,7 +1393,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
       const bodyId = entrant.kind === "opponent" ? entrant.participant.bodyId : 62;
       let bytes = bodyBytes.get(bodyId);
       if (!bytes) {
-        bytes = await readBytes(activeDirectory, `game/${carAssetPath(bodyId)}`);
+        bytes = await readImmutableInstalledAssetBytes(activeDirectory, `game/${carAssetPath(bodyId)}`);
         bodyBytes.set(bodyId, bytes);
       }
       const paintWord = entrant.kind === "opponent"
@@ -2953,10 +2956,10 @@ async function startShopInteriorPreview(interaction: FixedInteractionDefinition)
       import("./formats/dialogue"),
       import("./game/carView"),
       readByteRange(activeDirectory, `game/${packagePath}`, interaction.localIndex * shopInteriorSlotSize, shopInteriorSlotSize),
-      readBytes(activeDirectory, "game/CARS/TIRE.BIN"),
+      readImmutableInstalledAssetBytes(activeDirectory, "game/CARS/TIRE.BIN"),
       readOptionalInstalledWheelBytes(activeDirectory),
-      readBytes(activeDirectory, "game/CAR2/Q62.BIN"),
-      readBytes(activeDirectory, `game/${staffPath}`),
+      readImmutableInstalledAssetBytes(activeDirectory, "game/CAR2/Q62.BIN"),
+      readImmutableInstalledAssetBytes(activeDirectory, `game/${staffPath}`),
     ]);
     if (generation !== shopInteriorPreviewLoadGeneration) return;
     shopInteriorPlayerBytes = playerBytes;
@@ -3923,10 +3926,10 @@ async function startQFactoryInterior(interaction: FixedInteractionDefinition): P
       import("./game/interiorView"),
       import("./game/carView"),
       readByteRange(activeDirectory, "game/SHOP/T00.BIN", interaction.localIndex * shopInteriorSlotSize, shopInteriorSlotSize),
-      readBytes(activeDirectory, "game/CARS/TIRE.BIN"),
+      readImmutableInstalledAssetBytes(activeDirectory, "game/CARS/TIRE.BIN"),
       readOptionalInstalledWheelBytes(activeDirectory),
-      readBytes(activeDirectory, "game/CAR2/Q62.BIN"),
-      readBytes(activeDirectory, `game/${staffPath}`),
+      readImmutableInstalledAssetBytes(activeDirectory, "game/CAR2/Q62.BIN"),
+      readImmutableInstalledAssetBytes(activeDirectory, `game/${staffPath}`),
     ]);
     if (generation !== qFactoryLoadGeneration) return;
     const backdrop = readShopInteriorSlotBackdrop(shopBytes, interaction.localIndex);
@@ -4425,8 +4428,8 @@ async function ensurePlayerCarModel(): Promise<Q62CarModel> {
   if (!activeDirectory) throw new Error("The installed game data is unavailable for Q62 capture.");
   const [{ Q62CarModel: Q62CarModelClass }, carBytes, tireBytes, wheelBytes] = await Promise.all([
     import("./game/carView"),
-    readBytes(activeDirectory, "game/CAR2/Q62.BIN"),
-    readBytes(activeDirectory, "game/CARS/TIRE.BIN"),
+    readImmutableInstalledAssetBytes(activeDirectory, "game/CAR2/Q62.BIN"),
+    readImmutableInstalledAssetBytes(activeDirectory, "game/CARS/TIRE.BIN"),
     readOptionalInstalledWheelBytes(activeDirectory),
   ]);
   playerCar = new Q62CarModelClass(carBytes, tireBytes, currentPlayerCarOptions(wheelBytes));
@@ -4481,7 +4484,7 @@ async function loadResidentModels(
     const bPriority = b.state.fieldNumber === 223 ? 0 : 1;
     return aPriority - bPriority || a.state.fieldNumber - b.state.fieldNumber || a.state.id.localeCompare(b.state.id);
   });
-  const tireBytes = await readBytes(directory, "game/CARS/TIRE.BIN");
+  const tireBytes = await readImmutableInstalledAssetBytes(directory, "game/CARS/TIRE.BIN");
   const carBytesByBody = new Map<number, Uint8Array>();
   const { Q62CarModel: CarModelClass } = await import("./game/carView");
   let loaded = simulation.modelCount;
@@ -4493,7 +4496,7 @@ async function loadResidentModels(
     if (!available.has(path.toUpperCase())) continue;
     let carBytes = carBytesByBody.get(definition.bodyId);
     if (!carBytes) {
-      carBytes = await readBytes(directory, `game/${path}`);
+      carBytes = await readImmutableInstalledAssetBytes(directory, `game/${path}`);
       carBytesByBody.set(definition.bodyId, carBytes);
     }
     const model = new CarModelClass(carBytes, tireBytes, {
@@ -4604,11 +4607,27 @@ function selectedPartIndex(loadout: PartLoadout, category: PartCategory): number
   return Math.max(0, developmentPartCatalogue[category].findIndex((definition) => definition.id === loadout[category]));
 }
 
+async function readImmutableInstalledAssetBytes(
+  directory: FileSystemDirectoryHandle,
+  path: string,
+): Promise<Uint8Array> {
+  if (directory !== activeDirectory) return readBytes(directory, path);
+  let pending = immutableInstalledAssetBytes.get(path);
+  if (!pending) {
+    pending = readBytes(directory, path).catch((error) => {
+      immutableInstalledAssetBytes.delete(path);
+      throw error;
+    });
+    immutableInstalledAssetBytes.set(path, pending);
+  }
+  return pending;
+}
+
 async function readOptionalInstalledWheelBytes(directory: FileSystemDirectoryHandle): Promise<Uint8Array | undefined> {
   const cached = activeManifest?.files.some((file) => file.path.toUpperCase() === "CARS/WHEEL.BIN");
   if (cached === false) return undefined;
   try {
-    return await readBytes(directory, "game/CARS/WHEEL.BIN");
+    return await readImmutableInstalledAssetBytes(directory, "game/CARS/WHEEL.BIN");
   } catch (error) {
     if (error instanceof DOMException && error.name === "NotFoundError") return undefined;
     throw error;
