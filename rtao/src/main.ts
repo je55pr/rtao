@@ -1255,21 +1255,41 @@ async function loadLazyFieldDynamicObjects(fieldNumber: number, fieldBytes?: Uin
 
 async function syncLoadedWorldResidents(): Promise<void> {
   if (!activeManifest || !activeDirectory || !overworldCatalogue || !worldSimulation) return;
+  residentModelLoadGeneration += 1;
+  worldSimulation.removeDefinitionsOutsideFields(loadedWorldFieldNumbers);
   worldSimulation.addDefinitions(
     overworldCatalogue.residents.filter((resident) => loadedWorldFieldNumbers.has(resident.fieldNumber)),
   );
+  requiredElement<HTMLElement>("resident-count").textContent = worldSimulation.modelCount + "/" + worldSimulation.residents.length;
   if (worldSimulation.modelCount >= worldSimulation.residents.length) return;
   const generation = residentModelLoadGeneration;
   await queueResidentModelLoad(activeManifest, activeDirectory, worldSimulation, generation);
 }
 
+function evictWorldFieldsOutside(fieldNumbers: ReadonlySet<number>): void {
+  if (!worldView || !drivingWorld) return;
+  let stats;
+  for (const loaded of [...loadedWorldFieldNumbers]) {
+    if (fieldNumbers.has(loaded) || loadingWorldFields.has(loaded)) continue;
+    stats = worldView.removeField(loaded);
+    drivingWorld.removeField(loaded);
+    loadedWorldFieldNumbers.delete(loaded);
+  }
+  if (stats) {
+    requiredElement<HTMLElement>("field-count").textContent = String(stats.sectors);
+    requiredElement<HTMLElement>("triangle-count").textContent = stats.triangles.toLocaleString();
+  }
+}
+
 async function ensureNearbyWorldFields(fieldNumber: number): Promise<void> {
   if (!activeManifest || activeManifest.installStage === "bootstrap") return;
   const { nearbyWorldFieldNumbers } = await import("./game/worldTopology");
-  for (const nearby of nearbyWorldFieldNumbers(fieldNumber)) {
+  const desiredFields = new Set(nearbyWorldFieldNumbers(fieldNumber));
+  for (const nearby of desiredFields) {
     await ensureWorldFieldLoaded(nearby);
     await nextFrame();
   }
+  evictWorldFieldsOutside(desiredFields);
   await syncLoadedWorldResidents();
 }
 

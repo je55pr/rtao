@@ -305,6 +305,14 @@ export class DrivingWorld {
     this.fields.set(fieldNumber, new FieldCollisionSampler(collision));
   }
 
+  removeField(fieldNumber: number): void {
+    this.fields.delete(fieldNumber);
+    this.nativeFields.delete(fieldNumber);
+    this.nativeObstaclePoints.delete(fieldNumber);
+    this.nativeObstacleRuntime.delete(fieldNumber);
+    this.surfaces.delete(fieldNumber);
+  }
+
   addFieldSurface(fieldNumber: number, bytes: Uint8Array): CompiledRoadNetwork {
     const mesh = deserializeCompiledField(bytes);
     this.surfaces.set(fieldNumber, new FieldDrivingSurfaceSampler(mesh));

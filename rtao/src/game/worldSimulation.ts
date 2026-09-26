@@ -116,6 +116,23 @@ export class BrowserWorldSimulation {
     return added;
   }
 
+  removeDefinitionsOutsideFields(fieldNumbers: ReadonlySet<number>): number {
+    let removed = 0;
+    for (let index = this.residents.length - 1; index >= 0; index -= 1) {
+      const resident = this.residents[index]!;
+      if (fieldNumbers.has(resident.state.fieldNumber)) continue;
+      const model = this.models.get(resident.state.id);
+      if (model) {
+        this.view.removeWorldActor(resident.state.id);
+        model.dispose();
+        this.models.delete(resident.state.id);
+      }
+      this.residents.splice(index, 1);
+      removed += 1;
+    }
+    return removed;
+  }
+
   hasModel(residentId: string): boolean { return this.models.has(residentId); }
   get modelCount(): number { return this.models.size; }
 
