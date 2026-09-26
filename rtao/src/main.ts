@@ -3253,9 +3253,7 @@ function keepQuickPicPhoto(): void {
 function moveShopNumericChoice(direction: -1 | 1): void {
   const session = shopNumericChoiceSession;
   if (!session) return;
-  const previous = session.value;
   session.value = stepNativeNumericChoice(session.value, direction);
-  if (session.value !== previous) playNativeSfx("menu-navigate");
   renderShopNumericChoice();
 }
 

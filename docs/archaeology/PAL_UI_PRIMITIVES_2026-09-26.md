@@ -53,3 +53,24 @@ Use `tools/disasm_elf_context.py <SLES_513.56> <address>...`. The helper now
 reads virtual addresses through ELF PT_LOAD mappings instead of assuming a
 stale flat-file base. Useful anchors are `0x0023AA68`, `0x0023B2E0`,
 `0x00205BE8`, `0x00205E10`, and `0x00205F60`.
+
+## Action-05 numeric selector
+
+Callback `0x0023BE00` provides a second concrete UI primitive. On its first
+tick it initializes state byte `+0x26` to `1`. Subsequent ticks call
+`0x00202760(64, 32, 60, 12, 2)`, then render the selected unsigned decimal
+value through `0x00202258(112, 32, value, 10)`. The input guards at
+`0x0023BE84..0x0023BEBC` clamp decrement/increment to `0..99`.
+
+Confirmation checks pad bit `0x0040`, compares the selected value with operand
+zero, routes to operand one on equality or operand two otherwise, and calls
+native SFX request `0x001A` before returning. Unlike list navigation, the
+increment/decrement paths contain no call to request `0x001D`. The browser
+therefore must not emit the common menu-navigation sound merely because this
+numeric value changed.
+
+This extends the evidence boundary beyond semantics: action-05 has native
+screen-space anchors for its panel and value. The identities of the low-level
+panel and decimal renderer are retained by address and arguments; this pass
+does not claim a font atlas, palette, border sprite, or browser-pixel transform
+until those lower-level consumers are recovered.
