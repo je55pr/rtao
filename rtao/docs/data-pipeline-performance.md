@@ -14,7 +14,7 @@ Do not delete raw `FLD/*.BIN` solely because `compiled/field-*.mesh` and `compil
 - Outdoor field load: the raw FLD is read once per field load transaction and the same bytes are reused for native field registration and dynamic-object extraction. This removed the previous immediate second whole-FLD read.
 - Ordinary world residency: traversal is bounded to the topology-defined nearby 3x3 ring, at most 9 fields away from map edges. Eviction disposes field geometry/materials/textures, compiled/native collision and obstacle state, dynamic animation registrations, and resident models/actors. Explicit capture/debug whole-world loading remains separate.
 - Immutable installed assets: TIRE/WHEEL/car body source bytes are reused rather than reread for repeated interiors, residents, races, and captures. The byte cache is a 16-entry LRU and is cleared on install replacement, so long traversal cannot retain every encountered car source indefinitely.
-- Native sound startup: `SOUND/CQ_MAIN.TVB` is shared between SFX and engine-audio construction, reducing that bank from two OPFS reads to one per active install.
+- Native sound startup: `SOUND/CQ_MAIN.TVB` is shared between SFX and engine-audio construction, reducing that bank from two OPFS reads to one per active install. Ordinary radio startup now reads/retains only the recovered default 3CH stereo pair; the dormant 1CH pair is loaded once only if native state 1 is selected.
 
 ## Install footprint accounting
 
@@ -24,4 +24,4 @@ Initial preflight still checks all selected source bytes because future compiled
 
 ## Remaining large-data work
 
-Long-form PAL radio VAGs are currently chunk-decoded for playback but retained as whole in-memory `Uint8Array`s after whole-file OPFS reads. Converting that cursor to asynchronous ranged backing storage is the next large-read target. ZIP imports also still require temporary expansion of the contained disc image before ISO extraction; direct ISO/BIN imports already use random-access sources.
+The active long-form PAL radio VAG pair is still chunk-decoded for playback but retained as whole in-memory `Uint8Array`s after whole-file OPFS reads. Startup no longer materializes the unused pair; converting the active cursor to asynchronous ranged backing storage remains the next large-read target. ZIP imports also still require temporary expansion of the contained disc image before ISO extraction; direct ISO/BIN imports already use random-access sources.

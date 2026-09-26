@@ -4,7 +4,7 @@ import { BrowserAudioRuntime, installBrowserAudioUnlock } from "./audio/browserA
 import { ordinaryRaceBgmSetup, resolveFixedRoomBgm, resolveQFactoryBgm, type NativeBgmProgram } from "./audio/nativeBgm";
 import { NativeBgmRuntime } from "./audio/nativeBgmRuntime";
 import { NativeEngineAudioRuntime } from "./audio/nativeEngineAudio";
-import { NativeRadioRuntime, nativeRadioTickMilliseconds } from "./audio/nativeRadioRuntime";
+import { NativeRadioRuntime, nativeRadioTickMilliseconds, resolveNativeRadioState } from "./audio/nativeRadioRuntime";
 import { NativeSfxRuntime, type NativeSfxEvent } from "./audio/nativeSfx";
 import { installAppShell } from "./app/appShell";
 import { grantAllDebugParts, setDebugCake, unlockAllDebugWarps } from "./app/debugCheats";
@@ -739,25 +739,28 @@ async function loadNativeBgm(directory: FileSystemDirectoryHandle): Promise<void
 async function loadNativeFreeRoamRadio(directory: FileSystemDirectoryHandle): Promise<void> {
   try {
     nativeRadioRuntime?.dispose();
-    const [oneLeft, oneRight, threeLeft, threeRight] = await Promise.all([
-      readBytes(directory, "game/SOUND/1CH_L.VAG"),
-      readBytes(directory, "game/SOUND/1CH_R.VAG"),
+    const [threeLeft, threeRight] = await Promise.all([
       readBytes(directory, "game/SOUND/3CH_L.VAG"),
       readBytes(directory, "game/SOUND/3CH_R.VAG"),
     ]);
     nativeRadioRuntime = new NativeRadioRuntime(
       audioRuntime,
-      {
-        tune0: { left: oneLeft, right: oneRight },
-        tune1: { left: threeLeft, right: threeRight },
-      },
+      { tune1: { left: threeLeft, right: threeRight } },
       {
         isAudioReady: () => audioRuntime.snapshot().state === "running",
         initialTick: Math.max(0, Math.floor((performance.now() - nativeRadioEpochMs) / nativeRadioTickMilliseconds)),
+        loadTune: async (tuneIndex) => {
+          const selection = resolveNativeRadioState((tuneIndex + 1) as 1 | 2)!;
+          const [left, right] = await Promise.all([
+            readBytes(directory, `game/SOUND/${selection.leftFile}`),
+            readBytes(directory, `game/SOUND/${selection.rightFile}`),
+          ]);
+          return { left, right };
+        },
         onError: (error) => console.warn("Native free-roam radio stream stopped after an audio error.", error),
       },
     );
-    console.info("Native free-roam radio: loaded recovered ordinary 1CH/3CH stream pairs; default state 2 selects synchronized 3CH.");
+    console.info("Native free-roam radio: loaded default synchronized 3CH pair; 1CH is deferred until native state 1 is selected.");
   } catch (error) {
     nativeRadioRuntime?.dispose();
     nativeRadioRuntime = undefined;
