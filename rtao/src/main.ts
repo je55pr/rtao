@@ -356,6 +356,7 @@ let paintShopCursor: PaintShopCursor = { kind: "body", tone: 0, channel: 0 };
 let shopInteriorPlayerBytes: Uint8Array | undefined;
 let shopInteriorTireBytes: Uint8Array | undefined;
 let shopInteriorWheelBytes: Uint8Array | undefined;
+const immutableInstalledAssetCacheLimit = 16;
 const immutableInstalledAssetBytes = new Map<string, Promise<Uint8Array>>();
 let bodyShopPreviewGeneration = 0;
 let bodyShopPreviewBodyId = 62;
@@ -4633,12 +4634,20 @@ async function readImmutableInstalledAssetBytes(
 ): Promise<Uint8Array> {
   if (directory !== activeDirectory) return readBytes(directory, path);
   let pending = immutableInstalledAssetBytes.get(path);
-  if (!pending) {
-    pending = readBytes(directory, path).catch((error) => {
-      immutableInstalledAssetBytes.delete(path);
-      throw error;
-    });
+  if (pending) {
+    immutableInstalledAssetBytes.delete(path);
     immutableInstalledAssetBytes.set(path, pending);
+    return pending;
+  }
+  pending = readBytes(directory, path).catch((error) => {
+    immutableInstalledAssetBytes.delete(path);
+    throw error;
+  });
+  immutableInstalledAssetBytes.set(path, pending);
+  while (immutableInstalledAssetBytes.size > immutableInstalledAssetCacheLimit) {
+    const oldest = immutableInstalledAssetBytes.keys().next().value as string | undefined;
+    if (oldest === undefined) break;
+    immutableInstalledAssetBytes.delete(oldest);
   }
   return pending;
 }

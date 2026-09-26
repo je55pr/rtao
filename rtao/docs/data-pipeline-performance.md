@@ -13,7 +13,7 @@ Do not delete raw `FLD/*.BIN` solely because `compiled/field-*.mesh` and `compil
 - SHOP interiors: runtime reads exactly one `0x3f000`-byte (258,048-byte) slot from `SHOP/Txx.BIN` instead of materializing the whole package. First and repeated entries use OPFS Blob slicing.
 - Outdoor field load: the raw FLD is read once per field load transaction and the same bytes are reused for native field registration and dynamic-object extraction. This removed the previous immediate second whole-FLD read.
 - Ordinary world residency: traversal is bounded to the topology-defined nearby 3x3 ring, at most 9 fields away from map edges. Eviction disposes field geometry/materials/textures, compiled/native collision and obstacle state, dynamic animation registrations, and resident models/actors. Explicit capture/debug whole-world loading remains separate.
-- Immutable installed assets: TIRE/WHEEL/car body source bytes are reused per active install rather than reread for repeated interiors, residents, races, and captures.
+- Immutable installed assets: TIRE/WHEEL/car body source bytes are reused rather than reread for repeated interiors, residents, races, and captures. The byte cache is a 16-entry LRU and is cleared on install replacement, so long traversal cannot retain every encountered car source indefinitely.
 - Native sound startup: `SOUND/CQ_MAIN.TVB` is shared between SFX and engine-audio construction, reducing that bank from two OPFS reads to one per active install.
 
 ## Install footprint accounting
