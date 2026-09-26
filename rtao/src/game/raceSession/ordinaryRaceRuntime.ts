@@ -7,7 +7,8 @@ import {
 import type { RaceActivityDescriptor, RaceCatalogue } from "../../formats/raceCatalogue";
 import type { CompiledFieldCollision } from "../../formats/fieldCollision";
 import { NativeRaceCollisionSampler } from "../nativeRaceCollision";
-import { readNativeRaceFrameData } from "../nativeRaceFrame";
+import { readNativeRaceFrameData, type NativeRaceFrameData } from "../nativeRaceFrame";
+import type { NativeCameraObstructionQuery } from "../nativeCameraRuntimeContract";
 import { readNativeRaceObstaclePoints } from "../nativeRaceObstacle";
 import {
   ordinaryRaceOpponentEquipment,
@@ -46,6 +47,9 @@ export interface OrdinaryRaceRuntime {
   readonly initialCommands: ReturnType<typeof createOrdinaryRaceEntrantInitialCommands>;
   readonly navigation: ReturnType<typeof readRaceNavigationCourses>[number];
   readonly speedProfile: Uint8Array;
+  readonly cameraMath: NativeRaceFrameData["math"];
+  readonly cameraObstructionQuery: NativeCameraObstructionQuery;
+  readonly sceneByte0B: number;
 }
 
 export interface OrdinaryRaceRuntimeSelection {
@@ -126,5 +130,11 @@ export function createOrdinaryRaceRuntime(input: OrdinaryRaceRuntimeInput): Ordi
     initialCommands,
     navigation,
     speedProfile: speedProfile.slice(),
+    cameraMath: frameData.math,
+    cameraObstructionQuery: ({ point }) => {
+      const hit = collision.query([point[0], point[1], point[2], 1]);
+      return hit.flags < 0 ? { valid: false } : { valid: true, correctedY: hit.point[1] };
+    },
+    sceneByte0B: input.sceneByte0B,
   };
 }

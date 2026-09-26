@@ -94,6 +94,22 @@ suite('verified PAL chase-camera executable evidence',()=>{
     const end=elf.indexOf(0,stringOffset);
     expect(elf.subarray(stringOffset,end).toString('ascii')).toBe('Change View');
   });
+  it('pins ordinary initial view selection to preset zero from a cleared context',()=>{
+    // Normal (non-type-26) selection starts with context bit 1. A cleared
+    // context therefore supplies a1=0 unless the native vehicle 0x0400 flag
+    // promotes the paired preset by ORing 4.
+    const contextBit=word(0x21f680);
+    expect(opcode(contextBit)).toBe(0x0c); // andi
+    expect(unsignedImmediate(contextBit)).toBe(2);
+    const pairedPreset=word(0x21f684);
+    expect(opcode(pairedPreset)).toBe(0x0d); // ori
+    expect(unsignedImmediate(pairedPreset)).toBe(4);
+    expect(jumpTarget(0x21f694,word(0x21f694))).toBe(0x2209c8);
+    // Type 26 is explicitly separate and selects the 8/9 pair.
+    expect(signedImmediate(word(0x21f658))).toBe(0x1a);
+    expect(signedImmediate(word(0x21f674))).toBe(8);
+  });
+
   it('pins the obstruction probes to PAL frustum corners and focal scaling',()=>{
     const table=0x2a2290;
     expect([0,1].map(index=>[

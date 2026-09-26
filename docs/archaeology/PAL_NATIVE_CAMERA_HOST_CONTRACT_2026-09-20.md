@@ -150,10 +150,13 @@ narrow and explicit:
   `0x00220458` eye/forward semantics are no longer a gap; once this bridge is
   connected in each live mode, browser geometry, smoothing and
   `rebaseBrowserChaseCamera` can be deleted rather than tuned.
-- `ordinaryRaceChaseCamera` remains the same explicit fallback pending the
-  upstream initial-preset selector and remaining output/probe seams. The race
-  contact and body matrices are now proven to be the source storage consumed
-  by `0x0021EAC8`; they are used structurally, not substituted heuristically.
+- ordinary-race presentation now runs the native producer directly. PAL's
+  normal first-selection path at `0x0021F680..0x0021F698` derives preset zero
+  from the cleared context; native type byte `26` is the separately gated 8/9
+  family. The race contact/body matrices and packed position feed
+  `0x0021EAC8`/`0x0021D6A0`, then exact native probes drive the recovered
+  course-collision obstruction loop. `ordinaryRaceChaseCamera` is retained only
+  as a legacy explicit helper and is no longer selected by ordinary race view.
 - `applyBrowserChaseObstructionSafety` remains host-only readability safety
   only for fallback poses. The ordinary-world native FLD collision-query adapter
   and recovered two-probe correction stage now have their exact producer too:
@@ -162,9 +165,6 @@ narrow and explicit:
   `gp-30824 == 1` display-scale family (`0.8`, `0.53`).
   `nativeCameraNearLowerProbes` and `materializeNativeCameraFinalOutput` now
   reproduce those probes; course-cell scene modes remain separately evidence-gated.
-- `browserOrdinaryChasePresetIndex = 0` stays until the upstream initial
-  preset selector is recovered. The ten preset records themselves are native;
-  selecting record zero as the initial browser view is not yet proven native.
 - the native projection mapping is now recovered: focal, two display-scale
   families, near `1.5`, far `65536`, and the three center pairs are represented
   by `nativeCameraProjectionContract`. This PAL executable fixes the display

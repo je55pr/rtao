@@ -2,12 +2,20 @@ import type { RaceCameraPose, RacePose, RaceView } from "../raceView";
 import { advanceNativeChaseCamera } from "../nativeChaseCamera";
 import {
   createNativeCameraRuntimeContractState,
+  nativeCameraFrameForRenderer,
   reflectNativeCameraPointX,
   replaceNativeCameraController,
-  selectNativeCameraRenderPose,
   type NativeCameraRuntimeContractState,
 } from "../nativeCameraRuntimeContract";
-import { browserOrdinaryChasePresetIndex } from "../browserChaseCameraSafety";
+import { materializeNativeCameraFinalOutput } from "../nativeCameraProducer";
+import { resolveNativeCameraObstruction } from "../nativeCameraObstruction";
+import {
+  nativeCameraFinalOutput,
+  nativeCameraNearLowerProbes,
+  nativePalCameraDisplayScaleMode,
+} from "../nativeCameraFinalOutput";
+import { nativeCameraWorldInputsFromCarMatrices } from "../nativeCameraWorldTransform";
+import { nativeRacePositionCoordinates } from "../nativeRaceVehicle";
 import { stepOrdinaryRaceAi, type NativeRaceAiMemory } from "../raceAi";
 import type { OrdinaryRaceSessionCarView, OrdinaryRaceSessionStepResult } from "./raceSession";
 import type { OrdinaryRaceRuntime } from "./ordinaryRaceRuntime";
@@ -52,8 +60,8 @@ export function ordinaryRaceChaseCamera(car: OrdinaryRaceSessionCarView): RaceCa
   const [x, y, z] = pose.position;
   const forwardX = Math.sin(pose.yaw);
   const forwardZ = Math.cos(pose.yaw);
-  // Explicit host fallback until the recovered 0x0021EAC8 camera-world
-  // transform is reproduced. Do not substitute the race contact matrix for it.
+  // Legacy helper retained for explicit non-native test/fallback callers only.
+  // Ordinary race presentation no longer selects this path.
   return {
     position: [x - forwardX * 10, y + 4.8, z - forwardZ * 10],
     target: [x + forwardX * 16, y + 1, z + forwardZ * 16],
@@ -61,8 +69,9 @@ export function ordinaryRaceChaseCamera(car: OrdinaryRaceSessionCarView): RaceCa
 }
 export class OrdinaryRaceCoordinator {
   private readonly ai = new Map<number, AiRuntimeState>();
+  // PAL 0x21F680 normal first-selection path copies preset 0 from a cleared context.
   private cameraRuntimeState: NativeCameraRuntimeContractState =
-    createNativeCameraRuntimeContractState(browserOrdinaryChasePresetIndex);
+    createNativeCameraRuntimeContractState(0);
 
   constructor(readonly runtime: OrdinaryRaceRuntime) {
     for (const initial of runtime.initialCommands) {
@@ -99,12 +108,12 @@ export class OrdinaryRaceCoordinator {
     }
     const player = poses.find((entry) => entry.carIndex === 0);
     if (!player) throw new Error("Ordinary race presentation has no player car 0.");
-    const fallback = ordinaryRaceChaseCamera(this.runtime.session.entrant(0));
-    const camera = selectNativeCameraRenderPose(
-      this.cameraRuntimeState,
-      (point) => reflectNativeCameraPointX(point, 1600),
-      fallback,
-    );
+    const output = this.cameraRuntimeState.finalOutput;
+    if (!output) throw new Error("Ordinary race native camera producer did not materialize output.");
+    const camera = nativeCameraFrameForRenderer(output, {
+      toRenderPoint: (point) => reflectNativeCameraPointX(point, 1600),
+      projection: null,
+    });
     view.setCameraPose(camera.pose);
     view.renderOnce();
   }
@@ -118,15 +127,40 @@ export class OrdinaryRaceCoordinator {
 
   private advancePlayerCamera(): void {
     const car = this.runtime.session.entrant(0);
-    this.cameraRuntimeState = replaceNativeCameraController(
+    const advanced = replaceNativeCameraController(
       this.cameraRuntimeState,
       advanceNativeChaseCamera(
         this.cameraRuntimeState.controller,
-        {
-          nativeSlip: car.state.vehicle.slipAngle,
-        },
+        { nativeSlip: car.state.vehicle.slipAngle },
       ),
     );
+    const translation = nativeRacePositionCoordinates(car.state.contact.position);
+    const produced = materializeNativeCameraFinalOutput(advanced, {
+      world: nativeCameraWorldInputsFromCarMatrices(
+        car.state.matrix,
+        car.state.bodyMatrix,
+        car.state.vehicle.yaw,
+      ),
+      translation,
+      math: this.runtime.cameraMath,
+    });
+    const obstruction = resolveNativeCameraObstruction(
+      produced.state.controller,
+      (controller) => ({
+        finalOutput: nativeCameraFinalOutput(controller, produced.worldMatrix),
+        nearLowerProbes: nativeCameraNearLowerProbes(
+          controller,
+          produced.worldMatrix,
+          nativePalCameraDisplayScaleMode,
+        ),
+      }),
+      this.runtime.cameraObstructionQuery,
+      { sceneByte0B: this.runtime.sceneByte0B },
+    );
+    this.cameraRuntimeState = {
+      controller: obstruction.controller,
+      finalOutput: obstruction.finalOutput,
+    };
   }
 
   private commandFor(car: OrdinaryRaceSessionCarView, playerCommands: number) {
