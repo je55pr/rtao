@@ -99,6 +99,33 @@ export function resolveTsqMusicChannelPrograms(
   });
 }
 
+
+export function collectReachableTsqToneSlots(
+  bytes: Uint8Array,
+  programs: readonly NativeTsqChannelProgram[],
+): readonly number[] {
+  const tones = new Set<number>();
+  for (const program of programs) {
+    let offset = program.startOffset;
+    const visited = new Set<number>();
+    while (!visited.has(offset)) {
+      if (offset < 0 || offset >= bytes.length) {
+        throw new Error(`TSQ channel ${program.channelIndex} reaches 0x${offset.toString(16)} outside ${bytes.length} bytes.`);
+      }
+      visited.add(offset);
+      const token = readTsqBytecodeToken(bytes, offset);
+      if (token.family === "tone") tones.add(token.immediateBytes[0]!);
+      if (token.family === "end") break;
+      if (token.family === "jump") {
+        offset = resolveTsqJumpTarget(token);
+      } else {
+        offset += token.length;
+      }
+    }
+  }
+  return [...tones].sort((left, right) => left - right);
+}
+
 /**
  * Deterministic TSQ control-flow scheduler.
  *
