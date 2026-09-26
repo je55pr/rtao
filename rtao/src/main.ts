@@ -679,7 +679,7 @@ async function loadNativeSfx(directory: FileSystemDirectoryHandle): Promise<void
   try {
     const [cqMainTsq, cqMainTvb, actionTsq, actionTvb] = await Promise.all([
       readBytes(directory, "game/SOUND/CQ_MAIN.TSQ"),
-      readBytes(directory, "game/SOUND/CQ_MAIN.TVB"),
+      readImmutableInstalledAssetBytes(directory, "game/SOUND/CQ_MAIN.TVB"),
       readBytes(directory, "game/SOUND/ACTION.TSQ"),
       readBytes(directory, "game/SOUND/ACTION.TVB"),
     ]);
@@ -694,7 +694,7 @@ async function loadNativeSfx(directory: FileSystemDirectoryHandle): Promise<void
 async function loadNativeEngineAudio(directory: FileSystemDirectoryHandle): Promise<void> {
   try {
     nativeEngineAudioRuntime?.stop();
-    const cqMainTvb = await readBytes(directory, "game/SOUND/CQ_MAIN.TVB");
+    const cqMainTvb = await readImmutableInstalledAssetBytes(directory, "game/SOUND/CQ_MAIN.TVB");
     nativeEngineAudioRuntime = NativeEngineAudioRuntime.fromCqMainTvb(audioRuntime, cqMainTvb);
     console.info("Native engine audio: validated CQ_MAIN loop slots 42/41 from the local PAL install.");
   } catch (error) {
