@@ -4244,7 +4244,7 @@ function renderQFactoryRaceChoices(host: HTMLElement): void {
     const launchSupported = qFactoryRaceLaunchSupported(option);
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "factory-race-choice";
+    button.className = "pal-menu-row factory-race-choice";
     button.disabled = !launchSupported;
     button.dataset.nativeAvailability = option.unlocked ? "unlocked" : "locked";
     const name = document.createElement("span");
