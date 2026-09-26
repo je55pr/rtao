@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { createNativeChaseCameraState } from "./nativeChaseCamera";
 import {
   advanceNativeCameraWorldTransform,
+  nativeCameraWorldInputsFromCarMatrices,
   rotateNativeCameraXZ,
 } from "./nativeCameraWorldTransform";
 import type { NativeRaceMathData } from "./nativeRaceMath";
@@ -18,6 +19,18 @@ const math: NativeRaceMathData = {
 };
 
 describe("native camera world transform", () => {
+  test("bridges the exact PAL car matrix fields consumed by 0x21EAC8", () => {
+    const matrix = Array.from({ length: 16 }, (_, index) => index + 0.25);
+    const bodyMatrix = Array.from({ length: 16 }, (_, index) => 100 + index + 0.5);
+    expect(nativeCameraWorldInputsFromCarMatrices(matrix, bodyMatrix, -0x1234)).toEqual({
+      sourceVector: [4.25, 5.25, 6.25, 7.25],
+      offset50: 104.5,
+      offset58: 106.5,
+      nativeYaw: -0x1234,
+    });
+    expect(() => nativeCameraWorldInputsFromCarMatrices(matrix.slice(1), bodyMatrix, 0)).toThrow(RangeError);
+  });
+
   test("matches the helper's manual X/Z signed-angle convention", () => {
     const quarter = rotateNativeCameraXZ([1, 2, 0, 0], 0x4000);
     expect(quarter[0]).toBeCloseTo(0, 6);

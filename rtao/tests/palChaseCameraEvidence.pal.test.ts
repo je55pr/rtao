@@ -122,6 +122,17 @@ suite('verified PAL chase-camera executable evidence',()=>{
     expect(rs(yaw)).toBe(17);
     expect(signedImmediate(yaw)).toBe(0x1d4);
 
+    // The ordinary car frame constructs the two source matrices in-place.
+    // 0x21C8AC builds car+0x00 from the contact normal, then 0x21C8CC applies yaw.
+    expect(jumpTarget(0x21c8ac,word(0x21c8ac))).toBe(0x2086c0);
+    expect(jumpTarget(0x21c8cc,word(0x21c8cc))).toBe(0x208738);
+    const bodyBase=word(0x21d3dc);
+    expect(opcode(bodyBase)).toBe(9);
+    expect(rs(bodyBase)).toBe(17);
+    expect(rt(bodyBase)).toBe(4);
+    expect(signedImmediate(bodyBase)).toBe(0x40);
+    expect(jumpTarget(0x21d448,word(0x21d448))).toBe(0x2086c0);
+
     // Ordinary update passes car+0xA0 directly to the packed-position decoder.
     const packedCarAddress=word(0x21fa54);
     expect(opcode(packedCarAddress)).toBe(9);

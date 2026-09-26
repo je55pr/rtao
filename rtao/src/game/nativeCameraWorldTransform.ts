@@ -33,6 +33,31 @@ export interface NativeCameraWorldTransformResult {
   readonly auxiliaryMatrix: NativeRaceMatrix;
 }
 
+/**
+ * PAL car-record bridge for 0x0021EAC8.
+ *
+ * 0x0021C8AC writes the contact/orientation matrix at car +0x00 and
+ * 0x0021C8CC applies car yaw in place, so car +0x10 is matrix column 1.
+ * 0x0021D448 writes the suspension/body basis at car +0x40, making +0x50
+ * and +0x58 that basis' normal X/Z components. Keep this bridge structural:
+ * callers must supply those retained native matrices, never browser poses.
+ */
+export function nativeCameraWorldInputsFromCarMatrices(
+  matrix: NativeRaceMatrix,
+  bodyMatrix: NativeRaceMatrix,
+  nativeYaw: number,
+): NativeCameraWorldInputs {
+  if (matrix.length !== 16 || bodyMatrix.length !== 16) {
+    throw new RangeError("Native camera car matrices must contain 16 values.");
+  }
+  return {
+    sourceVector: [matrix[4]!, matrix[5]!, matrix[6]!, matrix[7]!] as NativeRaceVector,
+    offset50: bodyMatrix[4]!,
+    offset58: bodyMatrix[6]!,
+    nativeYaw,
+  };
+}
+
 export function advanceNativeCameraWorldTransform(
   controller: NativeChaseCameraState,
   input: NativeCameraWorldInputs,

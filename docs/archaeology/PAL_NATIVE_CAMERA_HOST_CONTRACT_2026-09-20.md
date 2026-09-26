@@ -140,14 +140,20 @@ The live fallbacks remain necessary, but their retirement conditions are now
 narrow and explicit:
 
 - `browserChaseCamera.ts` distance/lift/blend framing stays only until each
-  live driving mode can supply the exact `0x0021EAC8` car inputs
-  (`+0x10/+0x50/+0x58/+0x1D4`) to `advanceNativeCameraWorldTransform`.
-  `0x00220458` eye/forward semantics are no longer a gap; once the input bridge
-  is connected, browser geometry, smoothing and `rebaseBrowserChaseCamera` can
-  be deleted rather than tuned.
-- `ordinaryRaceChaseCamera` remains the same explicit fallback. The retained
-  race contact matrix is not substituted for the camera-specific
-  `0x0021EAC8` matrix merely because both are native transforms.
+  live driving mode connects the now-recovered `0x0021EAC8` car-input bridge.
+  `0x0021C8AC` builds the contact/orientation matrix at car `+0x00` and
+  `0x0021C8CC` applies yaw in place, so car `+0x10` is that matrix's second
+  vec4 column. `0x0021D3DC` selects car `+0x40` and `0x0021D448` builds the
+  suspension/body basis there, so car `+0x50/+0x58` are that basis normal's
+  X/Z components. `nativeCameraWorldInputsFromCarMatrices` exposes exactly
+  those retained fields together with `+0x1D4` yaw, without browser pose data.
+  `0x00220458` eye/forward semantics are no longer a gap; once this bridge is
+  connected in each live mode, browser geometry, smoothing and
+  `rebaseBrowserChaseCamera` can be deleted rather than tuned.
+- `ordinaryRaceChaseCamera` remains the same explicit fallback pending the
+  upstream initial-preset selector and remaining output/probe seams. The race
+  contact and body matrices are now proven to be the source storage consumed
+  by `0x0021EAC8`; they are used structurally, not substituted heuristically.
 - `applyBrowserChaseObstructionSafety` remains host-only readability safety
   only for fallback poses. The ordinary-world native FLD collision-query adapter
   and recovered two-probe correction stage now exist, but live native correction
