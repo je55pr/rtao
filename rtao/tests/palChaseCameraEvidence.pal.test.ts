@@ -94,6 +94,24 @@ suite('verified PAL chase-camera executable evidence',()=>{
     const end=elf.indexOf(0,stringOffset);
     expect(elf.subarray(stringOffset,end).toString('ascii')).toBe('Change View');
   });
+  it('pins the obstruction probes to PAL frustum corners and focal scaling',()=>{
+    const table=0x2a2290;
+    expect([0,1].map(index=>[
+      float32(table+index*16),float32(table+index*16+4),
+      float32(table+index*16+8),float32(table+index*16+12),
+    ])).toEqual([[-320,-112,1.5,1],[320,-112,1.5,1]]);
+    expect(jumpTarget(0x220584,word(0x220584))).toBe(0x2201f0);
+    const probeOutput=word(0x220500);
+    expect(opcode(probeOutput)).toBe(9);
+    expect(rs(probeOutput)).toBe(18);
+    expect(rt(probeOutput)).toBe(16);
+    expect(signedImmediate(probeOutput)).toBe(0x100);
+    expect(word(0x3d5f88)).toBe(1);
+    expect(float32(0x3d5984)).toBeCloseTo(0.8,7);
+    expect(float32(0x3d5988)).toBeCloseTo(0.53,7);
+    expect(float32(0x3d598c)).toBeCloseTo(0.47,7);
+  });
+
   it('pins the ordinary and recenter producer ABI through packed car translation',()=>{
     for(const calls of [
       {follow:0x21fa50,packed:0x21fa5c,builder:0x21fa70},

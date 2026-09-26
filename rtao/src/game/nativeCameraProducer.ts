@@ -1,6 +1,8 @@
 import {
   nativeCameraFinalOutput,
+  nativeCameraNearLowerProbes,
   nativeCameraWorldMatrix,
+  nativePalCameraDisplayScaleMode,
 } from "./nativeCameraFinalOutput";
 import {
   advanceNativeCameraWorldTransform,
@@ -33,14 +35,17 @@ export interface NativeCameraProducerResult {
   readonly worldMatrix: NativeRaceMatrix;
   /** Secondary matrix passed as a3 to 0x00220458. */
   readonly auxiliaryMatrix: NativeRaceMatrix;
+  /** Exact output +0x100/+0x110 probes consumed by 0x0021EF20. */
+  readonly nearLowerProbes: readonly [NativeCameraVector, NativeCameraVector];
 }
 
 /**
  * Composes only recovered producer stages.
  *
  * The caller must advance descriptor pitch/slip/recenter state first and must
- * supply decoded PAL car inputs. This function deliberately does not infer
- * missing host fields, display mode, obstruction results, or renderer policy.
+ * supply decoded PAL car inputs. PAL's gp-30824 display-scale selector is a
+ * fixed executable global here; this function still does not infer missing
+ * host fields, obstruction query results, or renderer policy.
  */
 export function materializeNativeCameraFinalOutput(
   state: NativeCameraRuntimeContractState,
@@ -56,6 +61,11 @@ export function materializeNativeCameraFinalOutput(
     inputs.translation,
   );
   const finalOutput = nativeCameraFinalOutput(world.controller, worldMatrix);
+  const nearLowerProbes = nativeCameraNearLowerProbes(
+    world.controller,
+    worldMatrix,
+    nativePalCameraDisplayScaleMode,
+  );
   return {
     state: {
       controller: world.controller,
@@ -63,5 +73,6 @@ export function materializeNativeCameraFinalOutput(
     },
     worldMatrix,
     auxiliaryMatrix: world.auxiliaryMatrix,
+    nearLowerProbes,
   };
 }

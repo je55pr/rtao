@@ -156,18 +156,21 @@ narrow and explicit:
   by `0x0021EAC8`; they are used structurally, not substituted heuristically.
 - `applyBrowserChaseObstructionSafety` remains host-only readability safety
   only for fallback poses. The ordinary-world native FLD collision-query adapter
-  and recovered two-probe correction stage now exist, but live native correction
-  still waits for exact transformed near-edge probes from the final-output
-  producer; course-cell scene modes remain separately evidence-gated.
+  and recovered two-probe correction stage now have their exact producer too:
+  `0x002201F0` transforms table points `(-320,-112,1.5,1)` and
+  `(320,-112,1.5,1)` into output `+0x100/+0x110`, using focal and PAL's fixed
+  `gp-30824 == 1` display-scale family (`0.8`, `0.53`).
+  `nativeCameraNearLowerProbes` and `materializeNativeCameraFinalOutput` now
+  reproduce those probes; course-cell scene modes remain separately evidence-gated.
 - `browserOrdinaryChasePresetIndex = 0` stays until the upstream initial
   preset selector is recovered. The ten preset records themselves are native;
   selecting record zero as the initial browser view is not yet proven native.
 - the native projection mapping is now recovered: focal, two display-scale
   families, near `1.5`, far `65536`, and the three center pairs are represented
-  by `nativeCameraProjectionContract`. Live Three.js projection stays on
-  `hostCameraProjection.ts` only until the runtime meaning/selection of the two
-  display-scale modes is connected; shifted centers require an off-axis/custom
-  matrix rather than a simple PerspectiveCamera FOV.
+  by `nativeCameraProjectionContract`. This PAL executable fixes the display
+  family selector at mode 1; live Three.js projection now only needs the
+  ordinary center-state selection connected. Shifted centers require an
+  off-axis/custom matrix rather than a simple PerspectiveCamera FOV.
 - OrbitControls world/field overview cameras are developer/navigation
   presentation, not part of the driving-camera replacement and are unaffected.
 

@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { createNativeChaseCameraState } from "./nativeChaseCamera";
 import {
   nativeCameraFinalOutput,
+  nativeCameraNearLowerProbes,
   nativeCameraProjectionContract,
   nativeCameraWorldMatrix,
 } from "./nativeCameraFinalOutput";
@@ -44,6 +45,25 @@ describe("native camera final output", () => {
     expect(output.forward[0]).toBeCloseTo(0, 7);
     expect(output.forward[1]).toBeCloseTo(-0.085797, 6);
     expect(output.forward[2]).toBeCloseTo(0.996313, 6);
+  });
+
+  test("reproduces the lower near-edge probes consumed by PAL obstruction", () => {
+    const state = {
+      ...createNativeChaseCameraState(0),
+      localOffset: [0, 0, 0, 1] as const,
+      pitchAngle: 0,
+      slipInput: 0,
+      recenter: { ...createNativeChaseCameraState(0).recenter, angle: 0 },
+    };
+    const mode0 = nativeCameraNearLowerProbes(state, nativeRaceIdentity(), 0);
+    expect(mode0[0][0]).toBeCloseTo(-0.96, 6);
+    expect(mode0[0][1]).toBeCloseTo(-168 / 235, 6);
+    expect(mode0[0][2]).toBeCloseTo(1.5, 7);
+    expect(mode0[1][0]).toBeCloseTo(0.96, 6);
+    const mode1 = nativeCameraNearLowerProbes(state, nativeRaceIdentity(), 1);
+    expect(mode1[0][0]).toBeCloseTo(-1.2, 6);
+    expect(mode1[0][1]).toBeCloseTo(-168 / 265, 6);
+    expect(mode1[1][0]).toBeCloseTo(1.2, 6);
   });
 
   test("reproduces both recovered display-scale projection families", () => {

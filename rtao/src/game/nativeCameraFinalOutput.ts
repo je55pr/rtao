@@ -5,6 +5,8 @@ import type { NativeCameraFinalOutput, NativeCameraVector } from "./nativeCamera
 const f = Math.fround;
 
 export type NativeCameraDisplayScaleMode = 0 | 1;
+/** PAL executable global gp-30824 is initialized to 1 and has no direct store. */
+export const nativePalCameraDisplayScaleMode: NativeCameraDisplayScaleMode = 1;
 export type NativeCameraProjectionCenterMode = "ordinary" | "state-2" | "state-3";
 
 export interface NativeCameraProjectionContract {
@@ -47,6 +49,35 @@ export function nativeCameraFinalOutput(
     forward: [forward[0], forward[1], forward[2]],
     focal: controller.focal,
   };
+}
+
+/**
+ * Reproduces output +0x100/+0x110 from 0x002201F0: PAL's lower near-plane
+ * frustum corners transformed through the same camera-to-world basis as the
+ * final eye at +0x170. These are the exact probes consumed by 0x0021EF20.
+ */
+export function nativeCameraNearLowerProbes(
+  controller: NativeChaseCameraState,
+  worldMatrix: NativeRaceMatrix,
+  displayScaleMode: NativeCameraDisplayScaleMode,
+): readonly [NativeCameraVector, NativeCameraVector] {
+  const output = nativeCameraFinalOutput(controller, worldMatrix);
+  const pitch = nativeCameraSignedAngleRadians(controller.pitchAngle);
+  const yaw = nativeCameraSignedAngleRadians(controller.recenter.angle + controller.slipInput);
+  const right = transformNativeRaceVector(worldMatrix, rotateLocalCameraVector([1, 0, 0, 0], pitch, yaw, 0));
+  const up = transformNativeRaceVector(worldMatrix, rotateLocalCameraVector([0, 1, 0, 0], pitch, yaw, 0));
+  const forward = output.forward;
+  const xScale = displayScaleMode === 0 ? 1 : f(0.8);
+  const yScale = displayScaleMode === 0 ? f(0.47) : f(0.53);
+  const near = 1.5;
+  const x = f(f(320 * near) / f(controller.focal * xScale));
+  const y = f(f(-112 * near) / f(controller.focal * yScale));
+  const point = (side: -1 | 1): NativeCameraVector => [
+    f(f(f(output.eye[0] + f(right[0] * f(side * x))) + f(up[0] * y)) + f(forward[0] * near)),
+    f(f(f(output.eye[1] + f(right[1] * f(side * x))) + f(up[1] * y)) + f(forward[1] * near)),
+    f(f(f(output.eye[2] + f(right[2] * f(side * x))) + f(up[2] * y)) + f(forward[2] * near)),
+  ];
+  return [point(-1), point(1)];
 }
 
 /**

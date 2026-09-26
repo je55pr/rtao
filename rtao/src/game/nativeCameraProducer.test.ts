@@ -1,7 +1,9 @@
 import { describe, expect, test } from "vitest";
 import {
   nativeCameraFinalOutput,
+  nativeCameraNearLowerProbes,
   nativeCameraWorldMatrix,
+  nativePalCameraDisplayScaleMode,
 } from "./nativeCameraFinalOutput";
 import { materializeNativeCameraFinalOutput } from "./nativeCameraProducer";
 import {
@@ -48,6 +50,9 @@ describe("native camera producer", () => {
     expect(produced.state.finalOutput).toEqual(expected);
     expect(produced.worldMatrix).toEqual(worldMatrix);
     expect(produced.auxiliaryMatrix).toEqual(world.auxiliaryMatrix);
+    expect(produced.nearLowerProbes).toEqual(
+      nativeCameraNearLowerProbes(world.controller, worldMatrix, nativePalCameraDisplayScaleMode),
+    );
     expect(produced.state.finalOutput).not.toEqual(stale.finalOutput);
   });
 
