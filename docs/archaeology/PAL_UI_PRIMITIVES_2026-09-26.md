@@ -144,3 +144,17 @@ The glyph routine `0x00201D70` uses executable glyph metrics and emits native
 render commands, but this tranche does not establish the final PAL colour or
 texture meaning of renderer modes 0/5/6/10. Browser colours must therefore not
 be derived from those numeric mode values without further evidence.
+
+## Render-mode interpretation boundary
+
+Tracing `0x002042A8` into glyph emission shows its fourth argument is installed
+as the current native render-command state. `0x00201D70` observes that state
+while emitting GS command packets and switches command setup when the state
+changes. The lower renderer `0x00206730` packs geometry/UV data; it does not
+turn shared-menu modes 0/5/6/10 into a directly recoverable browser RGB value.
+
+Accordingly, this evidence is sufficient to model selection as row-level
+presentation state, but not to map those mode numbers to CSS colours,
+backgrounds, glyph textures, or cursor art. Existing host colours and
+pseudo-element arrows remain accessibility/presentation affordances outside the
+recovered PAL primitive until the relevant GS state/palette source is proven.
