@@ -71,6 +71,7 @@ export interface NativeRadioRuntimeOptions {
   readonly onError?: (error: unknown) => void;
   readonly loadTune?: (tuneIndex: 0 | 1) => Promise<NativeRadioTuneAssets>;
   readonly asyncTunes?: readonly [NativeRadioAsyncTune | undefined, NativeRadioAsyncTune | undefined];
+  readonly loadAsyncTune?: (tuneIndex: 0 | 1) => Promise<NativeRadioAsyncTune>;
 }
 
 const defaultClock: NativeRadioClock = {
@@ -295,7 +296,8 @@ export class NativeRadioRuntime {
   private readonly lookaheadSeconds: number;
   private readonly baseTunes: [StereoCursor | undefined, StereoCursor | undefined];
   private readonly loadTune?: (tuneIndex: 0 | 1) => Promise<NativeRadioTuneAssets>;
-  private readonly asyncTunes?: readonly [NativeRadioAsyncTune | undefined, NativeRadioAsyncTune | undefined];
+  private readonly asyncTunes: [NativeRadioAsyncTune | undefined, NativeRadioAsyncTune | undefined];
+  private readonly loadAsyncTune?: (tuneIndex: 0 | 1) => Promise<NativeRadioAsyncTune>;
   private readonly onError?: (error: unknown) => void;
   private scheduledCursor?: StereoCursor;
   private asyncScheduledSample = 0;
@@ -321,7 +323,8 @@ export class NativeRadioRuntime {
     this.chunkSamples = options.chunkSamples ?? 6_000;
     this.lookaheadSeconds = options.lookaheadSeconds ?? 1.5;
     this.loadTune = options.loadTune;
-    this.asyncTunes = options.asyncTunes;
+    this.asyncTunes = [...(options.asyncTunes ?? [undefined, undefined])];
+    this.loadAsyncTune = options.loadAsyncTune;
     this.onError = options.onError;
     if (!Number.isSafeInteger(this.chunkSamples) || this.chunkSamples <= 0) {
       throw new RangeError(`Native radio chunkSamples must be a positive integer; got ${this.chunkSamples}.`);
@@ -367,13 +370,17 @@ export class NativeRadioRuntime {
   async setState(state: 0 | 1 | 2): Promise<void> {
     const selection = resolveNativeRadioState(state);
     if (this.state === state) return;
-    if (selection && !this.baseTunes[selection.tuneIndex] && !this.asyncTunes?.[selection.tuneIndex]) {
-      if (!this.loadTune) throw new Error(`PAL radio tune ${selection.tuneIndex} is not loaded and has no lazy loader.`);
-      const assets = await this.loadTune(selection.tuneIndex);
-      this.baseTunes[selection.tuneIndex] = new StereoCursor(
-        new PalVagChannelCursor(assets.left),
-        new PalVagChannelCursor(assets.right),
-      );
+    if (selection && !this.baseTunes[selection.tuneIndex] && !this.asyncTunes[selection.tuneIndex]) {
+      if (this.loadAsyncTune) {
+        this.asyncTunes[selection.tuneIndex] = await this.loadAsyncTune(selection.tuneIndex);
+      } else {
+        if (!this.loadTune) throw new Error(`PAL radio tune ${selection.tuneIndex} is not loaded and has no lazy loader.`);
+        const assets = await this.loadTune(selection.tuneIndex);
+        this.baseTunes[selection.tuneIndex] = new StereoCursor(
+          new PalVagChannelCursor(assets.left),
+          new PalVagChannelCursor(assets.right),
+        );
+      }
     }
     this.state = state;
     this.stopScheduled();

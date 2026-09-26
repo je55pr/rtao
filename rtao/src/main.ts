@@ -758,13 +758,13 @@ async function loadNativeFreeRoamRadio(directory: FileSystemDirectoryHandle): Pr
         isAudioReady: () => audioRuntime.snapshot().state === "running",
         asyncTunes: [undefined, threeSource],
         initialTick: Math.max(0, Math.floor((performance.now() - nativeRadioEpochMs) / nativeRadioTickMilliseconds)),
-        loadTune: async (tuneIndex) => {
+        loadAsyncTune: async (tuneIndex) => {
           const selection = resolveNativeRadioState((tuneIndex + 1) as 1 | 2)!;
-          const [left, right] = await Promise.all([
-            readBytes(directory, `game/SOUND/${selection.leftFile}`),
-            readBytes(directory, `game/SOUND/${selection.rightFile}`),
-          ]);
-          return { left, right };
+          return openOpfsRadioStereoSource(
+            directory,
+            `game/SOUND/${selection.leftFile}`,
+            `game/SOUND/${selection.rightFile}`,
+          );
         },
         onError: (error) => console.warn("Native free-roam radio stream stopped after an audio error.", error),
       },
