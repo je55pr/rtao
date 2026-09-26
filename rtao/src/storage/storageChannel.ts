@@ -1,8 +1,7 @@
 /**
- * Origin storage is shared by every build served from the same host, and OPFS
- * is keyed by origin rather than by path. A stable build at `/` and a DEV build
- * at `/dev/` would therefore share one install, one current pointer and one
- * cache schema version, so each build names its own storage root instead.
+ * OPFS is keyed by origin. The hosted build now lives only at the root Pages
+ * URL, but it intentionally keeps the historical `dev` channel so installs
+ * created by the former `/dev/` deployment remain reusable after the move.
  */
 
 export const stableAppDirectoryName = "rta-browser";

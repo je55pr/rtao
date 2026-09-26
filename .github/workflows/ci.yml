@@ -2,9 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, dev]
-  # Every pull request, whatever it targets: normal work integrates into dev,
-  # and a stacked PR is based on another task branch rather than on dev.
+    branches: [dev]
   pull_request:
 
 concurrency:
