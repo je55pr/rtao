@@ -1196,7 +1196,7 @@ async function ensureWorldFieldLoaded(fieldNumber: number): Promise<void> {
     drivingWorld!.addCompiledField(fieldNumber, collision);
     drivingWorld!.addNativeField(fieldNumber, nativeFieldBytes);
     loadedWorldFieldNumbers.add(fieldNumber);
-    await loadLazyFieldDynamicObjects(fieldNumber);
+    await loadLazyFieldDynamicObjects(fieldNumber, nativeFieldBytes);
     requiredElement<HTMLElement>("field-count").textContent = String(stats.sectors);
     requiredElement<HTMLElement>("triangle-count").textContent = stats.triangles.toLocaleString();
   })();
@@ -1231,7 +1231,7 @@ async function ensureSpecialOutdoorLoaded(areaCode: number): Promise<void> {
   try { await task; } finally { loadingSpecialOutdoorAreas.delete(areaCode); }
 }
 
-async function loadLazyFieldDynamicObjects(fieldNumber: number): Promise<void> {
+async function loadLazyFieldDynamicObjects(fieldNumber: number, fieldBytes?: Uint8Array): Promise<void> {
   if (!activeManifest || !activeDirectory || !worldView) return;
   const field = activeManifest.fields.find((candidate) => candidate.fieldNumber === fieldNumber);
   if (!field || field.sectionCount < 5) return;
@@ -1239,7 +1239,7 @@ async function loadLazyFieldDynamicObjects(fieldNumber: number): Promise<void> {
     import("./formats/fieldObjects"),
     import("./formats/fieldGeometry"),
   ]);
-  const raw = await readBytes(activeDirectory, `game/${field.path}`);
+  const raw = fieldBytes ?? await readBytes(activeDirectory, `game/${field.path}`);
   const asset = readFieldObjectAsset(raw);
   if (!asset) return;
   const staticPlacement = staticFieldObjectPlacementForField(fieldNumber);
@@ -3920,8 +3920,8 @@ async function startQFactoryInterior(interaction: FixedInteractionDefinition): P
   sizeFactoryStage();
   sceneFade.flash();
   try {
-    const [{ readShopInteriorSlotBackdrop, shopInteriorSlotSize }, { DialogueFlow: DialogueFlowClass, readDialogueEntityAtIndex }, { QFactoryInteriorView: InteriorViewClass }, { Q62CarModel: CarModelClass }, shopBytes, tireBytes, wheelBytes, playerBytes, staffBytes] = await Promise.all([
-      import("./formats/shopInterior"),
+    const { readShopInteriorSlotBackdrop, shopInteriorSlotSize } = await import("./formats/shopInterior");
+    const [{ DialogueFlow: DialogueFlowClass, readDialogueEntityAtIndex }, { QFactoryInteriorView: InteriorViewClass }, { Q62CarModel: CarModelClass }, shopBytes, tireBytes, wheelBytes, playerBytes, staffBytes] = await Promise.all([
       import("./formats/dialogue"),
       import("./game/interiorView"),
       import("./game/carView"),
