@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readTsq, readTsqBytecodeToken, tsqBoundaryMarker } from "../formats/tsq";
 import {
   NativeTsqSequencer,
+  collectReachableTsqToneSlots,
   nativeTsqStepUpdates,
   resolveTsqJumpTarget,
   resolveTsqMusicChannelPrograms,
@@ -28,6 +29,28 @@ function makeMusicTsq(): Uint8Array {
   bytes[0x300] = 0xff;
   return bytes;
 }
+describe("TSQ tone census", () => {
+  it("collects unique reachable tones and terminates on an unconditional loop", () => {
+    const bytes = new Uint8Array([
+      0xe2, 0x09,
+      0x81, 0x01,
+      0xe2, 0x03,
+      0xf8, 0xf8, 0xff,
+      0xe2, 0x7f, 0xff,
+    ]);
+    expect(collectReachableTsqToneSlots(bytes, [{ channelIndex: 0, startOffset: 0 }]))
+      .toEqual([3, 9]);
+  });
+
+  it("combines tone sets from independent channels", () => {
+    const bytes = new Uint8Array([0xe2, 0x05, 0xff, 0xe2, 0x02, 0xff]);
+    expect(collectReachableTsqToneSlots(bytes, [
+      { channelIndex: 0, startOffset: 0 },
+      { channelIndex: 1, startOffset: 3 },
+    ])).toEqual([2, 5]);
+  });
+});
+
 describe("NativeTsqSequencer timing", () => {
   it("keeps step delay in integer TSQ time and dispatches only due voice controls", () => {
     const bytes = new Uint8Array([0xe2, 0x05, 0x81, 0x03, 0xf0, 0xff]);

@@ -82,7 +82,12 @@ export interface ImportManifest {
   readonly sourceKind: "iso" | "zip-iso" | "zip-bin-cue" | "bin-cue" | "bin";
   readonly identity: GameIdentity;
   readonly files: CachedFileRecord[];
+  /** Source-file bytes retained under game/. */
   readonly totalBytes: number;
+  /** Install-time derived mesh/collision bytes retained under compiled/. */
+  readonly derivedBytes?: number;
+  /** Total persistent footprint represented by source + derived artifacts. */
+  readonly installedBytes?: number;
   /** A bootstrap install is already playable in Peach Town while the worker fills the remaining cache. */
   readonly installStage?: "bootstrap" | "complete";
   readonly fields: FieldSummaryRecord[];
@@ -156,6 +161,22 @@ export async function writeJson(root: FileSystemDirectoryHandle, path: string, v
 export async function readBytes(root: FileSystemDirectoryHandle, path: string): Promise<Uint8Array> {
   const handle = await resolveFile(root, path);
   return new Uint8Array(await (await handle.getFile()).arrayBuffer());
+}
+
+export async function readByteRange(
+  root: FileSystemDirectoryHandle,
+  path: string,
+  offset: number,
+  length: number,
+): Promise<Uint8Array> {
+  if (!Number.isSafeInteger(offset) || offset < 0) throw new RangeError("Byte range offset must be a non-negative safe integer.");
+  if (!Number.isSafeInteger(length) || length < 0) throw new RangeError("Byte range length must be a non-negative safe integer.");
+  const handle = await resolveFile(root, path);
+  const file = await handle.getFile();
+  if (offset + length > file.size) {
+    throw new RangeError(`Byte range [${offset}, ${offset + length}) lies beyond the ${file.size}-byte file '${path}'.`);
+  }
+  return new Uint8Array(await file.slice(offset, offset + length).arrayBuffer());
 }
 
 export async function readJson<T>(root: FileSystemDirectoryHandle, path: string): Promise<T> {

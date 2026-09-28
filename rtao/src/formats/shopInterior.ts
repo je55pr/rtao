@@ -24,8 +24,15 @@ export function readShopInteriorBackdrop(bytes: Uint8Array, slotIndex: number): 
   if (slotOffset + shopInteriorSlotSize > bytes.length) {
     throw new RangeError(`SHOP slot ${slotIndex} lies beyond the ${bytes.length.toLocaleString()}-byte package.`);
   }
-  const chain = readDmaChain(bytes, slotOffset, shopInteriorSlotSize);
-  const uploads = readTextureUploads(bytes, slotOffset, shopInteriorSlotSize);
+  return readShopInteriorSlotBackdrop(bytes.subarray(slotOffset, slotOffset + shopInteriorSlotSize), slotIndex);
+}
+
+export function readShopInteriorSlotBackdrop(slotBytes: Uint8Array, slotIndex: number): ShopInteriorBackdrop {
+  if (slotBytes.length !== shopInteriorSlotSize) {
+    throw new RangeError(`SHOP slot ${slotIndex} is ${slotBytes.length.toLocaleString()} bytes; expected ${shopInteriorSlotSize.toLocaleString()}.`);
+  }
+  const chain = readDmaChain(slotBytes, 0, shopInteriorSlotSize);
+  const uploads = readTextureUploads(slotBytes, 0, shopInteriorSlotSize);
   return decodeShopInteriorUploads(uploads, slotIndex, chain.length);
 }
 

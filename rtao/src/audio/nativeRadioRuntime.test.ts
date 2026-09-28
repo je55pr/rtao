@@ -101,6 +101,88 @@ describe("PAL ordinary free-roam radio contract", () => {
     runtime.dispose();
   });
 
+  it("loads the dormant 1CH pair only when native state 1 is selected", async () => {
+    const audio = new FakeRadioAudio();
+    const three = makeVag(0x11);
+    const one = makeVag(0x22);
+    const loads: number[] = [];
+    const runtime = new NativeRadioRuntime(
+      audio,
+      { tune1: { left: three, right: three } },
+      {
+        autoClock: false,
+        chunkSamples: 28,
+        lookaheadSeconds: 0.002,
+        clock: { now: () => 0, setInterval: () => 0, clearInterval: () => undefined },
+        loadTune: async (tuneIndex) => {
+          loads.push(tuneIndex);
+          return { left: one, right: one };
+        },
+      },
+    );
+    runtime.startOutdoor();
+    expect(loads).toEqual([]);
+    await runtime.setState(1);
+    expect(loads).toEqual([0]);
+    expect(runtime.snapshot()).toMatchObject({ active: true, state: 1, program: 0 });
+    await runtime.setState(2);
+    await runtime.setState(1);
+    expect(loads).toEqual([0]);
+    runtime.dispose();
+  });
+
+  it("loads a dormant ranged tune once without materializing legacy assets", async () => {
+    const audio = new FakeRadioAudio();
+    const three = makeVag(0x11);
+    const loads: number[] = [];
+    const ranged = {
+      readClip: async (_offset: number, count: number): Promise<PcmClip> => ({
+        sampleRate: 12_000,
+        channels: [new Float32Array(count), new Float32Array(count)],
+        frameCount: count,
+      }),
+    };
+    const runtime = new NativeRadioRuntime(audio, { tune1: { left: three, right: three } }, {
+      autoClock: false,
+      chunkSamples: 28,
+      lookaheadSeconds: 0.002,
+      clock: { now: () => 0, setInterval: () => 0, clearInterval: () => undefined },
+      loadAsyncTune: async (tuneIndex) => {
+        loads.push(tuneIndex);
+        return ranged;
+      },
+    });
+    runtime.startOutdoor();
+    await runtime.setState(1);
+    await Promise.resolve();
+    expect(loads).toEqual([0]);
+    await runtime.setState(2);
+    await runtime.setState(1);
+    expect(loads).toEqual([0]);
+    runtime.dispose();
+  });
+
+  it("drops an in-flight ranged clip after outdoor playback stops", async () => {
+    const audio = new FakeRadioAudio();
+    let resolveClip!: (clip: PcmClip) => void;
+    const pending = new Promise<PcmClip>((resolve) => { resolveClip = resolve; });
+    const runtime = new NativeRadioRuntime(audio, {}, {
+      autoClock: false,
+      chunkSamples: 28,
+      lookaheadSeconds: 0.002,
+      clock: { now: () => 0, setInterval: () => 0, clearInterval: () => undefined },
+      asyncTunes: [undefined, { readClip: () => pending }],
+    });
+    runtime.startOutdoor();
+    runtime.stopOutdoor();
+    resolveClip({ sampleRate: 12_000, channels: [new Float32Array(28), new Float32Array(28)], frameCount: 28 });
+    await pending;
+    await Promise.resolve();
+    expect(audio.voices).toHaveLength(0);
+    expect(runtime.snapshot()).toMatchObject({ active: false, scheduledChunks: 0 });
+    runtime.dispose();
+  });
+
   it("keeps the synchronized counter moving while radio playback is stopped", () => {
     const audio = new FakeRadioAudio();
     const bytes = makeVag(0x00);

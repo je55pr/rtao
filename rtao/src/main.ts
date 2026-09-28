@@ -4,7 +4,8 @@ import { BrowserAudioRuntime, installBrowserAudioUnlock } from "./audio/browserA
 import { ordinaryRaceBgmSetup, resolveFixedRoomBgm, resolveQFactoryBgm, type NativeBgmProgram } from "./audio/nativeBgm";
 import { NativeBgmRuntime } from "./audio/nativeBgmRuntime";
 import { NativeEngineAudioRuntime } from "./audio/nativeEngineAudio";
-import { NativeRadioRuntime, nativeRadioTickMilliseconds } from "./audio/nativeRadioRuntime";
+import { NativeRadioRuntime, nativeRadioTickMilliseconds, resolveNativeRadioState } from "./audio/nativeRadioRuntime";
+import { openOpfsRadioStereoSource } from "./audio/opfsRadioSource";
 import { NativeSfxRuntime, type NativeSfxEvent } from "./audio/nativeSfx";
 import { installAppShell } from "./app/appShell";
 import { grantAllDebugParts, setDebugCake, unlockAllDebugWarps } from "./app/debugCheats";
@@ -140,6 +141,7 @@ import {
   clearCurrentPointer,
   currentImportDirectory,
   type ImportManifest,
+  readByteRange,
   readBytes,
   readCurrentManifest,
   readJson,
@@ -355,6 +357,8 @@ let paintShopCursor: PaintShopCursor = { kind: "body", tone: 0, channel: 0 };
 let shopInteriorPlayerBytes: Uint8Array | undefined;
 let shopInteriorTireBytes: Uint8Array | undefined;
 let shopInteriorWheelBytes: Uint8Array | undefined;
+const immutableInstalledAssetCacheLimit = 16;
+const immutableInstalledAssetBytes = new Map<string, Promise<Uint8Array>>();
 let bodyShopPreviewGeneration = 0;
 let bodyShopPreviewBodyId = 62;
 let qFactoryLoading = false;
@@ -643,6 +647,7 @@ requiredElement<HTMLButtonElement>("remove-install").addEventListener("click", a
   drivingWorld = undefined;
   activeDirectory = undefined;
   activeManifest = undefined;
+  immutableInstalledAssetBytes.clear();
   nativeSfxRuntime = undefined;
   nativeEngineAudioRuntime?.stop();
   nativeEngineAudioRuntime = undefined;
@@ -676,7 +681,7 @@ async function loadNativeSfx(directory: FileSystemDirectoryHandle): Promise<void
   try {
     const [cqMainTsq, cqMainTvb, actionTsq, actionTvb] = await Promise.all([
       readBytes(directory, "game/SOUND/CQ_MAIN.TSQ"),
-      readBytes(directory, "game/SOUND/CQ_MAIN.TVB"),
+      readImmutableInstalledAssetBytes(directory, "game/SOUND/CQ_MAIN.TVB"),
       readBytes(directory, "game/SOUND/ACTION.TSQ"),
       readBytes(directory, "game/SOUND/ACTION.TVB"),
     ]);
@@ -691,7 +696,7 @@ async function loadNativeSfx(directory: FileSystemDirectoryHandle): Promise<void
 async function loadNativeEngineAudio(directory: FileSystemDirectoryHandle): Promise<void> {
   try {
     nativeEngineAudioRuntime?.stop();
-    const cqMainTvb = await readBytes(directory, "game/SOUND/CQ_MAIN.TVB");
+    const cqMainTvb = await readImmutableInstalledAssetBytes(directory, "game/SOUND/CQ_MAIN.TVB");
     nativeEngineAudioRuntime = NativeEngineAudioRuntime.fromCqMainTvb(audioRuntime, cqMainTvb);
     console.info("Native engine audio: validated CQ_MAIN loop slots 42/41 from the local PAL install.");
   } catch (error) {
@@ -735,25 +740,36 @@ async function loadNativeBgm(directory: FileSystemDirectoryHandle): Promise<void
 async function loadNativeFreeRoamRadio(directory: FileSystemDirectoryHandle): Promise<void> {
   try {
     nativeRadioRuntime?.dispose();
-    const [oneLeft, oneRight, threeLeft, threeRight] = await Promise.all([
-      readBytes(directory, "game/SOUND/1CH_L.VAG"),
-      readBytes(directory, "game/SOUND/1CH_R.VAG"),
-      readBytes(directory, "game/SOUND/3CH_L.VAG"),
-      readBytes(directory, "game/SOUND/3CH_R.VAG"),
-    ]);
+    let threeSource;
+    let fallbackTune1;
+    try {
+      threeSource = await openOpfsRadioStereoSource(directory, "game/SOUND/3CH_L.VAG", "game/SOUND/3CH_R.VAG");
+    } catch {
+      const [left, right] = await Promise.all([
+        readBytes(directory, "game/SOUND/3CH_L.VAG"),
+        readBytes(directory, "game/SOUND/3CH_R.VAG"),
+      ]);
+      fallbackTune1 = { left, right };
+    }
     nativeRadioRuntime = new NativeRadioRuntime(
       audioRuntime,
-      {
-        tune0: { left: oneLeft, right: oneRight },
-        tune1: { left: threeLeft, right: threeRight },
-      },
+      { tune1: fallbackTune1 },
       {
         isAudioReady: () => audioRuntime.snapshot().state === "running",
+        asyncTunes: [undefined, threeSource],
         initialTick: Math.max(0, Math.floor((performance.now() - nativeRadioEpochMs) / nativeRadioTickMilliseconds)),
+        loadAsyncTune: async (tuneIndex) => {
+          const selection = resolveNativeRadioState((tuneIndex + 1) as 1 | 2)!;
+          return openOpfsRadioStereoSource(
+            directory,
+            `game/SOUND/${selection.leftFile}`,
+            `game/SOUND/${selection.rightFile}`,
+          );
+        },
         onError: (error) => console.warn("Native free-roam radio stream stopped after an audio error.", error),
       },
     );
-    console.info("Native free-roam radio: loaded recovered ordinary 1CH/3CH stream pairs; default state 2 selects synchronized 3CH.");
+    console.info(`Native free-roam radio: ${threeSource ? "checkpointed OPFS range streaming" : "legacy whole-file fallback"} for default 3CH; 1CH is deferred until native state 1 is selected.`);
   } catch (error) {
     nativeRadioRuntime?.dispose();
     nativeRadioRuntime = undefined;
@@ -891,6 +907,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   drivingWorld = undefined;
   activeDirectory = undefined;
   activeManifest = undefined;
+  immutableInstalledAssetBytes.clear();
   choroCoinPlacements = [];
   loadedWorldFieldNumbers.clear();
   loadingWorldFields.clear();
@@ -1192,7 +1209,7 @@ async function ensureWorldFieldLoaded(fieldNumber: number): Promise<void> {
     drivingWorld!.addCompiledField(fieldNumber, collision);
     drivingWorld!.addNativeField(fieldNumber, nativeFieldBytes);
     loadedWorldFieldNumbers.add(fieldNumber);
-    await loadLazyFieldDynamicObjects(fieldNumber);
+    await loadLazyFieldDynamicObjects(fieldNumber, nativeFieldBytes);
     requiredElement<HTMLElement>("field-count").textContent = String(stats.sectors);
     requiredElement<HTMLElement>("triangle-count").textContent = stats.triangles.toLocaleString();
   })();
@@ -1227,7 +1244,7 @@ async function ensureSpecialOutdoorLoaded(areaCode: number): Promise<void> {
   try { await task; } finally { loadingSpecialOutdoorAreas.delete(areaCode); }
 }
 
-async function loadLazyFieldDynamicObjects(fieldNumber: number): Promise<void> {
+async function loadLazyFieldDynamicObjects(fieldNumber: number, fieldBytes?: Uint8Array): Promise<void> {
   if (!activeManifest || !activeDirectory || !worldView) return;
   const field = activeManifest.fields.find((candidate) => candidate.fieldNumber === fieldNumber);
   if (!field || field.sectionCount < 5) return;
@@ -1235,7 +1252,7 @@ async function loadLazyFieldDynamicObjects(fieldNumber: number): Promise<void> {
     import("./formats/fieldObjects"),
     import("./formats/fieldGeometry"),
   ]);
-  const raw = await readBytes(activeDirectory, `game/${field.path}`);
+  const raw = fieldBytes ?? await readBytes(activeDirectory, `game/${field.path}`);
   const asset = readFieldObjectAsset(raw);
   if (!asset) return;
   const staticPlacement = staticFieldObjectPlacementForField(fieldNumber);
@@ -1251,21 +1268,41 @@ async function loadLazyFieldDynamicObjects(fieldNumber: number): Promise<void> {
 
 async function syncLoadedWorldResidents(): Promise<void> {
   if (!activeManifest || !activeDirectory || !overworldCatalogue || !worldSimulation) return;
+  residentModelLoadGeneration += 1;
+  worldSimulation.removeDefinitionsOutsideFields(loadedWorldFieldNumbers);
   worldSimulation.addDefinitions(
     overworldCatalogue.residents.filter((resident) => loadedWorldFieldNumbers.has(resident.fieldNumber)),
   );
+  requiredElement<HTMLElement>("resident-count").textContent = worldSimulation.modelCount + "/" + worldSimulation.residents.length;
   if (worldSimulation.modelCount >= worldSimulation.residents.length) return;
   const generation = residentModelLoadGeneration;
   await queueResidentModelLoad(activeManifest, activeDirectory, worldSimulation, generation);
 }
 
+function evictWorldFieldsOutside(fieldNumbers: ReadonlySet<number>): void {
+  if (!worldView || !drivingWorld) return;
+  let stats;
+  for (const loaded of [...loadedWorldFieldNumbers]) {
+    if (fieldNumbers.has(loaded) || loadingWorldFields.has(loaded)) continue;
+    stats = worldView.removeField(loaded);
+    drivingWorld.removeField(loaded);
+    loadedWorldFieldNumbers.delete(loaded);
+  }
+  if (stats) {
+    requiredElement<HTMLElement>("field-count").textContent = String(stats.sectors);
+    requiredElement<HTMLElement>("triangle-count").textContent = stats.triangles.toLocaleString();
+  }
+}
+
 async function ensureNearbyWorldFields(fieldNumber: number): Promise<void> {
   if (!activeManifest || activeManifest.installStage === "bootstrap") return;
   const { nearbyWorldFieldNumbers } = await import("./game/worldTopology");
-  for (const nearby of nearbyWorldFieldNumbers(fieldNumber)) {
+  const desiredFields = new Set(nearbyWorldFieldNumbers(fieldNumber));
+  for (const nearby of desiredFields) {
     await ensureWorldFieldLoaded(nearby);
     await nextFrame();
   }
+  evictWorldFieldsOutside(desiredFields);
   await syncLoadedWorldResidents();
 }
 
@@ -1360,7 +1397,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
     readBytes(activeDirectory, compiled.path),
     readBytes(activeDirectory, collision.path),
     readBytes(activeDirectory, `game/${source.path}`),
-    readBytes(activeDirectory, "game/CARS/TIRE.BIN"),
+    readImmutableInstalledAssetBytes(activeDirectory, "game/CARS/TIRE.BIN"),
     readOptionalInstalledWheelBytes(activeDirectory),
   ]);
   const runtime = createOrdinaryRaceRuntime({
@@ -1389,7 +1426,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
       const bodyId = entrant.kind === "opponent" ? entrant.participant.bodyId : 62;
       let bytes = bodyBytes.get(bodyId);
       if (!bytes) {
-        bytes = await readBytes(activeDirectory, `game/${carAssetPath(bodyId)}`);
+        bytes = await readImmutableInstalledAssetBytes(activeDirectory, `game/${carAssetPath(bodyId)}`);
         bodyBytes.set(bodyId, bytes);
       }
       const paintWord = entrant.kind === "opponent"
@@ -2931,11 +2968,15 @@ async function startShopInteriorPreview(interaction: FixedInteractionDefinition)
   sceneFade.flash();
 
   try {
-    const { readShopInteriorBackdrop, shopInteriorPackagePath, shopInteriorSlotCount } = await import("./formats/shopInterior");
+    const { readShopInteriorSlotBackdrop, shopInteriorPackagePath, shopInteriorSlotSize } = await import("./formats/shopInterior");
     const packagePath = shopInteriorPackagePath(interaction.areaIndex);
     const staffPath = carAssetPath(interaction.bodyId);
-    const available = new Set(activeManifest.files.map((file) => file.path.toUpperCase()));
-    if (!available.has(packagePath.toUpperCase())) throw new Error(`The local install does not contain ${packagePath}.`);
+    const packageRecord = activeManifest.files.find((file) => file.path.toUpperCase() === packagePath.toUpperCase());
+    if (!packageRecord) throw new Error(`The local install does not contain ${packagePath}.`);
+    const slotCount = Math.floor(packageRecord.size / shopInteriorSlotSize);
+    if (interaction.localIndex >= slotCount) {
+      throw new Error(`${packagePath} contains ${slotCount} fixed slots; interaction ${interaction.localIndex} lies outside the package.`);
+    }
     const [
       { ShopInteriorRoomView: InteriorPreviewClass },
       { DialogueFlow: DialogueFlowClass, readDialogueEntityAtIndex },
@@ -2949,22 +2990,18 @@ async function startShopInteriorPreview(interaction: FixedInteractionDefinition)
       import("./game/interiorView"),
       import("./formats/dialogue"),
       import("./game/carView"),
-      readBytes(activeDirectory, `game/${packagePath}`),
-      readBytes(activeDirectory, "game/CARS/TIRE.BIN"),
+      readByteRange(activeDirectory, `game/${packagePath}`, interaction.localIndex * shopInteriorSlotSize, shopInteriorSlotSize),
+      readImmutableInstalledAssetBytes(activeDirectory, "game/CARS/TIRE.BIN"),
       readOptionalInstalledWheelBytes(activeDirectory),
-      readBytes(activeDirectory, "game/CAR2/Q62.BIN"),
-      readBytes(activeDirectory, `game/${staffPath}`),
+      readImmutableInstalledAssetBytes(activeDirectory, "game/CAR2/Q62.BIN"),
+      readImmutableInstalledAssetBytes(activeDirectory, `game/${staffPath}`),
     ]);
     if (generation !== shopInteriorPreviewLoadGeneration) return;
     shopInteriorPlayerBytes = playerBytes;
     shopInteriorTireBytes = tireBytes;
     shopInteriorWheelBytes = wheelBytes;
     bodyShopPreviewBodyId = 62;
-    const slotCount = shopInteriorSlotCount(shopBytes);
-    if (interaction.localIndex >= slotCount) {
-      throw new Error(`${packagePath} contains ${slotCount} fixed slots; interaction ${interaction.localIndex} lies outside the package.`);
-    }
-    const backdrop = readShopInteriorBackdrop(shopBytes, interaction.localIndex);
+    const backdrop = readShopInteriorSlotBackdrop(shopBytes, interaction.localIndex);
     const playerModel = new CarModelClass(playerBytes, tireBytes, { name: "Q62 interior player", ...currentPlayerCarOptions(wheelBytes) });
     playerModel.setPartsAppearance(aggregatePartsAppearance(equippedParts));
     const staffModel = new CarModelClass(staffBytes, tireBytes, {
@@ -3917,19 +3954,19 @@ async function startQFactoryInterior(interaction: FixedInteractionDefinition): P
   sizeFactoryStage();
   sceneFade.flash();
   try {
-    const [{ readShopInteriorBackdrop }, { DialogueFlow: DialogueFlowClass, readDialogueEntityAtIndex }, { QFactoryInteriorView: InteriorViewClass }, { Q62CarModel: CarModelClass }, shopBytes, tireBytes, wheelBytes, playerBytes, staffBytes] = await Promise.all([
-      import("./formats/shopInterior"),
+    const { readShopInteriorSlotBackdrop, shopInteriorSlotSize } = await import("./formats/shopInterior");
+    const [{ DialogueFlow: DialogueFlowClass, readDialogueEntityAtIndex }, { QFactoryInteriorView: InteriorViewClass }, { Q62CarModel: CarModelClass }, shopBytes, tireBytes, wheelBytes, playerBytes, staffBytes] = await Promise.all([
       import("./formats/dialogue"),
       import("./game/interiorView"),
       import("./game/carView"),
-      readBytes(activeDirectory, "game/SHOP/T00.BIN"),
-      readBytes(activeDirectory, "game/CARS/TIRE.BIN"),
+      readByteRange(activeDirectory, "game/SHOP/T00.BIN", interaction.localIndex * shopInteriorSlotSize, shopInteriorSlotSize),
+      readImmutableInstalledAssetBytes(activeDirectory, "game/CARS/TIRE.BIN"),
       readOptionalInstalledWheelBytes(activeDirectory),
-      readBytes(activeDirectory, "game/CAR2/Q62.BIN"),
-      readBytes(activeDirectory, `game/${staffPath}`),
+      readImmutableInstalledAssetBytes(activeDirectory, "game/CAR2/Q62.BIN"),
+      readImmutableInstalledAssetBytes(activeDirectory, `game/${staffPath}`),
     ]);
     if (generation !== qFactoryLoadGeneration) return;
-    const backdrop = readShopInteriorBackdrop(shopBytes, interaction.localIndex);
+    const backdrop = readShopInteriorSlotBackdrop(shopBytes, interaction.localIndex);
     const playerModel = new CarModelClass(playerBytes, tireBytes, { name: "Q62 factory player", ...currentPlayerCarOptions(wheelBytes) });
     playerModel.setPartsAppearance(aggregatePartsAppearance(equippedParts));
     const staffModel = new CarModelClass(staffBytes, tireBytes, {
@@ -4428,8 +4465,8 @@ async function ensurePlayerCarModel(): Promise<Q62CarModel> {
   if (!activeDirectory) throw new Error("The installed game data is unavailable for Q62 capture.");
   const [{ Q62CarModel: Q62CarModelClass }, carBytes, tireBytes, wheelBytes] = await Promise.all([
     import("./game/carView"),
-    readBytes(activeDirectory, "game/CAR2/Q62.BIN"),
-    readBytes(activeDirectory, "game/CARS/TIRE.BIN"),
+    readImmutableInstalledAssetBytes(activeDirectory, "game/CAR2/Q62.BIN"),
+    readImmutableInstalledAssetBytes(activeDirectory, "game/CARS/TIRE.BIN"),
     readOptionalInstalledWheelBytes(activeDirectory),
   ]);
   playerCar = new Q62CarModelClass(carBytes, tireBytes, currentPlayerCarOptions(wheelBytes));
@@ -4484,7 +4521,7 @@ async function loadResidentModels(
     const bPriority = b.state.fieldNumber === 223 ? 0 : 1;
     return aPriority - bPriority || a.state.fieldNumber - b.state.fieldNumber || a.state.id.localeCompare(b.state.id);
   });
-  const tireBytes = await readBytes(directory, "game/CARS/TIRE.BIN");
+  const tireBytes = await readImmutableInstalledAssetBytes(directory, "game/CARS/TIRE.BIN");
   const carBytesByBody = new Map<number, Uint8Array>();
   const { Q62CarModel: CarModelClass } = await import("./game/carView");
   let loaded = simulation.modelCount;
@@ -4496,7 +4533,7 @@ async function loadResidentModels(
     if (!available.has(path.toUpperCase())) continue;
     let carBytes = carBytesByBody.get(definition.bodyId);
     if (!carBytes) {
-      carBytes = await readBytes(directory, `game/${path}`);
+      carBytes = await readImmutableInstalledAssetBytes(directory, `game/${path}`);
       carBytesByBody.set(definition.bodyId, carBytes);
     }
     const model = new CarModelClass(carBytes, tireBytes, {
@@ -4607,11 +4644,35 @@ function selectedPartIndex(loadout: PartLoadout, category: PartCategory): number
   return Math.max(0, developmentPartCatalogue[category].findIndex((definition) => definition.id === loadout[category]));
 }
 
+async function readImmutableInstalledAssetBytes(
+  directory: FileSystemDirectoryHandle,
+  path: string,
+): Promise<Uint8Array> {
+  if (directory !== activeDirectory) return readBytes(directory, path);
+  let pending = immutableInstalledAssetBytes.get(path);
+  if (pending) {
+    immutableInstalledAssetBytes.delete(path);
+    immutableInstalledAssetBytes.set(path, pending);
+    return pending;
+  }
+  pending = readBytes(directory, path).catch((error) => {
+    immutableInstalledAssetBytes.delete(path);
+    throw error;
+  });
+  immutableInstalledAssetBytes.set(path, pending);
+  while (immutableInstalledAssetBytes.size > immutableInstalledAssetCacheLimit) {
+    const oldest = immutableInstalledAssetBytes.keys().next().value as string | undefined;
+    if (oldest === undefined) break;
+    immutableInstalledAssetBytes.delete(oldest);
+  }
+  return pending;
+}
+
 async function readOptionalInstalledWheelBytes(directory: FileSystemDirectoryHandle): Promise<Uint8Array | undefined> {
   const cached = activeManifest?.files.some((file) => file.path.toUpperCase() === "CARS/WHEEL.BIN");
   if (cached === false) return undefined;
   try {
-    return await readBytes(directory, "game/CARS/WHEEL.BIN");
+    return await readImmutableInstalledAssetBytes(directory, "game/CARS/WHEEL.BIN");
   } catch (error) {
     if (error instanceof DOMException && error.name === "NotFoundError") return undefined;
     throw error;

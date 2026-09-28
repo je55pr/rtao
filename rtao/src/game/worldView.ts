@@ -361,6 +361,35 @@ export class WorldView {
     return this.stats();
   }
 
+  removeField(fieldNumber: number): WorldViewStats {
+    const sector = this.sectors.get(fieldNumber);
+    if (!sector) return this.stats();
+    if (this.choroCoins) {
+      for (const placement of visibleChoroCoinPlacements(this.choroCoins.placements, fieldNumber, this.choroCoins.collectedIndices)) {
+        this.choroCoins.instances.get(placement.index)?.removeFromParent();
+        this.choroCoins.instances.delete(placement.index);
+      }
+    }
+    if (sector.dynamic) {
+      const animated = new Set(sector.dynamic.animated);
+      for (let index = this.animatedDynamicObjects.length - 1; index >= 0; index -= 1) {
+        if (animated.has(this.animatedDynamicObjects[index]!)) this.animatedDynamicObjects.splice(index, 1);
+      }
+    }
+    sector.group.traverse((object) => {
+      if (object instanceof THREE.Mesh) object.geometry.dispose();
+    });
+    for (const material of sector.materials) material.dispose();
+    for (const texture of sector.textures) texture.dispose();
+    if (sector.dynamic) {
+      sector.dynamic.material.dispose();
+      sector.dynamic.texture?.dispose();
+    }
+    sector.group.removeFromParent();
+    this.sectors.delete(fieldNumber);
+    return this.stats();
+  }
+
   addCompiledSpecialOutdoorScene(areaCode: number, compiled: CompiledFieldMesh): void {
     if (this.specialOutdoorScenes.has(areaCode)) throw new Error(`Special outdoor area-code ${areaCode} is already loaded.`);
     const resources = createOutdoorSceneResources(`ACTION special-outdoor area-code ${areaCode}`, compiled);
@@ -678,6 +707,12 @@ export class WorldView {
     state.position = position;
     state.yaw = yaw;
     this.positionActor(state);
+  }
+
+  removeWorldActor(id: string): void {
+    const actor = this.actors.get(id);
+    actor?.object.removeFromParent();
+    this.actors.delete(id);
   }
 
   clearWorldActors(): void {

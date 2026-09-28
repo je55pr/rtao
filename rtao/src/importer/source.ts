@@ -77,8 +77,9 @@ async function openZip(file: File, importId: string, progress: Progress): Promis
   });
   // Every exit closes the reader, including the throwing ones: a malformed CUE
   // or a failed extraction used to leave it open.
-  let importDirectory: FileSystemDirectoryHandle;
-  let temporaryPath: string;
+  let importDirectory: FileSystemDirectoryHandle | undefined;
+  let temporaryPath: string | undefined;
+  let storedDiscBlob: Blob | undefined;
   let cueSheet: ReturnType<typeof parseCueSheet> | undefined;
   let kind: SourceKind;
   try {
@@ -116,21 +117,28 @@ async function openZip(file: File, importId: string, progress: Progress): Promis
       kind = "zip-bin-cue";
     }
 
-    await assertStorageHeadroom(sourceEntry.uncompressedSize);
-    importDirectory = await createImportDirectory(importId);
-    temporaryPath = `temporary/${kind === "zip-iso" ? "game.iso" : "game.bin"}`;
-    progress("archive", `Extracting ${basename(sourceEntry.filename)} locally`, 0, sourceEntry.uncompressedSize);
-    await writeFile(importDirectory, temporaryPath, async (destination) => {
-      await sourceEntry.getData(destination, {
-        checkCrc32: true,
-        onprogress: (completed, total) => progress("archive", `Extracting ${basename(sourceEntry.filename)} locally`, completed, total),
+    if (sourceEntry.compressionMethod === 0) {
+      storedDiscBlob = await storedZipEntryBlob(file, sourceEntry);
+      progress("archive", `Using stored ${basename(sourceEntry.filename)} directly from ZIP`, sourceEntry.uncompressedSize, sourceEntry.uncompressedSize);
+    } else {
+      await assertStorageHeadroom(sourceEntry.uncompressedSize);
+      importDirectory = await createImportDirectory(importId);
+      temporaryPath = `temporary/${kind === "zip-iso" ? "game.iso" : "game.bin"}`;
+      progress("archive", `Extracting ${basename(sourceEntry.filename)} locally`, 0, sourceEntry.uncompressedSize);
+      await writeFile(importDirectory, temporaryPath, async (destination) => {
+        await sourceEntry.getData(destination, {
+          checkCrc32: true,
+          onprogress: (completed, total) => progress("archive", `Extracting ${basename(sourceEntry.filename)} locally`, completed, total),
+        });
       });
-    });
+    }
   } finally {
     await reader.close().catch(() => undefined);
   }
 
-  const stored = await fileSource(importDirectory, temporaryPath);
+  const stored: RandomAccessSource = storedDiscBlob
+    ? new BlobSource(storedDiscBlob, `ZIP stored entry: ${file.name}`)
+    : await fileSource(importDirectory!, temporaryPath!);
   const sectors: RandomAccessSource = kind === "zip-iso"
     ? stored
     : new RawMode2SectorSource(stored, cueSheet?.firstSector ?? 0);
@@ -141,12 +149,31 @@ async function openZip(file: File, importId: string, progress: Progress): Promis
     label: file.name,
     cleanup: async () => {
       try {
-        await importDirectory.removeEntry("temporary", { recursive: true });
+        await importDirectory?.removeEntry("temporary", { recursive: true });
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "NotFoundError")) throw error;
       }
     },
   };
+}
+
+export async function storedZipEntryBlob(
+  archive: Blob,
+  entry: Pick<Entry, "offset" | "compressionMethod" | "uncompressedSize" | "compressedSize">,
+): Promise<Blob> {
+  if (entry.compressionMethod !== 0) throw new Error("ZIP entry is compressed and cannot be projected directly.");
+  if (entry.compressedSize !== entry.uncompressedSize) throw new Error("Stored ZIP entry has inconsistent compressed and uncompressed sizes.");
+  const headerBytes = new Uint8Array(await archive.slice(entry.offset, entry.offset + 30).arrayBuffer());
+  if (headerBytes.byteLength !== 30) throw new Error("ZIP local header is truncated.");
+  const header = new DataView(headerBytes.buffer, headerBytes.byteOffset, headerBytes.byteLength);
+  if (header.getUint32(0, true) !== 0x04034b50) throw new Error("ZIP local header signature is invalid.");
+  if (header.getUint16(8, true) !== 0) throw new Error("ZIP local header disagrees with stored compression metadata.");
+  const filenameLength = header.getUint16(26, true);
+  const extraFieldLength = header.getUint16(28, true);
+  const dataOffset = entry.offset + 30 + filenameLength + extraFieldLength;
+  const endOffset = dataOffset + entry.uncompressedSize;
+  if (endOffset > archive.size) throw new Error("Stored ZIP entry extends past the archive.");
+  return archive.slice(dataOffset, endOffset);
 }
 
 function safeArchiveName(path: string): boolean {
