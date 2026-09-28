@@ -20,6 +20,7 @@ export interface LiveDiagnostics {
   readonly surfaceFlags: number | undefined;
   readonly loadedSectors: number;
   readonly installStage: string | undefined;
+  readonly fieldAssetCache?: { readonly entries: number; readonly hits: number; readonly misses: number };
   readonly raceVehicleCollisions?: readonly { readonly firstCarIndex: number; readonly secondCarIndex: number }[];
 }
 
@@ -50,6 +51,12 @@ export function liveDiagnosticsRows(live: LiveDiagnostics): readonly Diagnostics
     { label: "Mode", value: live.mode },
     { label: "FPS", value: live.fps === undefined ? "—" : live.fps.toFixed(0) },
     { label: "Cache", value: live.installStage ? `${live.installStage} · ${live.loadedSectors} live` : `${live.loadedSectors} live` },
+    {
+      label: "Field asset cache",
+      value: live.fieldAssetCache
+        ? `${live.fieldAssetCache.entries} retained · ${live.fieldAssetCache.hits} hits · ${live.fieldAssetCache.misses} misses`
+        : "—",
+    },
     { label: "Field", value: live.fieldNumber === undefined ? "—" : `FLD/${live.fieldNumber.toString().padStart(3, "0")}` },
     {
       label: "Position",

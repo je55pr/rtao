@@ -25,6 +25,8 @@ import { cycleOptionIndex, focusNavigationEntry, moveNavigationIndex } from "./a
 import { createWarpMenuState, moveWarpMenuSelection, selectedWarpMenuDestination, type WarpMenuState } from "./app/warpMenuState";
 import { carAssetPath } from "./formats/carPath";
 import type { ChoroCoinPlacement } from "./formats/choroCoins";
+import type { CompiledFieldCollision } from "./formats/fieldCollision";
+import type { CompiledFieldMesh } from "./formats/fieldGeometry";
 import type { DialogueActionToken, DialogueEntity, DialogueFlow, DialogueRuntimeState, DialogueVariant } from "./formats/dialogue";
 import type { AuthoredOverworldCatalogue, FixedInteractionDefinition } from "./formats/overworld";
 import { isQuickPicPhotoNumber } from "./formats/quickPic";
@@ -113,6 +115,7 @@ import {
 } from "./game/parts";
 import type { RaceCompletionResult, RecoveredRaceState } from "./game/raceProgress";
 import type { OrdinaryRaceCoordinator } from "./game/raceSession/ordinaryRaceCoordinator";
+import { RuntimeFieldAssetCache } from "./game/runtimeFieldAssetCache";
 import { qFactoryOrdinaryRaceRuntimeSupported, qFactoryRaceLaunchActivityId, qFactoryRaceOptions, qFactoryRaceSelectionTargets, type QFactoryRaceOption } from "./game/raceSession/qFactoryRaceFlow";
 import type { RaceView } from "./game/raceView";
 import {
@@ -360,6 +363,14 @@ let shopInteriorTireBytes: Uint8Array | undefined;
 let shopInteriorWheelBytes: Uint8Array | undefined;
 const immutableInstalledAssetCacheLimit = 16;
 const immutableInstalledAssetBytes = new Map<string, Promise<Uint8Array>>();
+
+interface RuntimeFieldAssets {
+  readonly mesh: CompiledFieldMesh;
+  readonly collision: CompiledFieldCollision;
+  readonly nativeFieldBytes: Uint8Array;
+}
+
+const runtimeFieldAssetCache = new RuntimeFieldAssetCache<RuntimeFieldAssets>(12);
 let bodyShopPreviewGeneration = 0;
 let bodyShopPreviewBodyId = 62;
 let qFactoryLoading = false;
@@ -649,6 +660,7 @@ requiredElement<HTMLButtonElement>("remove-install").addEventListener("click", a
   activeDirectory = undefined;
   activeManifest = undefined;
   immutableInstalledAssetBytes.clear();
+  runtimeFieldAssetCache.clear();
   nativeSfxRuntime = undefined;
   nativeEngineAudioRuntime?.stop();
   nativeEngineAudioRuntime = undefined;
@@ -909,6 +921,7 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   activeDirectory = undefined;
   activeManifest = undefined;
   immutableInstalledAssetBytes.clear();
+  runtimeFieldAssetCache.clear();
   choroCoinPlacements = [];
   loadedWorldFieldNumbers.clear();
   loadingWorldFields.clear();
@@ -994,8 +1007,9 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   const suppressedByField: string[] = [];
   let stats = { sectors: 0, triangles: 0, primitives: 0 };
   for (const [index, compiled] of compiledWorld.entries()) {
-    const bytes = await readBytes(directory, compiled.path);
-    const mesh = deserializeCompiledField(bytes);
+    const mesh = startupFieldSet
+      ? (await readRuntimeFieldAssets(compiled.fieldNumber)).mesh
+      : deserializeCompiledField(await readBytes(directory, compiled.path));
     stats = worldView.addCompiledFieldMesh(compiled.fieldNumber, mesh);
     drivingWorld.addCompiledFieldSurface(compiled.fieldNumber, mesh);
     roadRibbons += mesh.roads.ribbonCount;
@@ -1031,7 +1045,9 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
     const showProps = import.meta.env.DEV && new URLSearchParams(location.search).has("showprops");
     let dynamicInstances = 0;
     for (const field of dynamicObjectFields) {
-      const raw = await readBytes(directory, `game/${field.path}`);
+      const raw = startupFieldSet
+        ? (await readRuntimeFieldAssets(field.fieldNumber)).nativeFieldBytes
+        : await readBytes(directory, `game/${field.path}`);
       const asset = readFieldObjectAsset(raw);
       if (!asset) continue;
       if (showProps) {
@@ -1069,12 +1085,18 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   for (const [index, collision] of collisionWorld.entries()) {
     const field = upgradedManifest.fields.find((candidate) => candidate.fieldNumber === collision.fieldNumber);
     if (!field) throw new Error(`FLD/${collision.fieldNumber.toString().padStart(3, "0")} source is missing.`);
-    const [compiledCollisionBytes, nativeFieldBytes] = await Promise.all([
-      readBytes(directory, collision.path),
-      readBytes(directory, `game/${field.path}`),
-    ]);
-    drivingWorld.addField(collision.fieldNumber, compiledCollisionBytes);
-    drivingWorld.addNativeField(collision.fieldNumber, nativeFieldBytes);
+    if (startupFieldSet) {
+      const assets = await readRuntimeFieldAssets(collision.fieldNumber);
+      drivingWorld.addCompiledField(collision.fieldNumber, assets.collision);
+      drivingWorld.addNativeField(collision.fieldNumber, assets.nativeFieldBytes);
+    } else {
+      const [compiledCollisionBytes, nativeFieldBytes] = await Promise.all([
+        readBytes(directory, collision.path),
+        readBytes(directory, `game/${field.path}`),
+      ]);
+      drivingWorld.addField(collision.fieldNumber, compiledCollisionBytes);
+      drivingWorld.addNativeField(collision.fieldNumber, nativeFieldBytes);
+    }
     loadedWorldFieldNumbers.add(collision.fieldNumber);
     requiredElement<HTMLElement>("field-count").textContent = `${index + 1}/${collisionWorld.length}`;
     if ((index & 7) === 7) await nextFrame();
@@ -1184,33 +1206,51 @@ async function showInstalled(manifest: ImportManifest): Promise<void> {
   if (fastNormalStart && !isDriving && !peachRaceCoordinator) focusNavigationEntry(playShellControls(), 0);
 }
 
+async function readRuntimeFieldAssets(fieldNumber: number): Promise<RuntimeFieldAssets> {
+  if (!activeManifest || !activeDirectory) throw new Error("The active PAL install is unavailable.");
+  const directory = activeDirectory;
+  const compiled = activeManifest.compiledFields.find((field) => field.fieldNumber === fieldNumber);
+  const collisionRecord = activeManifest.collisionFields?.find((field) => field.fieldNumber === fieldNumber);
+  const field = activeManifest.fields.find((candidate) => candidate.fieldNumber === fieldNumber);
+  if (!compiled || !collisionRecord || !field) {
+    throw new Error(`FLD/${fieldNumber.toString().padStart(3, "0")} is not present in the completed local cache.`);
+  }
+  return runtimeFieldAssetCache.getOrLoad(fieldNumber, async () => {
+    const startedAt = performance.now();
+    const [[meshBytes, collisionBytes, nativeFieldBytes], { deserializeCompiledField }, { deserializeCompiledCollision }] = await Promise.all([
+      Promise.all([
+        readBytes(directory, compiled.path),
+        readBytes(directory, collisionRecord.path),
+        readBytes(directory, `game/${field.path}`),
+      ]),
+      import("./formats/fieldGeometry"),
+      import("./formats/fieldCollision"),
+    ]);
+    const assets = {
+      mesh: deserializeCompiledField(meshBytes),
+      collision: deserializeCompiledCollision(collisionBytes),
+      nativeFieldBytes,
+    };
+    if (import.meta.env.DEV) {
+      console.info(`Runtime field cache miss FLD/${fieldNumber.toString().padStart(3, "0")}: read + decode in ${Math.round(performance.now() - startedAt)} ms.`);
+    }
+    return assets;
+  });
+}
+
 async function ensureWorldFieldLoaded(fieldNumber: number): Promise<void> {
   if (loadedWorldFieldNumbers.has(fieldNumber)) return;
   const existing = loadingWorldFields.get(fieldNumber);
   if (existing) return existing;
   if (!activeManifest || activeManifest.installStage === "bootstrap" || !activeDirectory || !worldView || !drivingWorld) return;
-  const compiled = activeManifest.compiledFields.find((field) => field.fieldNumber === fieldNumber);
-  const collisionRecord = activeManifest.collisionFields?.find((field) => field.fieldNumber === fieldNumber);
-  const field = activeManifest.fields.find((candidate) => candidate.fieldNumber === fieldNumber);
-  if (!compiled || !collisionRecord || !field) throw new Error(`FLD/${fieldNumber.toString().padStart(3, "0")} is not present in the completed local cache.`);
   const task = (async () => {
-    const [[meshBytes, collisionBytes, nativeFieldBytes], { deserializeCompiledField }, { deserializeCompiledCollision }] = await Promise.all([
-      Promise.all([
-        readBytes(activeDirectory!, compiled.path),
-        readBytes(activeDirectory!, collisionRecord.path),
-        readBytes(activeDirectory!, `game/${field.path}`),
-      ]),
-      import("./formats/fieldGeometry"),
-      import("./formats/fieldCollision"),
-    ]);
-    const mesh = deserializeCompiledField(meshBytes);
-    const collision = deserializeCompiledCollision(collisionBytes);
-    const stats = worldView!.addCompiledFieldMesh(fieldNumber, mesh);
-    drivingWorld!.addCompiledFieldSurface(fieldNumber, mesh);
-    drivingWorld!.addCompiledField(fieldNumber, collision);
-    drivingWorld!.addNativeField(fieldNumber, nativeFieldBytes);
+    const assets = await readRuntimeFieldAssets(fieldNumber);
+    const stats = worldView!.addCompiledFieldMesh(fieldNumber, assets.mesh);
+    drivingWorld!.addCompiledFieldSurface(fieldNumber, assets.mesh);
+    drivingWorld!.addCompiledField(fieldNumber, assets.collision);
+    drivingWorld!.addNativeField(fieldNumber, assets.nativeFieldBytes);
     loadedWorldFieldNumbers.add(fieldNumber);
-    await loadLazyFieldDynamicObjects(fieldNumber, nativeFieldBytes);
+    await loadLazyFieldDynamicObjects(fieldNumber, assets.nativeFieldBytes);
     requiredElement<HTMLElement>("field-count").textContent = String(stats.sectors);
     requiredElement<HTMLElement>("triangle-count").textContent = stats.triangles.toLocaleString();
   })();
@@ -1983,6 +2023,7 @@ function refreshDebugOverlay(): void {
     surfaceFlags: state?.surfaceFlags,
     loadedSectors: loadedWorldFieldNumbers.size,
     installStage: activeManifest?.installStage,
+    fieldAssetCache: runtimeFieldAssetCache.snapshot(),
     raceVehicleCollisions: peachRaceCoordinator ? peachRaceVehicleContacts : undefined,
   })];
   const fixedZone = worldView?.fixedInteractionDebugNearestLabel();
