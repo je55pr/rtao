@@ -105,7 +105,7 @@ export function nativeCameraWorldMatrix(
 
 export function nativeCameraProjectionCenterMode(controller: NativeChaseCameraState): NativeCameraProjectionCenterMode {
   // PAL 0x21F6AC..0x21F710 compares controller +0x1C against 2 and 3.
-  return controller.flags === 2 ? "state-2" : controller.flags === 3 ? "state-3" : "ordinary";
+  return controller.modeFlags === 2 ? "state-2" : controller.modeFlags === 3 ? "state-3" : "ordinary";
 }
 
 export function nativeCameraProjectionContract(

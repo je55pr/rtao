@@ -12,7 +12,7 @@ function input():NativeRaceFrameInput {
   return {state:{vehicle:createNativeRaceVehicleState(0),contact:{position:[0,0,0],referenceY:0,support:[4096,4096,4096],
     supportDelta:[0,0,0],impulses:[0,0,0],unsupportedTicks:0,runtimeFlags:0,specialState:0,yaw:0},
     velocity:[256,0,0,0],previousVelocity:[0,0,0,0],matrix:nativeRaceIdentity(),inverse:nativeRaceIdentity(),bodyMatrix:nativeRaceIdentity(),
-    coordinates:[0,0,0,1],surfaces:Array(7).fill(0),carFlags:2,positionIndex:0,distance:0,countdownByte:0,countdownHalf:0,equipmentBoostState:0,verticalControl:0,shiftScheduleFlag:0},
+    coordinates:[0,0,0,1],collisionHardpoints:data.contact.probes.slice(3,7),surfaces:Array(7).fill(0),carFlags:2,positionIndex:0,distance:0,countdownByte:0,countdownHalf:0,equipmentBoostState:0,verticalControl:0,shiftScheduleFlag:0},
     equipment:{surfaceGrips:Array(6).fill(1000),mass:20,engineScalar:100,fuelConsumption:1,steeringScalar:128,
       brakeCurve:new Uint8Array(32),gearWords:[-128,128,96,64,32,16,8,0]},equipmentFlags:0,globalEquipmentFlags:0,
     sceneFlags:4,sceneKind:0,sceneByte0B:0,sceneTime:0,raceModeByte:0,commands:1,highShiftSchedule:true,obstaclePoints:[]};

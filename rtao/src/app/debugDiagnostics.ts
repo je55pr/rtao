@@ -20,6 +20,7 @@ export interface LiveDiagnostics {
   readonly surfaceFlags: number | undefined;
   readonly loadedSectors: number;
   readonly installStage: string | undefined;
+  readonly raceVehicleCollisions?: readonly { readonly firstCarIndex: number; readonly secondCarIndex: number }[];
 }
 
 const surfaceLabels: Readonly<Record<DrivingSurfaceKind, string>> = {
@@ -56,6 +57,14 @@ export function liveDiagnosticsRows(live: LiveDiagnostics): readonly Diagnostics
     },
     { label: "Resolved surface", value: live.surface ? surfaceLabel(live.surface) : "—" },
     { label: "Native collision", value: live.surfaceFlags === undefined ? "—" : nativeCollisionSurfaceLabel(live.surfaceFlags) },
+    {
+      label: "Race vehicle contacts",
+      value: live.raceVehicleCollisions === undefined
+        ? "—"
+        : live.raceVehicleCollisions.length === 0
+          ? "none"
+          : live.raceVehicleCollisions.map((contact) => `${contact.firstCarIndex}↔${contact.secondCarIndex}`).join(", "),
+    },
   ];
 }
 

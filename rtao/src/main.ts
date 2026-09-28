@@ -283,6 +283,7 @@ let peachRaceFrame = 0;
 let peachRaceLastTimestamp = 0;
 let peachRaceAccumulatorMs = 0;
 let peachRaceSceneTime = 0;
+let peachRaceVehicleContacts: readonly { readonly firstCarIndex: number; readonly secondCarIndex: number }[] = [];
 let peachRaceRewardApplied = false;
 let peachRaceResultOpen = false;
 let peachRaceSuspendedTownSession = false;
@@ -1462,6 +1463,7 @@ async function startPeachRace(scheduleAnimation = true, playerEquipmentSelectors
   peachRaceCoordinator = coordinator;
   peachRaceModels = models;
   peachRaceSceneTime = 0;
+  peachRaceVehicleContacts = [];
   peachRaceLastTimestamp = 0;
   peachRaceAccumulatorMs = 0;
   peachRaceRewardApplied = false;
@@ -1539,6 +1541,7 @@ function runPeachRaceFrame(timestamp: number): void {
     const sceneTime = peachRaceSceneTime++;
     startPreparedNativeRaceMusic(sceneTime);
     const step = peachRaceCoordinator.step({ sceneTime, playerCommands });
+    peachRaceVehicleContacts = step.session.vehicleCollisions;
     const engineSpeed = peachRaceCoordinator.runtime.session.entrant(0).state.vehicle.engineSpeed;
     syncNativeEngineAudio(engineSpeed, (playerCommands & 1) as 0 | 1, true);
     applyPeachRaceStartUiStates(step.session.countdown?.uiStateIndices ?? []);
@@ -1980,6 +1983,7 @@ function refreshDebugOverlay(): void {
     surfaceFlags: state?.surfaceFlags,
     loadedSectors: loadedWorldFieldNumbers.size,
     installStage: activeManifest?.installStage,
+    raceVehicleCollisions: peachRaceCoordinator ? peachRaceVehicleContacts : undefined,
   })];
   const fixedZone = worldView?.fixedInteractionDebugNearestLabel();
   if (fixedZone) rows.push({ label: "Nearest fixed zone", value: fixedZone });

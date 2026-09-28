@@ -28,6 +28,7 @@ export function palRaceFrameOracle(executable:Uint8Array) {
       m.memory.fill(0,car,car+0x1000);
       const s=input.state,e=input.equipment;
       putFloats(car,s.matrix);putFloats(car+0x40,s.bodyMatrix);putFloats(car+0x90,s.coordinates);putFloats(car+0xb0,s.inverse);
+      s.collisionHardpoints.forEach((point,index)=>putFloats(car+0x140+index*0x10,point));
       putInts(car+0xa0,s.contact.position);putInts(car+0xf0,s.velocity);putInts(car+0x100,s.previousVelocity);
       putInts(car+0x19c,s.surfaces);putInts(car+0x1c0,s.contact.impulses);putInts(car+0x1dc,s.contact.support);putInts(car+0x1e8,s.contact.supportDelta);
       v.setUint32(car+0x184,equipment,true);v.setUint32(car+0x200,curve,true);m.memory.set(e.brakeCurve,curve);
@@ -73,6 +74,7 @@ export function palRaceFrameOracle(executable:Uint8Array) {
           unsupportedTicks:v.getInt32(car+0x1f4,true),runtimeFlags:v.getUint32(car+0x1f8,true),specialState:v.getInt8(car+0x213)},
         velocity:ints(car+0xf0,4) as [number,number,number,number],previousVelocity:ints(car+0x100,4) as [number,number,number,number],
         matrix:floats(car,16),inverse:floats(car+0xb0,16),bodyMatrix:floats(car+0x40,16),coordinates:floats(car+0x90,4) as [number,number,number,number],
+        collisionHardpoints:Array.from({length:4},(_,index)=>floats(car+0x140+index*0x10,4) as [number,number,number,number]),
         surfaces:ints(car+0x19c,7),carFlags:v.getUint16(car+0x198,true),positionIndex:v.getUint8(car+0x247),distance:v.getInt32(car+0x204,true),
         countdownByte:v.getInt8(car+0x212),countdownHalf:v.getInt16(car+0x210,true),equipmentBoostState:v.getInt16(car+0x20e,true),verticalControl:v.getInt8(car+0x244),shiftScheduleFlag:v.getUint8(car+0x1fc)};
       return {state,sceneFlags:v.getUint32(scene+0x28,true),contactFlags,obstacleFlags,diagnosticRequested,impactRequests,soundRequests,

@@ -6,6 +6,10 @@
  */
 import { PalVuMachine } from './palVuMachine';
 
+export interface PalScalarMachineOptions {
+  readonly cvtWsRounding?: "truncate" | "nearest-even";
+}
+
 export class PalScalarMachine {
   readonly memory = new Uint8Array(0x2000000);
   readonly view = new DataView(this.memory.buffer);
@@ -18,7 +22,7 @@ export class PalScalarMachine {
     [0x278120, 0x278310], [0x27a780, 0x27aa48],
     [0x22f068, 0x22f290], [0x22ed38, 0x22ee48], [0x2340c0, 0x234334],
     [0x238d00, 0x238e74],
-    [0x21b238, 0x21b400], [0x21dcf8, 0x21df68], [0x218dc0, 0x218f70],
+    [0x21b238, 0x21b400], [0x21dcf8, 0x21df68], [0x218470, 0x218b18], [0x218dc0, 0x218f70],
     [0x219d90, 0x21a364],
     [0x21b1c0, 0x21b6cc], [0x21af38, 0x21b1c0],
     [0x21bdd8, 0x21c920],
@@ -26,14 +30,16 @@ export class PalScalarMachine {
     [0x2086c0, 0x208790], [0x219160, 0x219294], [0x21a368, 0x21a510],
     [0x21a510, 0x21af38],
     [0x20ca68, 0x20ca90],
-    [0x275770, 0x275928], [0x275990, 0x2759a8], [0x275a20, 0x275a30],
-    [0x275a98, 0x275b38], [0x275c88, 0x275d30], [0x21e188, 0x21e1bc],
+    [0x275770, 0x275928], [0x275990, 0x2759bc], [0x275a20, 0x275a30],
+    [0x275a98, 0x275b38], [0x275c88, 0x275d30], [0x21e188, 0x21e204],
     [0x207748, 0x207aa0], [0x208c50, 0x208d30],
     [0x218f70, 0x21915c], [0x21cd88, 0x21cea8], [0x21d1b8, 0x21d24c], [0x21d2f0, 0x21d380],
   ];
   private gp = 0;
+  private readonly cvtWsRounding: "truncate" | "nearest-even";
 
-  constructor(elf: Uint8Array) {
+  constructor(elf: Uint8Array, options: PalScalarMachineOptions = {}) {
+    this.cvtWsRounding = options.cvtWsRounding ?? "truncate";
     const data = new DataView(elf.buffer, elf.byteOffset, elf.byteLength);
     if (data.getUint32(0, true) !== 0x464c457f) throw new Error("PAL oracle requires ELF bytes.");
     for (let i = 0; i < data.getUint16(44, true); i++) {
@@ -147,7 +153,16 @@ export class PalScalarMachine {
           else if (fn === 4) this.floats[sh] = Math.sqrt(Math.abs(b));
           else if (fn === 6) this.floatWords[sh] = this.floatWords[rd]!;
           else if (fn === 7) this.floats[sh] = -a;
-          else if (fn === 36) this.floatWords[sh] = Math.trunc(a);
+          else if (fn === 36) {
+            if (this.cvtWsRounding === "truncate") {
+              this.floatWords[sh] = Math.trunc(a);
+            } else {
+              const floor = Math.floor(a), fraction = a - floor;
+              this.floatWords[sh] = fraction < 0.5 ? floor
+                : fraction > 0.5 ? floor + 1
+                  : (floor & 1) === 0 ? floor : floor + 1;
+            }
+          }
           else if (fn === 50) condition = a === b;
           else if (fn === 52) condition = a < b;
           else if (fn === 54) condition = a <= b;

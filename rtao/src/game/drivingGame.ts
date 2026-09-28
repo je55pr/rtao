@@ -797,10 +797,13 @@ export class BrowserDrivingGame {
             projection: null,
           }).pose;
         })()
-      : applyBrowserChaseSafetyToSelection(
-          { source: "host-fallback" as const, pose: fallbackPose },
-          (point) => this.world.sampleSpecialOutdoorGround(state.location.areaCode, point, point.y),
-        );
+      : (() => {
+          const areaCode = state.location.areaCode;
+          return applyBrowserChaseSafetyToSelection(
+            { source: "host-fallback" as const, pose: fallbackPose },
+            (point) => this.world.sampleSpecialOutdoorGround(areaCode, point, point.y),
+          );
+        })();
     if (state.location.kind === "special-outdoor") {
       this.view.updateSpecialOutdoorDriving(
         state.location.areaCode,

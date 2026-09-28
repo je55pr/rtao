@@ -10,6 +10,7 @@ import { NativeRaceCollisionSampler } from "../nativeRaceCollision";
 import { readNativeRaceFrameData, type NativeRaceFrameData } from "../nativeRaceFrame";
 import type { NativeCameraObstructionQuery } from "../nativeCameraRuntimeContract";
 import { readNativeRaceObstaclePoints } from "../nativeRaceObstacle";
+import { readNativeRaceVehicleCollisionData } from "../nativeRaceVehicleCollision";
 import {
   ordinaryRaceOpponentEquipment,
   readNativeRaceEquipment,
@@ -87,6 +88,7 @@ export function createOrdinaryRaceRuntime(input: OrdinaryRaceRuntimeInput): Ordi
   const initialCommands = createOrdinaryRaceEntrantInitialCommands(activity, anchor);
   const grid = new RaceCourseGridSampler(input.compiledCollision);
   const frameData = readNativeRaceFrameData(input.executable);
+  const vehicleCollisionData = readNativeRaceVehicleCollisionData(input.executable);
   const collision = new NativeRaceCollisionSampler(input.courseBytes);
   const obstaclePoints = readNativeRaceObstaclePoints(input.courseBytes);
   const opponentSetup = ordinaryRaceOpponentEquipment(activity);
@@ -104,6 +106,7 @@ export function createOrdinaryRaceRuntime(input: OrdinaryRaceRuntimeInput): Ordi
         entrant: command.entrant,
         groundedNativeY: grounded.position.y,
         positionDivisor: frameData.contact.positionDivisor,
+        contactProbes: frameData.contact.probes,
       }),
       equipment: isPlayer ? equipment : { ...equipment, fuelConsumption: 0 },
       equipmentFlags,
@@ -120,6 +123,7 @@ export function createOrdinaryRaceRuntime(input: OrdinaryRaceRuntimeInput): Ordi
       finishGates,
       countdown: input.countdown,
       frameData,
+      vehicleCollisionData,
       query: (point) => collision.query(point),
       sceneKind: input.sceneKind,
       sceneByte0B: input.sceneByte0B,

@@ -13,7 +13,8 @@ The first ordinary-race vertical slice is integrated on `dev`. Verified foundati
 - executable-backed ordinary-race catalogue, entrant/grid construction, finish strips, lap state, rewards and licence progression;
 - native ordinary AI/navigation, scheduling/order, controls, drive force, traction and scalar vehicle composition;
 - seven-probe ground support, course collision, contact/orientation, collision response and original-course obstacle handling;
-- the enclosing ordinary vehicle frame validated against retained PAL execution on original courses;
+- dedicated ordinary-race car-to-car collision through PAL task `0x218888`: deterministic 24-slot pair ordering, probe-3..6 oriented admission, symmetric fixed-position separation and native X/Z velocity averaging for player/AI and AI/AI contacts; the special collision event-owner branch remains evidence-gated;
+- the enclosing ordinary vehicle frame validated against retained PAL execution on original courses, including the retained `car+0x140..+0x170` collision-probe snapshots;
 - a dedicated PAL driving-validation gate now replays representative C00 control/equipment sequences with field-level pose, velocity and contact diagnostics, while the production chase-camera arithmetic has a pure seam that can be checked against a local numeric PAL camera trace without committing proprietary inputs;
 - race contact grip consumption matches PAL for raw low-three-bit surface slots 0–7: slots 0–5 use the six recovered tyre words while car-record slots 6/7 remain the exact zeroes established by initialization; these are not extra tyre coefficients and free-roam surface semantics are unchanged;
 - rendered Peach Raceway (`COURSE/C00`) with the recovered 24-car grid and deterministic moving capture;

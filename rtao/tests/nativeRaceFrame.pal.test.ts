@@ -15,7 +15,8 @@ const executablePath=process.env.RTA_PAL_EXECUTABLE;
 function initial():NativeRaceFrameState {
   return {vehicle:createNativeRaceVehicleState(0),contact:{position:[0,0,0],referenceY:0,support:[4096,4096,4096],supportDelta:[0,0,0],
     impulses:[0,0,0],unsupportedTicks:0,runtimeFlags:0,specialState:0,yaw:0},velocity:[0,0,0,0],previousVelocity:[0,0,0,0],
-    matrix:nativeRaceIdentity(),inverse:nativeRaceIdentity(),bodyMatrix:nativeRaceIdentity(),coordinates:[0,0,0,1],surfaces:Array(7).fill(0),
+    matrix:nativeRaceIdentity(),inverse:nativeRaceIdentity(),bodyMatrix:nativeRaceIdentity(),coordinates:[0,0,0,1],
+    collisionHardpoints:Array.from({length:4},()=>[0,0,0,0] as const),surfaces:Array(7).fill(0),
     carFlags:2,positionIndex:0,distance:0,countdownByte:0,countdownHalf:0,equipmentBoostState:0,verticalControl:0,shiftScheduleFlag:0};
 }
 function inputFor(elf:Uint8Array,state:NativeRaceFrameState):NativeRaceFrameInput {

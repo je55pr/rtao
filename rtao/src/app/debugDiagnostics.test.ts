@@ -15,17 +15,18 @@ const live = {
 describe("live diagnostics rows", () => {
   test("keeps raw reconstruction values out of the game HUD and in the overlay", () => {
     const rows = liveDiagnosticsRows(live);
-    expect(rows.map((row) => row.label)).toEqual(["Mode", "FPS", "Cache", "Field", "Position", "Resolved surface", "Native collision"]);
+    expect(rows.map((row) => row.label)).toEqual(["Mode", "FPS", "Cache", "Field", "Position", "Resolved surface", "Native collision", "Race vehicle contacts"]);
     expect(rows[1]!.value).toBe("60");
     expect(rows[3]!.value).toBe("FLD/223");
     expect(rows[4]!.value).toBe("1582.50, 31.25, 40.00");
     expect(rows[5]!.value).toBe("Paved road");
     expect(rows[6]!.value).toBe("Off-road · selector 1 · 0x80100651");
+    expect(rows[7]!.value).toBe("—");
   });
 
   test("renders placeholders when nothing is being driven", () => {
     const rows = liveDiagnosticsRows({ ...live, mode: "overview", fps: undefined, fieldNumber: undefined, position: undefined, surface: undefined, surfaceFlags: undefined });
-    expect(rows.map((row) => row.value)).toEqual(["overview", "—", "complete · 9 live", "—", "—", "—", "—"]);
+    expect(rows.map((row) => row.value)).toEqual(["overview", "—", "complete · 9 live", "—", "—", "—", "—", "—"]);
   });
 
   test("labels resolved and raw native surfaces separately", () => {
