@@ -69,7 +69,7 @@ export function nativeRaceCollisionCell(x: number, z: number): number {
 /** Retains original collision records, which the render-space triangle cache omits. */
 export class NativeRaceCollisionSampler {
   private readonly bytes: Uint8Array;
-  private readonly collisionOffset: number;
+  private readonly collisionOffsetInField: number;
   private readonly chunks: ReturnType<typeof readCollisionChunkDirectory>['chunks'];
 
   constructor(fieldBytes: Uint8Array) {
@@ -78,14 +78,14 @@ export class NativeRaceCollisionSampler {
     // Retain the authored collision section only. This preserves packet order,
     // plane records and 100-unit cells without keeping the rest of the FLD payload.
     this.bytes = fieldBytes.slice(header.collision.offset, header.collision.offset + header.collision.length);
-    this.collisionOffset = 0;
+    this.collisionOffsetInField = header.collision.offset;
   }
 
   query(point: NativeRaceCollisionPoint): NativeRaceCollisionResult & { point: NativeRaceCollisionPoint } {
     const chunk = this.chunks[nativeRaceCollisionCell(point[0], point[2])]!;
-    const result = queryNativeRaceCollisionChunk(this.bytes, this.collisionOffset + chunk.relativeOffset,
-      chunk.declaredPacketCount, point);
-    return { ...result, point: result.flags >= 0
+    const result = queryNativeRaceCollisionChunk(this.bytes, chunk.relativeOffset, chunk.declaredPacketCount, point);
+    const planeOffset = result.planeOffset === null ? null : this.collisionOffsetInField + result.planeOffset;
+    return { ...result, planeOffset, point: result.flags >= 0
       ? [f(point[0]), result.groundY, f(point[2]), result.extraY]
       : [f(point[0]), f(point[1]), f(point[2]), f(point[3])] };
   }

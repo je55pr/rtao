@@ -92,7 +92,10 @@ describe.skipIf(!executablePath)('PAL assembled ordinary vehicle frame',()=>{
         summaries.push({course,updates:600,obstaclePoints:points.length,collisionUpdates,finalPosition:actual.contact.position,distance:actual.distance,checkpoints});
       }
       const outputSha256=hash.digest('hex');
-      expect(outputSha256).toBe('5fc1a0adce6b725daeebf9cb4d944b835cd53ee509aacb4cb62178e4fb34fece');
+      // Updated when PAL car +0x140..+0x170 collision hardpoints became part of
+      // the retained frame state; every tick above is still independently
+      // compared against the executable-backed oracle before entering the hash.
+      expect(outputSha256).toBe('902853c19378c7f3779a7edca9595a374ee9e4a93b851f5f96d71060373fb917');
       if(process.env.RTA_RACE_FRAME_REPORT)writeFileSync(process.env.RTA_RACE_FRAME_REPORT,JSON.stringify({totalUpdates,courses:summaries,outputSha256,
         boundary:'Original course collision/obstacles and native frame instructions through body/distance. Commands are supplied; effects/memset are hooks. Wheel animation, reset/debug and low equipment 0x000C remain outside this gate; 0x1000/0x2000 are composed. No playable race claim.'},null,2)+'\n');
     }finally{closeSync(handle);}
